@@ -749,7 +749,7 @@ int yr_lex_parse_rules_file(
 
   yyset_in(rules_file, yyscanner);
   yyset_extra(compiler, yyscanner);
-  yyparse(yyscanner, compiler);
+  yyparse(yyscanner, compiler); //aragusa <- here
   yylex_destroy(yyscanner);
 
   return compiler->errors;

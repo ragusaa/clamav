@@ -763,7 +763,7 @@ identifier
 arguments_list
     : /* empty */
       {
-        $$ = yr_strdup("");
+        $$ = yr_strdup(""); //44
       }
     | expression
       {

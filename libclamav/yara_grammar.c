@@ -1324,7 +1324,7 @@ yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
       YYCASE_(0, YY_("syntax error"));
       YYCASE_(1, YY_("syntax error, unexpected %s"));
       YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
-      YYCASE_(3, YY_("syntax error, unexpected %s, expecting %s or %s"));
+      YYCASE_(3, YY_("syntax error, unexpected %s, expecting %s or %s")); //aragusa: here
       YYCASE_(4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
       YYCASE_(5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
 # undef YYCASE_
@@ -1540,12 +1540,14 @@ yysetstate:
   YY_IGNORE_USELESS_CAST_BEGIN
   *yyssp = YY_CAST (yy_state_t, yystate);
   YY_IGNORE_USELESS_CAST_END
+fprintf(stderr, "%s::yysetstate\n", __FUNCTION__);
 
   if (yyss + yystacksize - 1 <= yyssp)
 #if !defined yyoverflow && !defined YYSTACK_RELOCATE
     goto yyexhaustedlab;
 #else
     {
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1550);
       /* Get the current used size of the three stacks, in elements.  */
       YYPTRDIFF_T yysize = yyssp - yyss + 1;
 
@@ -1567,6 +1569,7 @@ yysetstate:
                     &yystacksize);
         yyss = yyss1;
         yyvs = yyvs1;
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1572);
       }
 # else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
@@ -1591,6 +1594,7 @@ yysetstate:
       }
 # endif
 
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1597);
       yyssp = yyss + yysize - 1;
       yyvsp = yyvs + yysize - 1;
 
@@ -1603,9 +1607,11 @@ yysetstate:
         YYABORT;
     }
 #endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1610);
 
   if (yystate == YYFINAL)
     YYACCEPT;
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1614);
 
   goto yybackup;
 
@@ -1618,6 +1624,7 @@ yybackup:
      lookahead token if we need one and don't already have one.  */
 
   /* First try to decide what to do without reference to lookahead token.  */
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1627);
   yyn = yypact[yystate];
   if (yypact_value_is_default (yyn))
     goto yydefault;
@@ -1641,12 +1648,15 @@ yybackup:
       yytoken = YYTRANSLATE (yychar);
       YY_SYMBOL_PRINT ("Next token is", yytoken, &yylval, &yylloc);
     }
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1651);
 
   /* If the proper action on seeing token YYTOKEN is to reduce or to
      detect an error, take that action.  */
   yyn += yytoken;
-  if (yyn < 0 || YYLAST < yyn || yycheck[yyn] != yytoken)
+  if (yyn < 0 || YYLAST < yyn || yycheck[yyn] != yytoken) {
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1651);
     goto yydefault;
+  }
   yyn = yytable[yyn];
   if (yyn <= 0)
     {
@@ -1670,6 +1680,7 @@ yybackup:
 
   /* Discard the shifted token.  */
   yychar = YYEMPTY;
+fprintf(stderr, "%s::yysetstate::%d\n", __FUNCTION__, 1681);
   goto yynewstate;
 
 
@@ -2320,7 +2331,15 @@ yyreduce:
   case 44:
 #line 765 "yara_grammar.y"
       {
+#if 0
         (yyval.c_string) = yr_strdup("");
+#else
+        //(yyval.c_string) = cli_calloc(MAX_FUNCTION_ARGS, 1);
+        (yyval.c_string) = yr_malloc(MAX_FUNCTION_ARGS + 1);
+        ERROR_IF((yyval.c_string) == NULL);
+        memset(yyval.c_string, 0, MAX_FUNCTION_ARGS + 1);
+#endif
+        fprintf(stderr, "%s::%d::pointer = %p\n", __FUNCTION__, __LINE__, yyval.c_string);
       }
 #line 2326 "yara_grammar.c"
     break;
@@ -2363,15 +2382,19 @@ yyreduce:
           switch((yyvsp[0].expression_type))
           {
             case EXPRESSION_TYPE_INTEGER:
+fprintf(stderr, "%s::%d::calling strlcat 0\n", __FUNCTION__, __LINE__);
               strlcat((yyvsp[-2].c_string), "i", MAX_FUNCTION_ARGS);
               break;
             case EXPRESSION_TYPE_BOOLEAN:
+fprintf(stderr, "%s::%d::calling strlcat 1\n", __FUNCTION__, __LINE__);
               strlcat((yyvsp[-2].c_string), "b", MAX_FUNCTION_ARGS);
               break;
             case EXPRESSION_TYPE_STRING:
+fprintf(stderr, "%s::%d::calling strlcat 2\n", __FUNCTION__, __LINE__);
               strlcat((yyvsp[-2].c_string), "s", MAX_FUNCTION_ARGS);
               break;
             case EXPRESSION_TYPE_REGEXP:
+fprintf(stderr, "%s::%d::calling strlcat 3\n", __FUNCTION__, __LINE__);
               strlcat((yyvsp[-2].c_string), "r", MAX_FUNCTION_ARGS);
               break;
           }
@@ -3570,6 +3593,7 @@ yyreduce:
 
       default: break;
     }
+fprintf(stderr, "%s::%d::after switch\n", __FUNCTION__, 3585);
   /* User semantic actions sometimes alter yychar, and that requires
      that yytoken be updated with the new translation.  We take the
      approach of translating immediately before every use of yytoken.
@@ -3582,11 +3606,13 @@ yyreduce:
      to an incorrect destructor call or verbose syntax error message
      before the lookahead is translated.  */
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
+fprintf(stderr, "%s::%d::after switch\n", __FUNCTION__, 3598);
 
   YYPOPSTACK (yylen);
   yylen = 0;
   YY_STACK_PRINT (yyss, yyssp);
 
+fprintf(stderr, "%s::%d\n", __FUNCTION__, 3604);
   *++yyvsp = yyval;
 
   /* Now 'shift' the result of the reduction.  Determine what state
@@ -3599,6 +3625,7 @@ yyreduce:
                ? yytable[yyi]
                : yydefgoto[yylhs]);
   }
+fprintf(stderr, "%s::%d\n", __FUNCTION__, 3617);
 
   goto yynewstate;
 
@@ -3651,6 +3678,7 @@ yyerrlab:
 #endif
     }
 
+fprintf(stderr, "%s::%d\n", __FUNCTION__, 3670);
 
 
   if (yyerrstatus == 3)
@@ -3671,6 +3699,7 @@ yyerrlab:
           yychar = YYEMPTY;
         }
     }
+fprintf(stderr, "%s::%d\n", __FUNCTION__, 3691);
 
   /* Else will try to reuse lookahead token after shifting the error
      token.  */

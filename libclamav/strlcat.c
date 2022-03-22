@@ -26,6 +26,8 @@
 
 #include <sys/types.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /*
  * Appends src to string dst of size siz (unlike strncat, siz is the
@@ -45,6 +47,11 @@ cli_strlcat(char *dst, const char *src, size_t siz)
     size_t n      = siz;
     size_t dlen;
 
+fprintf(stderr, "%s::%d::%p\n", __FUNCTION__, __LINE__, dst);
+fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, dst);
+fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, src);
+fprintf(stderr, "%s::%d::%lu\n", __FUNCTION__, __LINE__, siz);
+
     /* Find the end of dst and adjust bytes left but don't go past end */
     while (n-- != 0 && *d != '\0')
         d++;
@@ -54,6 +61,7 @@ cli_strlcat(char *dst, const char *src, size_t siz)
     if (n == 0)
         return (dlen + strlen(s));
     while (*s != '\0') {
+fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         if (n != 1) {
             *d++ = *s;
             n--;

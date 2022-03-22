@@ -4341,7 +4341,7 @@ static int cli_loadyara(FILE *fs, struct cl_engine *engine, unsigned int *signo,
     compiler.allow_includes         = 1;
     _yr_compiler_push_file_name(&compiler, filename);
 
-    rc = yr_lex_parse_rules_file(fs, &compiler);
+    rc = yr_lex_parse_rules_file(fs, &compiler); //aragusa <- HERE
     if (rc > 0) { /* rc = number of errors */
                   /* TODO - handle the various errors? */
 #ifdef YARA_FINISHED
