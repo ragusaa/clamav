@@ -390,6 +390,12 @@ cl_error_t cli_ac_addpatt(struct cli_matcher *root, struct cli_ac_patt *pattern)
     }
 
     if (len < root->ac_mindepth) {
+
+        fprintf(stderr, "%s::%d::len = %d, root->ac_mindepth = %d, root->ac_maxdepth = %d, pattern->length[0] = %d\n", 
+                __FUNCTION__, __LINE__, len, root->ac_mindepth, root->ac_maxdepth, pattern->length[0]);
+
+
+
         /* cli_errmsg("cli_ac_addpatt: Signature for %s is too short\n", pattern->virname); */
         return CL_EMALFDB;
     }

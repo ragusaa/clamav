@@ -195,65 +195,9 @@ static const struct rtest {
     const char *displayurl;
     rtr_t result;
 } rtests[] = {
-    {NULL, "http://fake.example.com", "http://foo@key.com/", RTR_PHISH},
-    {NULL, "http://fake.example.com", "foo.example.com@key.com", RTR_PHISH},
-    {NULL, "http://fake.example.com", "foo@key.com", RTR_CLEAN},
-    {NULL, "http://fake.example.com", "&#61;&#61;&#61;&#61;&#61;key.com", RTR_PHISH},
-    {NULL, "http://key.com", "&#61;&#61;&#61;&#61;&#61;key.com", RTR_CLEAN},
-    {NULL, " http://key.com", "&#61;&#61;&#61;&#61;&#61;key.com", RTR_CLEAN},
-    {NULL, "http://key.com@fake.example.com", "key.com", RTR_PHISH},
-    {NULL, " http://key.com@fake.example.com", "key.com", RTR_PHISH},
-    {NULL, " http://key.com@fake.example.com ", "key.com", RTR_PHISH},
-    /* entry taken from .wdb with a / appended */
-    {".+\\.ebayrtm\\.com([/?].*)?:.+\\.ebay\\.(de|com|co\\.uk)([/?].*)?/",
-     "http://srx.main.ebayrtm.com",
-     "pages.ebay.de",
-     RTR_ALLOWED /* should be allowed */},
-    {".+\\.ebayrtm\\.com([/?].*)?:.+\\.ebay\\.(de|com|co\\.uk)([/?].*)?/",
-     "http://srx.main.ebayrtm.com.evil.example.com",
-     "pages.ebay.de",
-     RTR_PHISH},
-    {".+\\.ebayrtm\\.com([/?].*)?:.+\\.ebay\\.(de|com|co\\.uk)([/?].*)?/",
-     "www.www.ebayrtm.com?somecgi",
-     "www.ebay.com/something", RTR_ALLOWED},
-    {NULL,
-     "http://key.com", "go to key.com", RTR_CLEAN},
     {":.+\\.paypal\\.(com|de|fr|it)([/?].*)?:.+\\.ebay\\.(at|be|ca|ch|co\\.uk|de|es|fr|ie|in|it|nl|ph|pl|com(\\.(au|cn|hk|my|sg))?)([/?].*)?/",
-     "http://www.paypal.com", "pics.ebay.com", RTR_ALLOWED},
-    {NULL, "http://somefakeurl.example.com", "someotherdomain-key.com", RTR_CLEAN},
-    {NULL, "http://somefakeurl.example.com", "someotherdomain.key.com", RTR_PHISH},
-    {NULL, "http://malware-test.example.com/something", "test", RTR_BLOCKED},
-    {NULL, "http://phishing-test.example.com/something", "test", RTR_BLOCKED},
-    {NULL, "http://sub.malware-test.example.com/2", "test", RTR_BLOCKED},
-    {NULL, "http://sub.phishing-test.example.com/2", "test", RTR_BLOCKED},
-    {NULL, "http://user@malware-test.example.com/2", "test", RTR_BLOCKED},
-    {NULL, "http://user@phishing-test.example.com/2", "test", RTR_BLOCKED},
-    {NULL, "http://user@malware-test.example.com/2/test", "test", RTR_BLOCKED},
-    {NULL, "http://user@phishing-test.example.com/2/test", "test", RTR_BLOCKED},
-    {NULL, "http://user@malware-test.example.com/", "test", RTR_BLOCKED},
-    {NULL, "http://user@phishing-test.example.com/", "test", RTR_BLOCKED},
-    {NULL, "http://x.exe", "http:///x.exe", RTR_CLEAN},
-    {".+\\.ebayrtm\\.com([/?].*)?:[^.]+\\.ebay\\.(de|com|co\\.uk)/",
-     "http://srx.main.ebayrtm.com",
-     "pages.ebay.de",
-     RTR_ALLOWED /* should be allowed */},
-    {".+\\.ebayrtm\\.com([/?].*)?:.+[r-t]\\.ebay\\.(de|com|co\\.uk)/",
-     "http://srx.main.ebayrtm.com",
-     "pages.ebay.de",
-     RTR_ALLOWED /* should be allowed */},
-    {".+\\.ebayrtm\\.com([/?].*)?:.+[r-t]\\.ebay\\.(de|com|co\\.uk)/",
-     "http://srx.main.ebayrtm.com",
-     "pages.ebay.de",
-     RTR_ALLOWED /* should be allowed */},
-    {"[t-", "", "", RTR_INVALID_REGEX},
-    {NULL, "http://co.uk", "http:// co.uk", RTR_CLEAN},
-    {NULL, "http://co.uk", "     ", RTR_CLEAN},
-    {NULL, "127.0.0.1", "pages.ebay.de", RTR_CLEAN},
-    {".+\\.ebayrtm\\.com([/?].*)?:.+\\.ebay\\.(de|com|co\\.uk)([/?].*)?/",
-     "http://pages.ebay.de@fake.example.com", "pages.ebay.de", RTR_PHISH},
-    {NULL, "http://key.com", "https://key.com", RTR_PHISH},
-    {NULL, "http://key.com%00fake.example.com", "https://key.com", RTR_PHISH},
-    {NULL, "http://key.com.example.com", "key.com.invalid", RTR_PHISH}};
+        "http://www.paypal.com", "pics.ebay.com", RTR_ALLOWED},
+};
 
 START_TEST(regex_list_match_test)
 {
@@ -275,6 +219,7 @@ START_TEST(regex_list_match_test)
     ck_assert_msg(!!pattern, "cli_strdup");
 
     rc = regex_list_add_pattern(&matcher, pattern);
+fprintf(stderr, "%s::%d::rc = %d\n", __FUNCTION__, __LINE__, rc);
     if (rtest->result == RTR_INVALID_REGEX) {
         ck_assert_msg(rc, "regex_list_add_pattern should return error");
         free(pattern);

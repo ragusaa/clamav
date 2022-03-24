@@ -718,6 +718,8 @@ static cl_error_t add_newsuffix(struct regex_matcher *matcher, struct regex_list
     new->customdata = info;
     new->virname    = NULL;
     if ((ret = cli_ac_addpatt(root, new))) {
+        fprintf(stderr, "%s::%d::FFFTHISTHING\n", __FUNCTION__, __LINE__);
+        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, suffix);
         MPOOL_FREE(matcher->mempool, new->pattern);
         MPOOL_FREE(matcher->mempool, new);
 
@@ -798,7 +800,9 @@ static cl_error_t add_pattern_suffix(void *cbdata, const char *suffix, size_t su
     } else {
         /* new suffix */
         size_t n    = matcher->suffix_cnt++;
+        //size_t n    = matcher->suffix_cnt;
         el          = cli_hashtab_insert(&matcher->suffix_hash, suffix, suffix_len, (cli_element_data)n);
+        //fprintf(stderr, "%s::%d::el = %p\n", __FUNCTION__, __LINE__, el);
         tmp_matcher = matcher->suffix_regexes; /*  save the current value before cli_realloc()	*/
         CLI_REALLOC(matcher->suffix_regexes, 
                 (n + 1) * sizeof(*matcher->suffix_regexes), 
@@ -810,7 +814,11 @@ static cl_error_t add_pattern_suffix(void *cbdata, const char *suffix, size_t su
             matcher->root_regex_idx = n;
         }
 
+#if 1
         ret = add_newsuffix(matcher, regex, suffix, suffix_len);
+#else
+        add_newsuffix(matcher, regex, suffix, suffix_len);
+#endif
 
         if (CL_SUCCESS != ret) {
             matcher->suffix_cnt--;
