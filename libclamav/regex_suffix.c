@@ -34,6 +34,9 @@
 #include "regex_suffix.h"
 #define MODULE "regex_suffix: "
 
+
+int verbose = 1;
+
 enum node_type {
     root = 0,
     concat,
@@ -70,15 +73,21 @@ static uint8_t dot_bitmap[32] = {
 static struct node *make_node(enum node_type type, struct node *left, struct node *right)
 {
     struct node *n;
+if (verbose){ fprintf(stderr, "%s::verbose::%d::Entering\n", __FUNCTION__, __LINE__); }
     if (type == concat) {
-        if (left == NULL)
+        if (left == NULL) {
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Leaving\n", __FUNCTION__, __LINE__); }
             return right;
-        if (right == NULL)
+        }
+        if (right == NULL) {
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Leaving\n", __FUNCTION__, __LINE__); }
             return left;
+        }
     }
     n = cli_malloc(sizeof(*n));
     if (!n) {
         cli_errmsg("make_node: Unable to allocate memory for new node\n");
+if (verbose){ fprintf(stderr, "%s::verbose::%d::Leaving\n", __FUNCTION__, __LINE__); }
         return NULL;
     }
     n->type             = type;
@@ -89,6 +98,7 @@ static struct node *make_node(enum node_type type, struct node *left, struct nod
         left->parent = n;
     if (right)
         right->parent = n;
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Leaving\n", __FUNCTION__, __LINE__); }
     return n;
 }
 
@@ -240,33 +250,44 @@ static uint8_t *parse_char_class(const uint8_t *pat, size_t *pos)
     return bitmap;
 }
 
+
 static struct node *parse_regex(const uint8_t *p, size_t *last)
 {
     struct node *v = NULL;
     struct node *right;
     struct node *tmp;
+    int iSet = 0;
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Entering\n", __FUNCTION__, __LINE__); }
 
     while (p[*last] != '$' && p[*last] != '\0') {
         switch (p[*last]) {
             case '|':
                 ++*last;
                 right = parse_regex(p, last);
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_node\n", __FUNCTION__, __LINE__); }
                 v     = make_node(alternate, v, right);
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from make_node\n", __FUNCTION__, __LINE__); }
                 if (!v)
                     return NULL;
                 break;
             case '*':
             case '?':
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_node\n", __FUNCTION__, __LINE__); }
                 v = make_node(optional, v, NULL);
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from make_node\n", __FUNCTION__, __LINE__); }
                 if (!v)
                     return NULL;
                 ++*last;
                 break;
             case '+':
                 /* (x)* */
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_node\n", __FUNCTION__, __LINE__); }
                 tmp = make_node(optional, v, NULL);
-                if (!tmp)
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from make_node\n", __FUNCTION__, __LINE__); }
+                if (!tmp) {
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returning NULL\n", __FUNCTION__, __LINE__); }
                     return NULL;
+                }
                 /* (x) */
                 right = dup_node(v);
                 if (!right) {
@@ -274,26 +295,56 @@ static struct node *parse_regex(const uint8_t *p, size_t *last)
                     return NULL;
                 }
                 /* (x)*(x) => (x)+ */
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_node\n", __FUNCTION__, __LINE__); }
                 v = make_node(concat, tmp, right);
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from make_node\n", __FUNCTION__, __LINE__); }
                 if (!v)
                     return NULL;
                 ++*last;
                 break;
             case '(':
+fprintf(stderr, "%s::%d::found the OPEN::last = %lu\n", __FUNCTION__, __LINE__, *last);
+if (100 == *last){
+    verbose = 1;
+    iSet = 1;
+}
                 ++*last;
                 right = parse_regex(p, last);
-                if (!right)
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from parse_regex, right = %p\n", __FUNCTION__, __LINE__, right); }
+                if (!right) {
+                    fprintf(stderr, "%s::%d::RIGHT is NULL\n", __FUNCTION__, __LINE__);
                     return NULL;
+                }
                 ++*last;
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_node\n", __FUNCTION__, __LINE__); }
                 v = make_node(concat, v, right);
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from make_node, v = %p\n", __FUNCTION__, __LINE__, v); }
+
+
+                if (iSet){
+                    //verbose = 0;
+                    iSet = 0;
+fprintf(stderr, "%s::%d::OPEN::last = %lu::break\n", __FUNCTION__, __LINE__, *last);
+                }
+
+#if 0
+                if (v){
+                    ++*last;
+                }
+#endif
+
+
                 break;
             case ')':
+if (verbose){ fprintf(stderr, "%s::verbose::%d::Returning '%p', *last = %lu\n", __FUNCTION__, __LINE__, v, *last); }
                 return v;
             case '.':
                 right = make_charclass(dot_bitmap);
                 if (!right)
                     return NULL;
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_node\n", __FUNCTION__, __LINE__); }
                 v = make_node(concat, v, right);
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from make_node\n", __FUNCTION__, __LINE__); }
                 if (!v)
                     return NULL;
                 ++*last;
@@ -313,10 +364,15 @@ static struct node *parse_regex(const uint8_t *p, size_t *last)
                  * and let fall-through handle it */
                 ++*last;
             default:
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_leaf::%d (%c)\n", __FUNCTION__, __LINE__, p[*last], p[*last]); }
                 right = make_leaf(p[*last]);
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Calling make_node\n", __FUNCTION__, __LINE__); }
                 v     = make_node(concat, v, right);
-                if (!v)
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returned from make_node\n", __FUNCTION__, __LINE__); }
+                if (!v) {
+    if (verbose){ fprintf(stderr, "%s::verbose::%d::Returning NULL\n", __FUNCTION__, __LINE__); }
                     return NULL;
+                }
                 ++*last;
                 break;
         }
@@ -330,15 +386,23 @@ static cl_error_t build_suffixtree_ascend(struct node *n, struct text_buffer *bu
 {
     size_t i, cnt;
     while (n) {
+fprintf(stderr, "%s::%d::Parsing '%c' to buf\n", __FUNCTION__, __LINE__, n->u.leaf_char);
         struct node *q = n;
         switch (n->type) {
             case root:
                 textbuffer_putc(buf, '\0');
+fprintf(stderr, "%s::%d::buf->data = '%s'\n", __FUNCTION__, __LINE__, buf->data);
                 if (cb(cbdata, buf->data, buf->pos - 1, regex) != CL_SUCCESS)
                     return CL_EMEM;
                 return CL_SUCCESS;
             case leaf:
+//fprintf(stderr, "%s::%d::Adding '%c'::buf = '%s'\n", __FUNCTION__, __LINE__, n->u.leaf_char, buf->data);
+
+                if ('(' == n->u.leaf_char){ fprintf(stderr, "%s::%d::Adding '%c' to buf\n", __FUNCTION__, __LINE__, n->u.leaf_char); }
+                if (')' == n->u.leaf_char){ fprintf(stderr, "%s::%d::Adding '%c' to buf\n", __FUNCTION__, __LINE__, n->u.leaf_char); }
+
                 textbuffer_putc(buf, n->u.leaf_char);
+//fprintf(stderr, "%s::%d::Adding '%c'::buf = '%s'\n", __FUNCTION__, __LINE__, n->u.leaf_char, buf->data);
                 n = n->parent;
                 break;
             case leaf_class:
@@ -348,7 +412,8 @@ static cl_error_t build_suffixtree_ascend(struct node *n, struct text_buffer *bu
                         cnt++;
                 if (cnt > 16) {
                     textbuffer_putc(buf, '\0');
-                    if (cb(cbdata, buf->data, buf->pos - 1, regex) != CL_SUCCESS)
+                fprintf(stderr, "%s::%d::buf->data = '%s'\n", __FUNCTION__, __LINE__, buf->data);
+                    if (cb(cbdata, buf->data, buf->pos - 1, regex) != CL_SUCCESS) //aragusa: calling add_pattern_suffix
                         return CL_EMEM;
                     return CL_SUCCESS;
                 }
@@ -357,9 +422,16 @@ static cl_error_t build_suffixtree_ascend(struct node *n, struct text_buffer *bu
                     if (BITMAP_HASSET(n->u.leaf_class_bitmap, i)) {
                         size_t pos;
                         pos = buf->pos;
+                if ('(' == i){ fprintf(stderr, "%s::%d::Adding '%c' to buf\n", __FUNCTION__, __LINE__, (char) i); }
+                if (')' == i){ fprintf(stderr, "%s::%d::Adding '%c' to buf\n", __FUNCTION__, __LINE__, (char) i); }
                         textbuffer_putc(buf, (char)i);
-                        if (build_suffixtree_ascend(n->parent, buf, n, cb, cbdata, regex) != CL_SUCCESS)
+//fprintf(stderr, "%s::%d::Adding '%c'::buf = '%s'\n", __FUNCTION__, __LINE__, (char) i, buf->data);
+fprintf(stderr, "%s::%d::calling build_suffixtree_ascend\n", __FUNCTION__, __LINE__);
+                        if (build_suffixtree_ascend(n->parent, buf, n, cb, cbdata, regex) != CL_SUCCESS) {
+fprintf(stderr, "%s::%d::returned from build_suffixtree_ascend\n", __FUNCTION__, __LINE__);
                             return CL_EMEM;
+                        }
+fprintf(stderr, "%s::%d::returned from build_suffixtree_ascend\n", __FUNCTION__, __LINE__);
                         buf->pos = pos;
                     }
                 }
@@ -380,7 +452,8 @@ static cl_error_t build_suffixtree_ascend(struct node *n, struct text_buffer *bu
                 break;
             case optional:
                 textbuffer_putc(buf, '\0');
-                if (cb(cbdata, buf->data, buf->pos - 1, regex) != CL_SUCCESS)
+                fprintf(stderr, "%s::%d::buf->data = '%s'\n", __FUNCTION__, __LINE__, buf->data);
+                if (cb(cbdata, buf->data, buf->pos - 1, regex) != CL_SUCCESS) //aragusa: calling add_pattern_suffix
                     return CL_EMEM;
                 return CL_SUCCESS;
         }
@@ -399,28 +472,47 @@ static cl_error_t build_suffixtree_descend(struct node *n, struct text_buffer *b
         return CL_SUCCESS;
     /* find out end of the regular expression,
      * if it ends with a static pattern */
+    fprintf(stderr, "%s::%d::Entering\n", __FUNCTION__, __LINE__);
+    fprintf(stderr, "%s::%d::Parsing '%c' to buf\n", __FUNCTION__, __LINE__, n->u.leaf_char);
     switch (n->type) {
         case alternate:
+    fprintf(stderr, "%s::%d::alternate\n", __FUNCTION__, __LINE__);
             /* save pos as restart point */
             pos = buf->pos;
             if (build_suffixtree_descend(n->u.children.left, buf, cb, cbdata, regex) != CL_SUCCESS)
+            { fprintf(stderr, "%s::%d::returning CL_EMEM\n", __FUNCTION__, __LINE__);
                 return CL_EMEM;
+            }
             buf->pos = pos;
             if (build_suffixtree_descend(n->u.children.right, buf, cb, cbdata, regex) != CL_SUCCESS)
+            { fprintf(stderr, "%s::%d::returning CL_EMEM\n", __FUNCTION__, __LINE__);
                 return CL_EMEM;
+            }
             buf->pos = pos;
             break;
         case optional:
+    fprintf(stderr, "%s::%d::optional\n", __FUNCTION__, __LINE__);
             textbuffer_putc(buf, '\0');
+fprintf(stderr, "%s::%d::CALLING CALLBACK::buf->data = '%s'\n", __FUNCTION__, __LINE__, buf->data);
+fprintf(stderr, "%s::%d::CALLING CALLBACK::buf->pos - 1 = '%lu'\n", __FUNCTION__, __LINE__, buf->pos - 1);
+fprintf(stderr, "%s::%d::CALLING CALLBACK::buf->data = '%p'\n", __FUNCTION__, __LINE__, buf->data);
             if (cb(cbdata, buf->data, buf->pos - 1, regex) != CL_SUCCESS)
+            { fprintf(stderr, "%s::%d::returning CL_EMEM\n", __FUNCTION__, __LINE__);
                 return CL_EMEM;
+            }
             return CL_SUCCESS;
         case leaf:
+    fprintf(stderr, "%s::%d::leaf\n", __FUNCTION__, __LINE__);
         case leaf_class:
+    fprintf(stderr, "%s::%d::leaf_class, calling build_suffixtree_ascend\n", __FUNCTION__, __LINE__);
             if (build_suffixtree_ascend(n, buf, NULL, cb, cbdata, regex) != CL_SUCCESS)
+            { fprintf(stderr, "%s::%d::returning CL_EMEM\n", __FUNCTION__, __LINE__);
                 return CL_EMEM;
+            }
+    fprintf(stderr, "%s::%d::leaf_class, returned from build_suffixtree_ascend\n", __FUNCTION__, __LINE__);
             return CL_SUCCESS;
         default:
+    fprintf(stderr, "%s::%d::default\n", __FUNCTION__, __LINE__);
             break;
     }
     return CL_SUCCESS;
@@ -438,38 +530,47 @@ cl_error_t cli_regex2suffix(const char *pattern, regex_t *preg, suffix_callback 
     VERIFY_POINTER(pattern, cli_errmsg("cli_regex2suffix: pattern must be initialized"); rc = CL_ENULLARG);
     VERIFY_POINTER(preg, cli_errmsg("cli_regex2suffix: preg must be initialized"); rc = CL_ENULLARG);
 
+            //fprintf (stderr, "%s::%d::pattern = '%s'\n", __FUNCTION__, __LINE__, pattern);
+
     regex.preg = preg;
+            //fprintf (stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     rc         = cli_regcomp(regex.preg, pattern, REG_EXTENDED);
     if (rc) {
         size_t buflen = cli_regerror(rc, regex.preg, NULL, 0);
         char *errbuf  = cli_malloc(buflen);
         if (errbuf) {
             cli_regerror(rc, regex.preg, errbuf, buflen);
-            //aragusa: leaks here, too.
-            fprintf (stderr, "%s::%d::patttern = '%s'\n", __FUNCTION__, __LINE__, pattern);
+            //fprintf (stderr, "%s::%d::in if rc::patttern = '%s'\n", __FUNCTION__, __LINE__, pattern);
             cli_errmsg(MODULE "Error compiling regular expression %s: %s\n", pattern, errbuf);
             free(errbuf);
         } else {
             cli_errmsg(MODULE "Error compiling regular expression: %s\n", pattern);
         }
+    fprintf (stderr, "%s::%d::returning '%d'\n", __FUNCTION__, __LINE__, rc);
         return rc;
     }
     regex.nxt = NULL;
+            //fprintf (stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     CLI_STRDUP(pattern, regex.pattern, cli_errmsg("cli_regex2suffix: Unable to duplicate pattern"); rc = CL_EMEM);
+    fprintf (stderr, "%s::%d::last = %lu\n", __FUNCTION__, __LINE__, last);
 
     n = parse_regex(((const uint8_t *)pattern), &last);
+            //fprintf (stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (!n)
         return REG_ESPACE;
     memset(&buf, 0, sizeof(buf));
     memset(&root_node, 0, sizeof(buf));
     n->parent = &root_node;
 
+    fprintf (stderr, "%s::%d::Calling build_suffixtree_descend\n", __FUNCTION__, __LINE__);
     rc = build_suffixtree_descend(n, &buf, cb, cbdata, &regex);
+    //fprintf (stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 done:
 
     FREE(regex.pattern);
     FREE(buf.data);
     destroy_tree(n);
+    fprintf (stderr, "%s::%d::returning '%d'\n", __FUNCTION__, __LINE__, rc);
     return rc;
 }

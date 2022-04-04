@@ -718,7 +718,7 @@ static cl_error_t add_newsuffix(struct regex_matcher *matcher, struct regex_list
     new->customdata = info;
     new->virname    = NULL;
     if ((ret = cli_ac_addpatt(root, new))) {
-        fprintf(stderr, "%s::%d::FFFTHISTHING\n", __FUNCTION__, __LINE__);
+        fprintf(stderr, "%s::%d::FUCKTHISTHING\n", __FUNCTION__, __LINE__);
         fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, suffix);
         MPOOL_FREE(matcher->mempool, new->pattern);
         MPOOL_FREE(matcher->mempool, new);
@@ -728,6 +728,8 @@ static cl_error_t add_newsuffix(struct regex_matcher *matcher, struct regex_list
 
     if (filter_add_static(&matcher->filter, (const unsigned char *)suffix, len, "regex") < 0) {
         cli_errmsg("add_newsuffix: Unable to add filter\n");
+        MPOOL_FREE(matcher->mempool, new->pattern);
+        MPOOL_FREE(matcher->mempool, new);
         ret = CL_ERROR;
         goto done;
     }
@@ -759,16 +761,19 @@ static cl_error_t add_pattern_suffix(void *cbdata, const char *suffix, size_t su
 
     if (NULL == matcher) {
         cli_errmsg("add_pattern_suffix: matcher must be initialized\n");
+fprintf(stderr, "%s::%d::RETURNING %d FROM THE CALLBACK\n", __FUNCTION__, __LINE__, CL_ENULLARG);
         ret = CL_ENULLARG;
         goto done;
     }
     if (NULL == suffix) {
         cli_errmsg("add_pattern_suffix: suffix must be initialized\n");
+fprintf(stderr, "%s::%d::RETURNING %d FROM THE CALLBACK\n", __FUNCTION__, __LINE__, CL_ENULLARG);
         ret = CL_ENULLARG;
         goto done;
     }
     if (NULL == iregex) {
         cli_errmsg("add_pattern_suffix: iregex must be initialized\n");
+fprintf(stderr, "%s::%d::RETURNING %d FROM THE CALLBACK\n", __FUNCTION__, __LINE__, CL_ENULLARG);
         ret = CL_ENULLARG;
         goto done;
     }
@@ -793,16 +798,15 @@ static cl_error_t add_pattern_suffix(void *cbdata, const char *suffix, size_t su
         /* existing suffix */
         if ((size_t)el->data >= matcher->suffix_cnt) {
             cli_errmsg("add_pattern_suffix: el-> data too large");
+fprintf(stderr, "%s::%d::RETURNING %d FROM THE CALLBACK\n", __FUNCTION__, __LINE__, CL_ERROR);
             ret = CL_ERROR;
             goto done;
         }
         list_add_tail(&matcher->suffix_regexes[(size_t)el->data], regex);
     } else {
         /* new suffix */
-        size_t n    = matcher->suffix_cnt++;
-        //size_t n    = matcher->suffix_cnt;
+        const size_t n    = matcher->suffix_cnt;
         el          = cli_hashtab_insert(&matcher->suffix_hash, suffix, suffix_len, (cli_element_data)n);
-        //fprintf(stderr, "%s::%d::el = %p\n", __FUNCTION__, __LINE__, el);
         tmp_matcher = matcher->suffix_regexes; /*  save the current value before cli_realloc()	*/
         CLI_REALLOC(matcher->suffix_regexes, 
                 (n + 1) * sizeof(*matcher->suffix_regexes), 
@@ -811,21 +815,33 @@ static cl_error_t add_pattern_suffix(void *cbdata, const char *suffix, size_t su
         matcher->suffix_regexes[n].tail = regex;
         matcher->suffix_regexes[n].head = regex;
         if (suffix[0] == '/' && suffix[1] == '\0') {
+            //fprintf(stderr, "%s::%d::exiting\n", __FUNCTION__, __LINE__);
+//exit(11);
             matcher->root_regex_idx = n;
         }
 
-#if 1
+        fprintf(stderr, "%s::%d::Calling add_newsuffix::suffix = '%s'\n", __FUNCTION__, __LINE__, suffix);
         ret = add_newsuffix(matcher, regex, suffix, suffix_len);
-#else
-        add_newsuffix(matcher, regex, suffix, suffix_len);
-#endif
 
         if (CL_SUCCESS != ret) {
-            matcher->suffix_cnt--;
             cli_hashtab_delete(&matcher->suffix_hash, suffix, suffix_len);
             /*shrink the size back to what it was.*/
-            CLI_REALLOC(matcher->suffix_regexes, (matcher->suffix_cnt) * sizeof(*matcher->suffix_regexes) );
+            CLI_REALLOC(matcher->suffix_regexes, n * sizeof(*matcher->suffix_regexes) );
+        } else {
+            matcher->suffix_cnt++;
         }
+
+
+#if 0
+        if (suffix[0] == '/' && suffix[1] == '\0') {
+//            FREE(regex->pattern);
+//            FREE(regex);
+            ret = CL_SUCCESS;
+fprintf(stderr, "%s::%d::Take thisw out\n", __FUNCTION__, __LINE__);
+        }
+#endif
+
+
     }
 
 done:
@@ -834,6 +850,7 @@ done:
         FREE(regex);
     }
 
+fprintf(stderr, "%s::%d::RETURNING %d FROM THE CALLBACK\n", __FUNCTION__, __LINE__, ret);
     return ret;
 }
 
@@ -872,13 +889,16 @@ static cl_error_t add_static_pattern(struct regex_matcher *matcher, char *patter
     struct regex_list regex;
     cl_error_t rc = CL_EMEM;
 
+    fprintf(stderr, "%s::%d::pattern = '%s'\n", __FUNCTION__, __LINE__, pattern);
     len       = reverse_string(pattern);
     regex.nxt = NULL;
     CLI_STRDUP(pattern, regex.pattern,
                cli_errmsg("add_static_pattern: Cannot allocate memory for regex.pattern\n");
                rc = CL_EMEM);
     regex.preg = NULL;
+    fprintf(stderr, "%s::%d::Calling add_pattern_suffix::pattern = '%s'\n", __FUNCTION__, __LINE__, pattern);
     rc         = add_pattern_suffix(matcher, pattern, len, &regex);
+    fprintf(stderr, "%s::%d::Returned from add_pattern_suffix\n", __FUNCTION__, __LINE__);
 done:
     FREE(regex.pattern);
     return rc;
@@ -907,11 +927,17 @@ cl_error_t regex_list_add_pattern(struct regex_matcher *matcher, char *pattern)
     pattern[len] = '\0';
 
     preg = new_preg(matcher);
-    if (!preg)
+    if (!preg) {
+        fprintf(stderr, "%s::%d::returning CL_EMEM\n", __FUNCTION__, __LINE__);
         return CL_EMEM;
+    }
 
+    //the 'or' clauses get reversed, that's where they are coming from.
+    fprintf(stderr, "%s::%d::Calling add_pattern_suffix::pattern = '%s'\n", __FUNCTION__, __LINE__, pattern);
     rc = cli_regex2suffix(pattern, preg, add_pattern_suffix, (void *)matcher);
+    fprintf(stderr, "%s::%d::returned from add_pattern_suffix::pattern = '%s'\n", __FUNCTION__, __LINE__, pattern);
     if (rc) {
+        fprintf(stderr, "%s::%d::returning '%d'\n", __FUNCTION__, __LINE__, rc);
         cli_regfree(preg);
     }
 
