@@ -665,6 +665,29 @@ static void zero_duplicate_trans_nodes(struct cli_matcher *root, const size_t id
 
 }
 
+static struct cli_ac_patt ** find_last(struct cli_matcher *root, const size_t idx) {
+    struct cli_ac_patt ** ret = NULL;
+    size_t j;
+    size_t min = idx;
+    if (root->ac_nodes < idx){
+        min = root->ac_nodes;
+        assert (0 && "SHOULD NEVER HAPPEN");
+    }
+
+    for (j = 0; j < min; j++) {
+        if (NULL == root->ac_nodetable[j]){
+            continue;
+        }
+
+        if (root->ac_nodetable[idx]->trans == root->ac_nodetable[j]->trans) {
+            ret = root->ac_nodetable[j]->trans;
+            break;
+        }
+    }
+
+    return ret;
+}
+
 void cli_ac_free(struct cli_matcher *root)
 {
     uint32_t i = 0;
@@ -696,9 +719,15 @@ void cli_ac_free(struct cli_matcher *root)
         if (!IS_LEAF(root->ac_nodetable[i]) &&
             root->ac_nodetable[i]->fail &&
             root->ac_nodetable[i]->trans != root->ac_nodetable[i]->fail->trans) {
+
+#if 0
             zero_duplicate_trans_nodes(root, i);
-            MPOOL_FREE(root->mempool, root->ac_nodetable[i]->trans);
-            root->ac_nodetable[i]->trans = NULL;
+#endif
+
+            if ( find_last(root, i)) {
+                MPOOL_FREE(root->mempool, root->ac_nodetable[i]->trans);
+                root->ac_nodetable[i]->trans = NULL;
+            }
         }
     }
 
@@ -713,9 +742,15 @@ void cli_ac_free(struct cli_matcher *root)
             continue;
         }
         if (!IS_LEAF(root->ac_nodetable[i])) {
+#if 0
             zero_duplicate_trans_nodes(root, i);
+#else
+            if ( find_last(root, i)) 
+#endif
+            {
             MPOOL_FREE(root->mempool, root->ac_nodetable[i]->trans);
             root->ac_nodetable[i]->trans = NULL;
+            }
         }
         MPOOL_FREE(root->mempool, root->ac_nodetable[i]);
         root->ac_nodetable[i] = NULL;
