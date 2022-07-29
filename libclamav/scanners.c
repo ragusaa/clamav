@@ -2114,6 +2114,10 @@ static cl_error_t cli_ole2_tempdir_scan_for_xlm_and_images(const char *dir, cli_
     char STR_WORKBOOK[]        = "workbook";
     char STR_BOOK[]            = "book";
 
+
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); exit(99);
+
+
     if (CL_SUCCESS != (ret = uniq_get(U, STR_WORKBOOK, sizeof(STR_WORKBOOK) - 1, &hash, &hashcnt))) {
         if (CL_SUCCESS != (ret = uniq_get(U, STR_BOOK, sizeof(STR_BOOK) - 1, &hash, &hashcnt))) {
             cli_dbgmsg("cli_ole2_tempdir_scan_for_xlm_and_images: uniq_get('%s') failed with ret code (%d)!\n", STR_BOOK, ret);
@@ -2544,6 +2548,8 @@ static cl_error_t cli_ole2_scan_tempdir(
     char *subdirectory = NULL;
 
     cli_dbgmsg("cli_ole2_scan_tempdir: %s\n", dir);
+
+    fprintf(stderr, "%s::%d::BLAH BLAH BLAH\n", __FUNCTION__, __LINE__); exit(11);
 
     /* Output JSON Summary Information */
     if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
@@ -3221,6 +3227,7 @@ static struct
 
 static void get_thread_times(uint64_t *kt, uint64_t *ut)
 {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 #ifdef _WIN32
     FILETIME c, e, k, u;
     ULARGE_INTEGER kl, ul;
@@ -3274,6 +3281,7 @@ static inline void perf_done(cli_ctx *ctx)
     uint64_t kt, ut;
     char *pend;
     cli_events_t *perf = ctx->perf;
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (!perf)
         return;
@@ -3382,6 +3390,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
     void *parent_property = NULL;
 #endif
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if ((typercg) &&
         // We should also omit bzips, but DMG's may be detected in bzips. (type != CL_TYPE_BZ) &&        /* Omit BZ files because they can contain portions of original files like zip file entries that cause invalid extractions and lots of warnings. Decompress first, then scan! */
         (type != CL_TYPE_GZ) &&        /* Omit GZ files because they can contain portions of original files like zip file entries that cause invalid extractions and lots of warnings. Decompress first, then scan! */
@@ -4009,6 +4018,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
 void emax_reached(cli_ctx *ctx)
 {
     int32_t stack_index;
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (NULL == ctx || NULL == ctx->recursion_stack) {
         return;
@@ -4036,6 +4046,7 @@ void emax_reached(cli_ctx *ctx)
 static cl_error_t dispatch_prescan_callback(clcb_pre_scan cb, cli_ctx *ctx, const char *filetype)
 {
     cl_error_t status = CL_CLEAN;
+fprintf(stderr, "%s::%d::'%s', cb  = %p\n", __FUNCTION__, __LINE__, filetype, cb);
 
     if (cb) {
         perf_start(ctx, PERFT_PRECB);
@@ -4073,6 +4084,7 @@ static cl_error_t calculate_fuzzy_image_hash(cli_ctx *ctx, cli_file_t type)
     image_fuzzy_hash_t hash = {0};
     json_object *header     = NULL;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     FFIError *fuzzy_hash_calc_error = NULL;
 
     offset = fmap_need_off(ctx->fmap, 0, ctx->fmap->real_len);
@@ -4136,6 +4148,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
 
     char *old_temp_path = NULL;
     char *new_temp_path = NULL;
+    fprintf(stderr, "%s::%d::type = %d\n", __FUNCTION__, __LINE__, type);
 
     if (!ctx->engine) {
         cli_errmsg("CRITICAL: engine == NULL\n");
@@ -4162,6 +4175,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
         goto early_ret;
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (ctx->engine->keeptmp) {
         char *fmap_basename = NULL;
         /*
@@ -4200,19 +4214,32 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
             goto early_ret;
         }
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (type == CL_TYPE_PART_ANY) {
         typercg = 0;
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     /*
      * Perform file typing from the start of the file.
      */
     perf_start(ctx, PERFT_FT);
     if ((type == CL_TYPE_ANY) || type == CL_TYPE_PART_ANY) {
+fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         type = cli_determine_fmap_type(ctx->fmap, ctx->engine, type);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     }
+
+    if (CL_TYPE_MSOLE2 == type){
+        fprintf(stderr, "INSERT HERE\n");
+        exit(112);
+    }
+
+
+
     perf_stop(ctx, PERFT_FT);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (type == CL_TYPE_ERROR) {
         cli_dbgmsg("cli_magic_scan: cli_determine_fmap_type returned CL_TYPE_ERROR\n");
         ret = CL_EREAD;
@@ -4221,8 +4248,12 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
     }
     filetype = cli_ftname(type);
 
+
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     /* set current layer to the type we found */
     cli_recursion_stack_change_type(ctx, type);
+
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 #if HAVE_JSON
     if (SCAN_COLLECT_METADATA) {
@@ -4301,6 +4332,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
     }
 #endif
 
+fprintf(stderr, "%s::%d::calling dispatch_prescan_callback\n", __FUNCTION__, __LINE__);
     ret = dispatch_prescan_callback(ctx->engine->cb_pre_cache, ctx, filetype);
     if (CL_CLEAN != ret) {
         if (ret == CL_VIRUS) {
@@ -4361,6 +4393,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
         /*
          * Scanning in raw mode (stdin, etc.)
          */
+        fprintf(stderr, "%s::%d::calling dispatch_prescan_callback\n", __FUNCTION__, __LINE__);
         ret = dispatch_prescan_callback(ctx->engine->cb_pre_scan, ctx, filetype);
         if (CL_CLEAN != ret) {
             if (ret == CL_VIRUS) {
@@ -4377,6 +4410,7 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
         goto done;
     }
 
+        fprintf(stderr, "%s::%d::calling dispatch_prescan_callback\n", __FUNCTION__, __LINE__);
     ret = dispatch_prescan_callback(ctx->engine->cb_pre_scan, ctx, filetype);
     if (CL_CLEAN != ret) {
         if (ret == CL_VIRUS) {
@@ -4986,6 +5020,8 @@ early_ret:
     }
 #endif
 
+    fprintf(stderr, "%s::%d::leaving\n", __FUNCTION__, __LINE__);
+
     return ret;
 }
 
@@ -4994,6 +5030,7 @@ cl_error_t cli_magic_scan_desc_type(int desc, const char *filepath, cli_ctx *ctx
     STATBUF sb;
     cl_error_t status = CL_CLEAN;
     fmap_t *new_map   = NULL;
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (!ctx) {
         return CL_EARG;
@@ -5056,11 +5093,13 @@ done:
 
 cl_error_t cli_magic_scan_desc(int desc, const char *filepath, cli_ctx *ctx, const char *name)
 {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     return cli_magic_scan_desc_type(desc, filepath, ctx, CL_TYPE_ANY, name);
 }
 
 cl_error_t cl_scandesc(int desc, const char *filename, const char **virname, unsigned long int *scanned, const struct cl_engine *engine, struct cl_scan_options *scanoptions)
 {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     return cl_scandesc_callback(desc, filename, virname, scanned, engine, scanoptions, NULL);
 }
 
@@ -5082,6 +5121,7 @@ static cl_error_t magic_scan_nested_fmap_type(cl_fmap_t *map, size_t offset, siz
     cl_error_t status = CL_CLEAN;
     fmap_t *new_map   = NULL;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     cli_dbgmsg("magic_scan_nested_fmap_type: [0, +%zu), [%zu, +%zu)\n",
                map->len, offset, length);
 
@@ -5132,6 +5172,7 @@ done:
 cl_error_t cli_magic_scan_nested_fmap_type(cl_fmap_t *map, size_t offset, size_t length, cli_ctx *ctx, cli_file_t type, const char *name)
 {
     cl_error_t ret = CL_CLEAN;
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     cli_dbgmsg("cli_magic_scan_nested_fmap_type: [%zu, +%zu)\n", offset, length);
     if (offset >= map->len) {
@@ -5216,6 +5257,7 @@ cl_error_t cli_magic_scan_buff(const void *buffer, size_t length, cli_ctx *ctx, 
     cl_error_t ret;
     fmap_t *map = NULL;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     map = fmap_open_memory(buffer, length, name);
     if (!map) {
         return CL_EMAP;
@@ -5253,6 +5295,7 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
     time_t current_time;
     struct tm tm_struct;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (NULL == map) {
         return CL_ENULLARG;
     }
@@ -5260,7 +5303,7 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
     ctx.engine  = engine;
     ctx.virname = virname;
     ctx.scanned = scanned;
-    ctx.options = malloc(sizeof(struct cl_scan_options));
+    ctx.options = malloc(sizeof(struct cl_scan_options)); /*aragusa: malloc could fail*/
     memcpy(ctx.options, scanoptions, sizeof(struct cl_scan_options));
     ctx.found_possibly_unwanted = 0;
 
@@ -5354,6 +5397,7 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
 
     /* Place the new temp sub-directory within the configured temp directory */
     new_temp_path = cli_gentemp_with_prefix(ctx.engine->tmpdir, new_temp_prefix);
+fprintf(stderr, "%s::%d::new_temp_prefix='%s'::new_temp_path = '%s'\n", __FUNCTION__, __LINE__, new_temp_prefix, new_temp_path);
     free(new_temp_prefix);
     if (NULL == new_temp_path) {
         cli_errmsg("scan_common: Failed to generate temp directory name.\n");
@@ -5371,6 +5415,8 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
 
     cli_logg_setup(&ctx);
 
+    /*aragusa: seems like we can do the velvetsweatshop decrypting here.*/
+
     /* We have a limit of around 2GB (INT_MAX - 2). Enforce it here. */
     /* TODO: Large file support is large-ly untested. Remove this restriction
      * and test with a large set of large files of various types. libclamav's
@@ -5386,6 +5432,7 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
         goto done;
     }
 
+    /*aragusa: look for unpackers here.*/
     status = cli_magic_scan(&ctx, CL_TYPE_ANY);
 
     if (status == CL_CLEAN && ctx.found_possibly_unwanted) {
@@ -5530,6 +5577,7 @@ cl_error_t cl_scandesc_callback(int desc, const char *filename, const char **vir
     STATBUF sb;
     char *filename_base = NULL;
 
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, filename);
     if (FSTAT(desc, &sb) == -1) {
         cli_errmsg("cl_scandesc_callback: Can't fstat descriptor %d\n", desc);
         status = CL_ESTAT;
@@ -5562,7 +5610,9 @@ cl_error_t cl_scandesc_callback(int desc, const char *filename, const char **vir
         goto done;
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     status = scan_common(map, filename, virname, scanned, engine, scanoptions, context);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 done:
     if (NULL != map) {
@@ -5572,11 +5622,13 @@ done:
         free(filename_base);
     }
 
+    fprintf(stderr, "%s::%d::status = %d\n", __FUNCTION__, __LINE__, status);
     return status;
 }
 
 cl_error_t cl_scanmap_callback(cl_fmap_t *map, const char *filename, const char **virname, unsigned long int *scanned, const struct cl_engine *engine, struct cl_scan_options *scanoptions, void *context)
 {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if ((engine->maxfilesize > 0) && (map->len > engine->maxfilesize)) {
         cli_dbgmsg("cl_scandesc_callback: File too large (%zu bytes), ignoring\n", map->len);
         if (scanoptions->heuristic & CL_SCAN_HEURISTIC_EXCEEDS_MAX) {
@@ -5592,6 +5644,7 @@ cl_error_t cl_scanmap_callback(cl_fmap_t *map, const char *filename, const char 
 
 cl_error_t cli_found_possibly_unwanted(cli_ctx *ctx)
 {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (cli_get_last_virus(ctx)) {
         cli_dbgmsg("found Possibly Unwanted: %s\n", cli_get_last_virus(ctx));
         if (SCAN_HEURISTIC_PRECEDENCE) {
@@ -5617,6 +5670,8 @@ cl_error_t cli_magic_scan_file(const char *filename, cli_ctx *ctx, const char *o
     int fd         = -1;
     cl_error_t ret = CL_EOPEN;
 
+    fprintf(stderr, "%s::%d, original_name = '%s'\n", __FUNCTION__, __LINE__, original_name);
+
     /* internal version of cl_scanfile with arec/mrec preserved */
     fd = safe_open(filename, O_RDONLY | O_BINARY);
     if (fd < 0) {
@@ -5634,6 +5689,7 @@ done:
 
 cl_error_t cl_scanfile(const char *filename, const char **virname, unsigned long int *scanned, const struct cl_engine *engine, struct cl_scan_options *scanoptions)
 {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     return cl_scanfile_callback(filename, virname, scanned, engine, scanoptions, NULL);
 }
 
@@ -5642,6 +5698,7 @@ cl_error_t cl_scanfile_callback(const char *filename, const char **virname, unsi
     int fd;
     cl_error_t ret;
     const char *fname = cli_to_utf8_maybe_alloc(filename);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (!fname)
         return CL_EARG;
