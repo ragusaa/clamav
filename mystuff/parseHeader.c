@@ -493,6 +493,10 @@ static int getEncryptedBlob(CompoundFileHeader * header, DirectoryEntry * de,
             printf("breaking sector = 0x%x\n", sector);
 
 
+            /*TODO: Not sure if it is actually correct to just assume that if
+             * it's not in the FAT, that it is at the end of the last offset.
+             * Need to see where the FAT refers to the rest of the data,
+             * because this just feels wrong.*/
         writeAll(fp, &(rawFile[offset + sectorSize]), bytesToWrite - bytesWritten);
 
 
