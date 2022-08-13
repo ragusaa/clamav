@@ -386,10 +386,37 @@ typedef struct __attribute__((packed)) {
 
 } EncryptedPackage;
 
-static int getEncryptedBlob(CompoundFileHeader * header, DirectoryEntry * de, EncryptionInfoStreamStandard * encStream){
+
+static void writeAll(FILE * fp, uint8_t * buffer, size_t cnt){
+
+    size_t bytesWritten = 0;
+    while (bytesWritten < cnt){
+        int ret = fwrite(&(buffer[bytesWritten]), 1, cnt - bytesWritten, fp);
+        if (ret){
+            bytesWritten += cnt;
+        } else {
+            break;
+        }
+    }
+
+    if (bytesWritten != cnt){
+        printf("NOT SURE WHAT HAPPENED\n");
+        exit(88);
+    }
+
+}
+
+
+static int getEncryptedBlob(CompoundFileHeader * header, DirectoryEntry * de,
+        EncryptionInfoStreamStandard * encStream){
+
     int ret = -1;
-    uint32_t sector = de->startingSector + 1;
-    uint32_t offset = sector * (1 << header->sectorShift);
+    //uint32_t sector = de->startingSector + 1;
+    uint32_t sector = de->startingSector;
+    uint32_t sectorSize = 1 << header->sectorShift;
+    uint32_t offset = (1 + sector) * sectorSize;
+    uint8_t * rawFile = (uint8_t *) header;
+    uint32_t * fatPointer = (uint32_t *) (rawFile + sizeof(*header));
 
     /* Since header is just a pointer to the beginning of the file, we can
      * compute the new offset and cast it to the correct offset, and get
@@ -410,7 +437,76 @@ static int getEncryptedBlob(CompoundFileHeader * header, DirectoryEntry * de, En
 
     bytesToWrite = de->streamSize - sizeof(encryptedPackage->streamSize);
 
+#if 0
+    if (bytesToWrite % sectorSize){
+        printf("WARNING: THIS APPEARS WRONG.  NEED TO VERIFY!!!\n");
+        printf("bytesToWrite = %lx\n", bytesToWrite);
+        printf("sectorSize = %x\n", sectorSize);
+        exit(88);
+    }
+#endif
 
+    //FAT only has 128 entries.
+    //printFAT(fatPointer, 128, 0);
+
+
+
+    writeAll(fp, encryptedPackage->data, 
+            sectorSize - sizeof(encryptedPackage->streamSize));
+
+    bytesWritten += sectorSize - sizeof(encryptedPackage->streamSize);
+
+
+//    printf("FIXMEREALBAD::TAKE THIS OUT\n"); ret = 0; goto done;
+
+    sector = fatPointer[sector];
+
+
+
+
+
+
+
+    size_t numBlocks = bytesToWrite / sectorSize;
+    printf("numBlocks = 0x%lx\n", numBlocks);
+    for (size_t i = 1; i < numBlocks; i++){
+        offset = (sector + 1) * sectorSize;
+        printf("i = 0x%lx\n", i);
+        printf("sector = 0x%x\n", sector);
+        printf("offset = 0x%x\n", offset);
+        printf("fatPointer[sector] = 0x%x\n", fatPointer[sector]);
+        size_t toWrite = sectorSize;
+        if ((numBlocks-1) == i){
+            toWrite = bytesToWrite % sectorSize;
+        }
+
+        printf("writing from %p\n", &(rawFile[offset]));
+        printf("was writing from %p\n", encryptedPackage->data);
+
+
+
+        writeAll(fp, &(rawFile[offset]), toWrite);
+        bytesWritten += toWrite;
+        sector = fatPointer[sector];
+        if (sector >= 0x80){
+
+            printf("breaking sector = 0x%x\n", sector);
+
+
+        writeAll(fp, &(rawFile[offset + sectorSize]), bytesToWrite - bytesWritten);
+
+
+            break;
+        }
+//        exit(1);
+    }
+
+
+
+
+
+
+#if 0
     while (bytesWritten < bytesToWrite){
         int ret = fwrite(&(encryptedPackage->data[bytesWritten]), 1, 
                 bytesToWrite - bytesWritten, fp);
@@ -420,10 +516,13 @@ static int getEncryptedBlob(CompoundFileHeader * header, DirectoryEntry * de, En
             break;
         }
     }
+
+
     if (bytesWritten != bytesToWrite) {
         printf("ERROR writing data\n");
         goto done;
     }
+#endif
 
 #if 0
     This can be decrypted with the following command.  It is odd that it also succeeds using aes-256-=... 
@@ -533,6 +632,7 @@ int parse_header(const char * const fileName){
 
     printf("Sector 2\n");
     printf("PRINTING FAT\n");
+    //TODO: this is based on the version.
     printFAT(fatPointer, 128, 0);
     printf("END of FAT\n");
 
