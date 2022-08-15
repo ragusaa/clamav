@@ -584,6 +584,8 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
     int toval = 0;
 #endif
 
+    fprintf(stderr, "ADD CODE HERE\n"); exit(111);
+
     ole2_listmsg("ole2_walk_property_tree() called\n");
     func_ret = CL_SUCCESS;
     ole2_list_init(&node_list);
