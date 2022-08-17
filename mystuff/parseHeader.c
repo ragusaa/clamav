@@ -225,7 +225,7 @@ uint32_t providerType;
 uint32_t reserved1;
 uint32_t reserved2; //MUST be 0
 
-uint8_t cspName[512 - 56]; //really a wide char
+uint8_t cspName[512 - 56]; //really a wide char //should say 1
 
 } EncryptionInfo;
 
@@ -241,6 +241,7 @@ typedef struct __attribute__((packed)) {
 } EncryptionInfoStreamStandard;
 int validateEncryptionHeader(uint8_t * buffer){
 
+    //printf("sizeof EncryptionInfoStreamStandard = %d\n", sizeof(EncryptionInfoStreamStandard));
     size_t idx;
     EncryptionInfoStreamStandard * headerPtr = (EncryptionInfoStreamStandard *) buffer;
     int ret = -1;
@@ -371,6 +372,15 @@ int validateEncryptionHeader(uint8_t * buffer){
     //'Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)'
     printWide(headerPtr->encryptionInfo.cspName, sizeof( headerPtr->encryptionInfo.cspName));
     printf("\n");
+
+    printf("TODO::THIS HAS ALL THE SALT INFORMATION AND THE EncryptionVerifier structure.  Need to parse this\n");
+    printf("see https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/e5ad39b8-9bc1-4a19-bad3-44e6246d21e6\n");
+    {
+        for (size_t i = 0; i < (512 - 44); i++){
+            printf("%02x ", headerPtr->encryptionInfo.cspName[i]);
+        }
+        printf("\n");
+    }
 
     ret = 0;
 done:
