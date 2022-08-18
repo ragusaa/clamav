@@ -96,8 +96,58 @@ unsigned char *cl_sha1(const void *buf, size_t len, unsigned char *obuf, unsigne
 
 #define SHA1_HASH_SIZE  20
 
+
+
+typedef struct {
+    uint32_t saltSize;
+    uint8_t salt[16];
+    uint8_t encryptedVerifier[16];
+    uint32_t verifierHashSize;
+    uint8_t encryptedVerifierHash[1]; //variable length.  Depends on algorithm.
+
+} EncryptionVerifier;
+
+/*Returns 1 on encryption verified, 0 no encryption not verified, -1 on error*/
+int verifyEncryption(EncryptionVerifier * ev){
+    int ret = -1;
+    size_t i = 0;
+    struct AES_ctx evCtx = {0};
+    struct AES_ctx evhCtx = {0};
+    uint8_t sha[SHA1_HASH_SIZE ] = {0};
+    const uint32_t encryptedVerifierHashLen = 32; /*TODO: figure this out based on the algorithm.*/
+
+    AES_init_ctx(&evCtx, KEY);
+    AES_init_ctx(&evhCtx, KEY);
+
+
+    for (i = 0; i < sizeof(ev->encryptedVerifier); i+= 16){
+        AES_ECB_decrypt(&evCtx, &(ev->encryptedVerifier[i]));
+    }
+
+    cl_sha1(ev->encryptedVerifier, sizeof(ev->encryptedVerifier), sha, NULL);
+
+    for (i = 0; i < encryptedVerifierHashLen; i+= 16){
+        AES_ECB_decrypt(&evhCtx, &(ev->encryptedVerifierHash[i]));
+    }
+
+    if (0 == memcmp(sha, ev->encryptedVerifierHash, ev->verifierHashSize)){
+        ret = 1;
+        printf("Hashes match, this is teh key!!!\n");
+    } else {
+        ret = 0;
+        printf("Hashes do NOT match, this is not the key\n");
+    }
+
+done:
+    return ret;
+}
+
+
+
+
 int main(){
 
+#if 0
     size_t i;
     struct AES_ctx ctx = {0};
     struct AES_ctx ctx2 = {0};
@@ -147,6 +197,22 @@ int main(){
 
 
 done:
+#else
+    uint8_t ary[512];
+    EncryptionVerifier * ev = (EncryptionVerifier*) ary;
+    uint8_t encryptedVerifierHash[] = {0xd2, 0x20, 0xa4, 0xa9, 0x5c, 0x37, 0x0b, 0xc2, 0xe6, 0x15, 0xdf, 0x70, 0xb5, 0x69, 0x78, 0x36, 0x8b, 0x82, 0x51, 0xa6, 0x96, 0xf9, 0x1d, 0x89, 0x1f, 0xf6, 0x9c, 0x8a, 0x13, 0x01, 0x04, 0x7d};
+
+    uint8_t encryptedVerifier[] = {0x46, 0x47, 0x7b, 0xc3, 0xb4, 0x87, 0x01, 0x44, 0x83, 0xe4, 0x4f, 0x7e, 0x60, 0xa4, 0xa4, 0x6a};
+
+    memcpy(ev->encryptedVerifierHash, encryptedVerifierHash, sizeof(encryptedVerifierHash));
+    memcpy(ev->encryptedVerifier, encryptedVerifier, sizeof(encryptedVerifier));
+    ev->verifierHashSize = 20;
+
+    printf ("verifyEncryption returned %d\n", verifyEncryption(ev));
+
+
+
+#endif
 
     return 0;
 }
