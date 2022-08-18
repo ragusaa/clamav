@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 #define FREE(var) if (NULL != var) { free(var); var = NULL; }
 
@@ -213,6 +214,74 @@ static void printFAT(uint32_t * fatPointer, size_t numEntries, int breakFirstEmp
     }
 }
 
+
+
+/* 
+ * These values are all stored in le.  We have to convert them to network byte
+ * order, and then convert them to whatever the machine expects them to be
+ * in.
+ */
+uint32_t getUint32(uint32_t val){
+    val = ((val>>24)&0xff) | // move byte 3 to byte 0
+                    ((val<<8)&0xff0000) | // move byte 1 to byte 2
+                    ((val>>8)&0xff00) | // move byte 2 to byte 1
+                    ((val<<24)&0xff000000); // byte 0 to byte 3
+
+    return ntohl(val);
+}
+
+typedef struct {
+    uint32_t saltSize;
+    uint8_t salt[16];
+    uint8_t encryptedVerifier[16];
+    uint32_t verifierHashSize;
+    uint8_t encryptedVerifierHash[1]; //variable length.  Depends on algorithm.
+
+} EncryptionVerifier;
+
+void dumpEncryptionVerifier (EncryptionVerifier * ev){
+    size_t i;
+
+    printf("Dumping EncryptionVerifier\n");
+    printf("TODO: Do this for ALL integers\n");
+
+    ev->saltSize = getUint32(ev->saltSize);
+    ev->verifierHashSize = getUint32(ev->verifierHashSize);
+
+    printf("Salt Size = 0x%x\n", ev->saltSize);
+    printf("Salt = '");
+    for (i = 0; i < ev->saltSize; i++){
+        printf("%02x ", ev->salt[i]);
+    }
+    printf("'\n");
+
+    printf("EncryptedVerifier = '");
+    for (i = 0; i < sizeof(ev->encryptedVerifier); i++){
+        printf("%02x ", ev->encryptedVerifier[i]);
+    }
+    printf("'\n");
+
+    printf("Verifier Hash Size = 0x%x\n", ev->verifierHashSize);
+
+    printf("TODO: HARDCODING 32 byte length for the encrypted verifier hash.  Needs to be 20 for RC4.  do that later\n");
+    printf("EncryptedVerifierHash = '");
+    for (i = 0; i < 32; i++){
+        printf("%02x ", ev->encryptedVerifierHash[i]);
+    }
+    printf("'\n");
+
+    printf("TODO: Need to add code from verifyHash here\n");
+
+    //printf("TODO: REMOVE THIS EXIT.  ONLY DID THIS SO THAT I DON'T HAVE TO SCROLL UP TO SEE THIS OUTPUT\n"); exit(0);
+
+
+
+
+
+}
+
+
+
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
 typedef struct __attribute__((packed)) {
 
@@ -225,7 +294,11 @@ uint32_t providerType;
 uint32_t reserved1;
 uint32_t reserved2; //MUST be 0
 
-uint8_t cspName[512 - 56]; //really a wide char //should say 1
+uint8_t cspName[512 - 56];  //really the rest of the data.  Starts with a
+                            //string of wide characters, followed by the encryption verifier.
+                            //TODO: THIS REALLY NEEDS TO BE CHANGED TO '1', and all 'sizeof(cspName)'
+                            //conditions need to be calculated based on block size minus however much
+                            //we have already used.
 
 } EncryptionInfo;
 
@@ -373,6 +446,29 @@ int validateEncryptionHeader(uint8_t * buffer){
     printWide(headerPtr->encryptionInfo.cspName, sizeof( headerPtr->encryptionInfo.cspName));
     printf("\n");
 
+
+    for (idx = 0; idx < sizeof( headerPtr->encryptionInfo.cspName) - 1; idx += 2) {
+        if (((uint16_t *) &(headerPtr->encryptionInfo.cspName[idx]))[0] == 0){
+            break;
+        }
+        printf("%02x %02x ", headerPtr->encryptionInfo.cspName[idx], headerPtr->encryptionInfo.cspName[idx+1]);
+    }
+    printf("\n");
+    printf("idx = %zu\n", idx);
+
+    idx += 2;
+    if ((sizeof(headerPtr->encryptionInfo.cspName) - idx) <= sizeof(EncryptionVerifier)){
+        printf("ERROR: No EncryptionVerifier\n");
+        goto done;
+    }
+    EncryptionVerifier * ev = (EncryptionVerifier*) &(headerPtr->encryptionInfo.cspName[idx]);
+    dumpEncryptionVerifier(ev);
+#if 0
+    printf("TODO: Need to convert this (and all other integers) to host endianness.\n");
+    printf("They are guaranteed le, so I need to convert them to big endian, and then to 'host' to guarantee they are correct\n");
+
+
+
     printf("TODO::THIS HAS ALL THE SALT INFORMATION AND THE EncryptionVerifier structure.  Need to parse this\n");
     printf("see https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/e5ad39b8-9bc1-4a19-bad3-44e6246d21e6\n");
     {
@@ -381,6 +477,7 @@ int validateEncryptionHeader(uint8_t * buffer){
         }
         printf("\n");
     }
+#endif
 
     ret = 0;
 done:
