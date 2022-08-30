@@ -556,6 +556,7 @@ ole2_get_sbat_data_block(ole2_header_t *hdr, void *buff, int32_t sbat_index)
  * @return cl_error_t
  */
 typedef cl_error_t ole2_walk_property_tree_file_handler(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx);
+static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx);
 
 /**
  * @brief Walk an ole2 property tree, calling the handler for each file found
@@ -583,8 +584,11 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
     char *name;
     int toval = 0;
 #endif
+    /*
+     * handler is the function that writes the file.  Need to see where these indices are.
+     */
 
-    fprintf(stderr, "ADD CODE HERE\n"); exit(111);
+    fprintf(stderr, "%s::%d::ADD CODE HERE\n", __FUNCTION__, __LINE__);
 
     ole2_listmsg("ole2_walk_property_tree() called\n");
     func_ret = CL_SUCCESS;
@@ -611,6 +615,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
         return ret;
     }
 
+    fprintf(stderr, "before while, ole2_list_is_empty = %d\n", ole2_list_is_empty(&node_list));
     while (!ole2_list_is_empty(&node_list)) {
         ole2_listmsg("within working loop, worklist size: %d\n", ole2_list_size(&node_list));
 #if HAVE_JSON
@@ -676,6 +681,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
         ole2_listmsg("prev: %d next %d child %d\n", prop_block[idx].prev, prop_block[idx].next, prop_block[idx].child);
 
         ole2_listmsg("node type: %d\n", prop_block[idx].type);
+        fprintf(stderr, "prop_block[%d].type = %d\n", idx, prop_block[idx].type) ;
         switch (prop_block[idx].type) {
             case 5: /* Root Entry */
                 ole2_listmsg("root node\n");
@@ -711,17 +717,22 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                 }
                 break;
             case 2: /* File */
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                 ole2_listmsg("file node\n");
                 if (ctx && ctx->engine->maxfiles && ((*file_count > ctx->engine->maxfiles) || (ctx->scannedfiles > ctx->engine->maxfiles - *file_count))) {
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                     cli_dbgmsg("OLE2: files limit reached (max: %u)\n", ctx->engine->maxfiles);
                     cli_append_virus_if_heur_exceedsmax(ctx, "Heuristics.Limits.Exceeded.MaxFiles");
                     ole2_list_delete(&node_list);
                     return CL_EMAXFILES;
                 }
                 if (!ctx || !(ctx->engine->maxfilesize) || prop_block[idx].size <= ctx->engine->maxfilesize || prop_block[idx].size <= *scansize) {
+                fprintf(stderr, "%s::%d::handler = %p\n", __FUNCTION__, __LINE__, handler);
+                fprintf(stderr, "%s::%d::handler_writefile = %p\n", __FUNCTION__, __LINE__, handler_writefile);
                     (*file_count)++;
                     *scansize -= prop_block[idx].size;
                     ole2_listmsg("running file handler\n");
+                    /*aragusa: handler called here.*/
                     ret = handler(hdr, &prop_block[idx], dir, ctx);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
@@ -733,9 +744,11 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                         }
                     }
                 } else {
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                     cli_dbgmsg("OLE2: filesize exceeded\n");
                 }
                 if ((int)(prop_block[idx].child) != -1) {
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                     ret = ole2_walk_property_tree(hdr, dir, prop_block[idx].child, handler, rec_level, file_count, ctx, scansize);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
@@ -845,6 +858,8 @@ static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const 
     bitset_t *blk_bitset = NULL;
     uint32_t cnt         = 0;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+
     UNUSEDPARAM(ctx);
 
     if (prop->type != 2) {
@@ -886,6 +901,8 @@ static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const 
 
     current_block = prop->start_block;
     len           = prop->size;
+
+    fprintf(stderr, "About to write file, start block = %lx, size = %lx\n", current_block, len);
 
     CLI_MALLOC(buff, 1 << hdr->log2_big_block_size,
                cli_errmsg("OLE2 [handler_writefile]: Unable to allocate memory for buff: %u\n", 1 << hdr->log2_big_block_size);
@@ -1233,6 +1250,8 @@ static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char 
     json_object *arrobj  = NULL;
     json_object *strmobj = NULL;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+
     name = cli_ole2_get_property_name2(prop->name, prop->name_size);
     if (name) {
         if (SCAN_COLLECT_METADATA && ctx->wrkproperty != NULL) {
@@ -1297,6 +1316,7 @@ static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char 
                         }
                         offset = (1 << hdr->log2_small_block_size) *
                                  (prop->start_block % (1 << (hdr->log2_big_block_size - hdr->log2_small_block_size)));
+fprintf(stderr, "%s::%d::offset = %x\n", __FUNCTION__, __LINE__, offset);
 
                         /* reading safety */
                         if (offset + 40 >= 1 << hdr->log2_big_block_size)

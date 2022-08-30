@@ -4231,10 +4231,12 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     }
 
+#if 0
     if (CL_TYPE_MSOLE2 == type){
         fprintf(stderr, "INSERT HERE\n");
         exit(112);
     }
+#endif
 
 
 

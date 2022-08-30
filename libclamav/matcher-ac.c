@@ -686,6 +686,7 @@ void cli_ac_free(struct cli_matcher *root)
     struct cli_ac_patt *patt = NULL;
 
     fprintf(stderr, "%s::%d, time = %d\n", __FUNCTION__, __LINE__, time(NULL));
+    return;
 
     for (i = 0; i < root->ac_patterns; i++) {
         patt = root->ac_pattable[i];
