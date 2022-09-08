@@ -1959,7 +1959,7 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
     if ((SE_HEADER_FDOCPROPS & headerPtr->flags)){
 #if 1
         fprintf(stderr, "Unsupported document properties encrypted\n");
-        exit(11);
+        goto done;
 #else
         fprintf(stderr, "WARNING: Verify that this is set to the correct values.\n");
 #endif
@@ -2095,6 +2095,14 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
         fprintf(stderr, "\n");
     }
 #endif
+
+
+
+
+
+
+
+
 
     ret = 0;
 done:
