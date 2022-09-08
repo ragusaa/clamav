@@ -1839,6 +1839,7 @@ ole2_read_header(int fd, ole2_header_t *hdr)
 #endif
 
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
+/*DO NOT USE SIZEOF HERE!!!  cspName is padded out to 512 */
 typedef struct __attribute__((packed)) {
 
     uint32_t flags;
@@ -1857,6 +1858,18 @@ uint8_t cspName[512 - 56];  //really the rest of the data.  Starts with a
                             //we have already used.
 
 } encryption_info_t;
+void copy_encryption_info(encryption_info_t * dst, const uint8_t* src){
+    memcpy(dst, src, 512);
+
+    dst->flags = ole2_endian_convert_32(dst->flags);
+    dst->sizeExtra = ole2_endian_convert_32(dst->sizeExtra);
+    dst->algorithmID = ole2_endian_convert_32(dst->algorithmID);
+    dst->algorithmIDHash = ole2_endian_convert_32(dst->algorithmIDHash);
+    dst->keySize = ole2_endian_convert_32(dst->keySize);
+    dst->providerType = ole2_endian_convert_32(dst->providerType);
+    dst->reserved1 = ole2_endian_convert_32(dst->reserved1);
+    dst->reserved2 = ole2_endian_convert_32(dst->reserved2);
+}
 
 typedef struct __attribute__((packed)) {
 
@@ -1870,26 +1883,43 @@ typedef struct __attribute__((packed)) {
 
 } encryption_info_stream_standard_t;
 
+void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * dst, const uint8_t * src){
+    uint32_t byteOffset;
 
+    memcpy(dst, src, sizeof(encryption_info_stream_standard_t));
+    dst->version_major = ole2_endian_convert_16(dst->version_major);
+    dst->version_minor = ole2_endian_convert_16(dst->version_minor);
+
+    dst->flags = ole2_endian_convert_32(dst->flags);
+    dst->size = ole2_endian_convert_32(dst->size);
+
+    void * vp = (&(dst->encryptionInfo));
+    byteOffset = vp - ((void *) dst);
+    copy_encryption_info(&(dst->encryptionInfo), &(src[byteOffset]));
+
+}
+
+
+/*DO NOT USE SIZEOF on these!!!*/
 typedef struct {
     uint32_t salt_size;
     uint8_t salt[16];
     uint8_t encrypted_verifier[16];
-    uint32_t verifierHashSize;
+    uint32_t verifier_hash_size;
     uint8_t encrypted_verifier_hash[1]; //variable length.  Depends on algorithm.
 
 } encryption_verifier_t;
 
-
+void copy_encryption_verifier( encryption_verifier_t * dst, const uint8_t * src){
+    memcpy(dst, src, 512);
+    dst->salt_size = ole2_endian_convert_32(dst->salt_size);
+    dst->verifier_hash_size = ole2_endian_convert_32(dst->verifier_hash_size);
+}
 
 void dump_encryption_verifier (encryption_verifier_t * ev){
     size_t i;
 
     fprintf(stderr, "Dumping encryption_verifier_t\n");
-    fprintf(stderr, "TODO: Do this for ALL integers\n");
-
-    ev->salt_size = ole2_endian_convert_32(ev->salt_size);
-    ev->verifierHashSize = ole2_endian_convert_32(ev->verifierHashSize);
 
     fprintf(stderr, "Salt Size = 0x%x\n", ev->salt_size);
     fprintf(stderr, "Salt = '");
@@ -1904,7 +1934,7 @@ void dump_encryption_verifier (encryption_verifier_t * ev){
     }
     fprintf(stderr, "'\n");
 
-    fprintf(stderr, "Verifier Hash Size = 0x%x\n", ev->verifierHashSize);
+    fprintf(stderr, "Verifier Hash Size = 0x%x\n", ev->verifier_hash_size);
 
     fprintf(stderr, "TODO: HARDCODING 32 byte length for the encrypted verifier hash.  Needs to be 20 for RC4.  do that later\n");
     fprintf(stderr, "EncryptedVerifierHash = '");
@@ -1919,16 +1949,107 @@ void dump_encryption_verifier (encryption_verifier_t * ev){
 }
 
 
+/*TODO: determine if keyLength varies with version.  I *think* it does*/
+/*hash is a different length for depending on the algorithm. */
+static int compute_hash(const char * const password, uint8_t * key, const uint32_t keyLength, 
+        encryption_verifier_t * verifier){
+    uint8_t * buffer = NULL;
+    size_t bufLen = 0;
+    int ret = -1;
+    uint32_t i = 0;
+    uint8_t sha1[sizeof(uint32_t) + SHA1_HASH_SIZE + sizeof(uint32_t)] = {0};
+    uint8_t * sha1Dst = &(sha1[sizeof(uint32_t)]);
+    uint8_t buf1[64];
+    uint8_t buf2[64];
+    uint8_t doubleSha[SHA1_HASH_SIZE * 2];
+
+    memset(key, 0, keyLength);
+
+#define ITER_COUNT 50000
+
+    bufLen = verifier->salt_size + (strlen(password) * 2);
+
+    buffer = calloc(bufLen, 1);
+    if (NULL == buffer){
+        perror("calloc");
+        goto done;
+    }
+
+    memcpy (buffer, verifier->salt, verifier->salt_size);
+
+    /*Convert to UTF16-LE*/
+    for (i = 0; i < (uint32_t) strlen(password); i++){
+        buffer[verifier->salt_size + (i * 2)] = password[i];
+    }
+
+    cl_sha1(buffer, bufLen, sha1Dst, NULL);
+
+    //dump(sha1Dst, SHA1_HASH_SIZE);
+    for (i = 0; i < ITER_COUNT; i++){
+        uint32_t eye = ole2_endian_convert_32(i);
+
+        memcpy(sha1, &eye, sizeof(eye));
+        cl_sha1(sha1, SHA1_HASH_SIZE + sizeof(uint32_t), sha1Dst, NULL);
+    }
+
+    memset(&(sha1Dst[SHA1_HASH_SIZE]), 0, sizeof(uint32_t));
+
+    cl_sha1(sha1Dst, SHA1_HASH_SIZE + sizeof(uint32_t), sha1Dst, NULL);
+
+    //dump(sha1Dst, SHA1_HASH_SIZE); //'hfinal = ' in the python code
+
+    memset(buf1, 0x36, sizeof(buf1));
+    for (i = 0; i < SHA1_HASH_SIZE; i++){
+        buf1[i] = buf1[i] ^ sha1Dst[i];
+    }
+    //dump(buf1, sizeof(buf1));
+
+    //now sha1 buf1
+    cl_sha1(buf1, sizeof(buf1), doubleSha, NULL);
+
+
+    memset(buf2, 0x5c, sizeof(buf2));
+    for (i = 0; i < SHA1_HASH_SIZE; i++){
+        buf2[i] = buf2[i] ^ sha1Dst[i];
+    }
+    //dump(buf2, sizeof(buf2));
+
+    cl_sha1(buf2, sizeof(buf2), &(doubleSha[SHA1_HASH_SIZE]), NULL);
+
+#if 0
+    for (i = 0; i < keyLength; i++){
+        fprintf(stderr, "%02x ", doubleSha[i]);
+    }
+    fprintf(stderr, "\n");
+#endif
+
+    ret = 0;
+done:
+    FREE(buffer);
+
+    if (0 == ret){
+        memcpy(key, doubleSha, keyLength);
+    }
+
+    return ret;
+}
+
+
 
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
-
-
 static int validate_encryption_header(const encryption_info_stream_standard_t * headerPtr){
 
-    size_t idx = 0;
-    const uint8_t * buffer = (const uint8_t*) headerPtr; //TODO: remove this 
-//    encryption_info_stream_standard_t * headerPtr = (encryption_info_stream_standard_t *) buffer;
     int ret = -1;
+    size_t idx = 0;
+    encryption_verifier_t ev;
+
+
+
+    const uint8_t * buffer = (const uint8_t*) headerPtr; //TODO: remove this 
+
+
+
+//    encryption_info_stream_standard_t * headerPtr = (encryption_info_stream_standard_t *) buffer;
     fprintf(stderr, "Mini Stream Sector = '%p'\n", buffer);
     for (idx = 0; idx < 24; idx++) {
         fprintf(stderr, "%02x ", buffer[idx]);
@@ -2072,14 +2193,10 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
         fprintf(stderr, "ERROR: No encryption_verifier_t\n");
         goto done;
     }
-#if 0
-    encryption_verifier_t * ev = (encryption_verifier_t*) &(headerPtr->encryptionInfo.cspName[idx]);
-    dump_encryption_verifier(ev);
-#else
-    encryption_verifier_t ev;
-    memcpy(&ev, &(headerPtr->encryptionInfo.cspName[idx]), sizeof(encryption_verifier_t));
+    copy_encryption_verifier(&ev, &(headerPtr->encryptionInfo.cspName[idx]));
     dump_encryption_verifier(&ev);
-#endif
+
+
 #if 0
     fprintf(stderr, "TODO: Need to convert this (and all other integers) to host endianness.\n");
     fprintf(stderr, "They are guaranteed le, so I need to convert them to big endian, and then to 'host' to guarantee they are correct\n");
@@ -2096,14 +2213,31 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
     }
 #endif
 
+    /*TODO: determine what key length based on algorithm.*/
+    uint8_t key[16];
+    compute_hash("VelvetSweatshop", key, 16, &ev);
+
+    verify_key(key);
 
 
 
 
 
 
+    {size_t i;
+    for (i = 0; i < 16; i++){
+        fprintf(stderr, "%02x ", key[i]);
+    }
+    fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "Verifier hash size = %d\n",ev.verifier_hash_size );
 
 
+
+
+
+
+    
     ret = 0;
 done:
 
@@ -2199,7 +2333,10 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.xbat_count            = ole2_endian_convert_32(hdr.xbat_count);
 
 
-    validate_encryption_header((const encryption_info_stream_standard_t *) &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
+
+    encryption_info_stream_standard_t encryption_info_stream_standard;
+    copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
+    validate_encryption_header(&encryption_info_stream_standard);
 
 
     hdr.sbat_root_start = -1;
