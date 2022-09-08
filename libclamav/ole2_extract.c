@@ -121,6 +121,7 @@ typedef struct ole2_header_tag {
     hwp5_header_t *is_hwp;
 } ole2_header_t;
 
+/*DirectoryEntry*/
 typedef struct property_tag {
     char name[64]; /* in unicode */
     uint16_t name_size __attribute__((packed));
@@ -558,6 +559,18 @@ ole2_get_sbat_data_block(ole2_header_t *hdr, void *buff, int32_t sbat_index)
 typedef cl_error_t ole2_walk_property_tree_file_handler(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx);
 static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx);
 
+
+void printWideString(const uint8_t * buf, uint32_t bufLen){
+    uint32_t i;
+    for (i = 0; i < bufLen; i+= 2){
+        if ( 0 == buf[i] ){
+            break;
+        }
+        fprintf(stderr, "%c", buf[i]);
+    }
+}
+
+
 /**
  * @brief Walk an ole2 property tree, calling the handler for each file found
  *
@@ -729,9 +742,22 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                 if (!ctx || !(ctx->engine->maxfilesize) || prop_block[idx].size <= ctx->engine->maxfilesize || prop_block[idx].size <= *scansize) {
                 fprintf(stderr, "%s::%d::handler = %p\n", __FUNCTION__, __LINE__, handler);
                 fprintf(stderr, "%s::%d::handler_writefile = %p\n", __FUNCTION__, __LINE__, handler_writefile);
+                fprintf(stderr, "%s::%d::idx = %d\n", __FUNCTION__, __LINE__, idx);
                     (*file_count)++;
                     *scansize -= prop_block[idx].size;
                     ole2_listmsg("running file handler\n");
+
+
+                    {
+                        int i;
+                        for (i = 0; i < 4; i++){
+                            fprintf(stderr, "%s::%d::i = %d\n", __FUNCTION__, __LINE__, i);
+                            fprintf(stderr, "%s::%d::'", __FUNCTION__, __LINE__);
+                            printWideString((const uint8_t*) prop_block[i].name, 64);
+                            fprintf(stderr, "'\n");
+                        }
+                    }
+
                     /*aragusa: handler called here.*/
                     ret = handler(hdr, &prop_block[idx], dir, ctx);
                     if (ret != CL_SUCCESS) {
@@ -858,7 +884,7 @@ static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const 
     bitset_t *blk_bitset = NULL;
     uint32_t cnt         = 0;
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); goto done;
 
     UNUSEDPARAM(ctx);
 
@@ -902,7 +928,7 @@ static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const 
     current_block = prop->start_block;
     len           = prop->size;
 
-    fprintf(stderr, "About to write file, start block = %lx, size = %lx\n", current_block, len);
+    fprintf(stderr, "About to write file, start block = %x, size = %lx\n", current_block, len);
 
     CLI_MALLOC(buff, 1 << hdr->log2_big_block_size,
                cli_errmsg("OLE2 [handler_writefile]: Unable to allocate memory for buff: %u\n", 1 << hdr->log2_big_block_size);
@@ -1555,6 +1581,9 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
 
     UNUSEDPARAM(dir);
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); 
+  //  goto done;
+
     if (prop->type != 2) {
         /* Not a file */
         ret = CL_SUCCESS;
@@ -1617,7 +1646,6 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
 
             /* buff now contains the block with N small blocks in it */
             offset = (1 << hdr->log2_small_block_size) * (current_block % (1 << (hdr->log2_big_block_size - hdr->log2_small_block_size)));
-
             if (cli_writen(ofd, &buff[offset], MIN(len, 1 << hdr->log2_small_block_size)) != MIN(len, 1 << hdr->log2_small_block_size)) {
                 goto done;
             }
@@ -1630,10 +1658,42 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
                 break;
             }
 
+{
+    int i;
+    fprintf(stderr, "NAME = '");
+    for (i = 0; i < 64; i+= 2){
+        if (prop->name[i] == 0){
+            break;
+        }
+        fprintf(stderr, "%c", prop->name[i]);
+    }
+    fprintf(stderr, "'\n");
+    fprintf(stderr, "block number = '%d'\n", current_block);
+    fprintf(stderr, "len = '%ld'\n", len);
+    fprintf(stderr, "shift = '%d'\n", 1 << hdr->log2_big_block_size);
+    fprintf(stderr, "PRINTING '%s'\n", tempfile);
+    for (i = 0; i < 256; i++){
+        fprintf(stderr, "%02x ", buff[i]);
+    }
+    fprintf(stderr, "\n");
+}
+
+//hack just to verify
+if (74456 == len){
+    uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
+    toWrite -= 8;
+            if (cli_writen(ofd, &buff[8], toWrite) != toWrite){
+                ret = CL_EWRITE;
+                goto done;
+            }
+} else {
+
+
             if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
                 ret = CL_EWRITE;
                 goto done;
             }
+}
 
             current_block = ole2_get_next_block_number(hdr, current_block);
             len -= MIN(len, (1 << hdr->log2_big_block_size));
@@ -1778,6 +1838,280 @@ ole2_read_header(int fd, ole2_header_t *hdr)
 }
 #endif
 
+//https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
+typedef struct __attribute__((packed)) {
+
+    uint32_t flags;
+    uint32_t sizeExtra; //must be 0
+uint32_t algorithmID;
+uint32_t algorithmIDHash;
+uint32_t keySize;
+uint32_t providerType;
+uint32_t reserved1;
+uint32_t reserved2; //MUST be 0
+
+uint8_t cspName[512 - 56];  //really the rest of the data.  Starts with a
+                            //string of wide characters, followed by the encryption verifier.
+                            //TODO: THIS REALLY NEEDS TO BE CHANGED TO '1', and all 'sizeof(cspName)'
+                            //conditions need to be calculated based on block size minus however much
+                            //we have already used.
+
+} encryption_info_t;
+
+typedef struct __attribute__((packed)) {
+
+    uint16_t version_major;
+    uint16_t version_minor;
+    uint32_t flags; //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/200a3d61-1ab4-4402-ae11-0290b28ab9cb
+
+    uint32_t size;
+
+    encryption_info_t encryptionInfo;
+
+} encryption_info_stream_standard_t;
+
+
+typedef struct {
+    uint32_t salt_size;
+    uint8_t salt[16];
+    uint8_t encrypted_verifier[16];
+    uint32_t verifierHashSize;
+    uint8_t encrypted_verifier_hash[1]; //variable length.  Depends on algorithm.
+
+} encryption_verifier_t;
+
+
+
+void dump_encryption_verifier (encryption_verifier_t * ev){
+    size_t i;
+
+    fprintf(stderr, "Dumping encryption_verifier_t\n");
+    fprintf(stderr, "TODO: Do this for ALL integers\n");
+
+    ev->salt_size = ole2_endian_convert_32(ev->salt_size);
+    ev->verifierHashSize = ole2_endian_convert_32(ev->verifierHashSize);
+
+    fprintf(stderr, "Salt Size = 0x%x\n", ev->salt_size);
+    fprintf(stderr, "Salt = '");
+    for (i = 0; i < ev->salt_size; i++){
+        fprintf(stderr, "%02x ", ev->salt[i]);
+    }
+    fprintf(stderr, "'\n");
+
+    fprintf(stderr, "EncryptedVerifier = '");
+    for (i = 0; i < sizeof(ev->encrypted_verifier); i++){
+        fprintf(stderr, "%02x ", ev->encrypted_verifier[i]);
+    }
+    fprintf(stderr, "'\n");
+
+    fprintf(stderr, "Verifier Hash Size = 0x%x\n", ev->verifierHashSize);
+
+    fprintf(stderr, "TODO: HARDCODING 32 byte length for the encrypted verifier hash.  Needs to be 20 for RC4.  do that later\n");
+    fprintf(stderr, "EncryptedVerifierHash = '");
+    for (i = 0; i < 32; i++){
+        fprintf(stderr, "%02x ", ev->encrypted_verifier_hash[i]);
+    }
+    fprintf(stderr, "'\n");
+
+    fprintf(stderr, "TODO: Need to add code from verifyHash here\n");
+
+
+}
+
+
+
+//https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
+
+
+static int validate_encryption_header(const encryption_info_stream_standard_t * headerPtr){
+
+    size_t idx = 0;
+    const uint8_t * buffer = (const uint8_t*) headerPtr; //TODO: remove this 
+//    encryption_info_stream_standard_t * headerPtr = (encryption_info_stream_standard_t *) buffer;
+    int ret = -1;
+    fprintf(stderr, "Mini Stream Sector = '%p'\n", buffer);
+    for (idx = 0; idx < 24; idx++) {
+        fprintf(stderr, "%02x ", buffer[idx]);
+    }
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "Major Version   = 0x%x\n", headerPtr->version_major);
+    fprintf(stderr, "Minor Version   = 0x%x\n", headerPtr->version_minor);
+    fprintf(stderr, "Flags           = 0x%x\n", headerPtr->flags);
+
+    /*Bit 0 and 1 must be 0*/
+    if (1 & headerPtr->flags){
+        fprintf(stderr, "Invalid, first bit must be 0\n");
+        goto done;
+    }
+
+    if ((1 << 1) & headerPtr->flags){
+        fprintf(stderr, "Invalid, first bit must be 0\n");
+        goto done;
+    }
+
+#define SE_HEADER_FCRYPTOAPI (1 << 2)
+#define SE_HEADER_FEXTERNAL (1 << 4)
+#define SE_HEADER_FDOCPROPS (1 << 3)
+
+    //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/200a3d61-1ab4-4402-ae11-0290b28ab9cb
+    //TODO: Figure out what fdocprops are really supposed to be.  
+    if ((SE_HEADER_FDOCPROPS & headerPtr->flags)){
+#if 1
+        fprintf(stderr, "Unsupported document properties encrypted\n");
+        exit(11);
+#else
+        fprintf(stderr, "WARNING: Verify that this is set to the correct values.\n");
+#endif
+    }
+
+    if ((SE_HEADER_FEXTERNAL & headerPtr->flags) && 
+            (SE_HEADER_FEXTERNAL != headerPtr->flags)){
+        fprintf(stderr, "Invalid fExternal flags.  If fExternal bit is set, nothing else can be\n");
+        goto done;
+    }
+
+#define SE_HEADER_FAES (1 << 5)
+    if (SE_HEADER_FAES & headerPtr->flags){
+        if (!(SE_HEADER_FCRYPTOAPI & headerPtr->flags)){
+            fprintf(stderr, "Invalid combo of fAES and fCryptoApi flags\n");
+            goto done;
+        }
+
+        fprintf(stderr, "Flags: AES\n");
+    }
+
+    fprintf(stderr, "Size            = 0x%x\n", headerPtr->size);
+
+    if (headerPtr->flags != headerPtr->encryptionInfo.flags){
+        fprintf(stderr, "Flags must match\n");
+        goto done;
+    }
+
+    if (0 != headerPtr->encryptionInfo.sizeExtra){
+        fprintf(stderr, "Size Extra must be 0\n");
+        goto done;
+    }
+
+#define SE_HEADER_EI_AES128 0x0000660e
+#define SE_HEADER_EI_AES192 0x0000660f
+#define SE_HEADER_EI_AES256 0x00006610
+
+#define SE_HEADER_EI_RC4    0x00006801
+
+    switch (headerPtr->encryptionInfo.algorithmID){
+        case SE_HEADER_EI_AES128:
+            break;
+        case SE_HEADER_EI_AES192:
+            break;
+        case SE_HEADER_EI_AES256:
+            break;
+        case SE_HEADER_EI_RC4:
+            break;
+        default:
+            fprintf(stderr, "Invalid Algorithm ID: 0x%x\n", headerPtr->encryptionInfo.algorithmID);
+            goto done;
+    }
+
+#define SE_HEADER_EI_SHA1 0x00008004
+    if (SE_HEADER_EI_SHA1 != headerPtr->encryptionInfo.algorithmIDHash){
+        fprintf(stderr, "Invalid Algorithm ID Hash: 0x%x\n", headerPtr->encryptionInfo.algorithmIDHash);
+        goto done;
+    }
+
+#define SE_HEADER_EI_AES128_KEYSIZE 0x00000080
+#define SE_HEADER_EI_AES192_KEYSIZE 0x000000c0
+#define SE_HEADER_EI_AES256_KEYSIZE 0x00000100
+
+    switch (headerPtr->encryptionInfo.keySize){
+        case SE_HEADER_EI_AES128_KEYSIZE:
+            break;
+        case SE_HEADER_EI_AES192_KEYSIZE:
+            break;
+        case SE_HEADER_EI_AES256_KEYSIZE:
+            break;
+        default:
+            fprintf(stderr, "Invalid key size: 0x%x\n", headerPtr->encryptionInfo.keySize);
+            goto done;
+    }
+    fprintf(stderr, "KeySize = 0x%x\n", headerPtr->encryptionInfo.keySize);
+
+#define SE_HEADER_EI_AES_PROVIDERTYPE  0x00000018
+    if (SE_HEADER_EI_AES_PROVIDERTYPE != headerPtr->encryptionInfo.providerType){
+        fprintf(stderr, "WARNING: Provider Type should be '0x%x', is '0x%x'\n", 
+                SE_HEADER_EI_AES_PROVIDERTYPE,  headerPtr->encryptionInfo.providerType);
+    }
+
+    fprintf(stderr, "Reserved1:  0x%x\n", headerPtr->encryptionInfo.reserved1);
+
+    if (0 != headerPtr->encryptionInfo.reserved2){
+        fprintf(stderr, "Reserved 2 must be zero, is 0x%x\n", headerPtr->encryptionInfo.reserved2);
+        goto done;
+    }
+
+    fprintf(stderr, "CPSPName: ");
+    //Expected either 
+    //'Microsoft Enhanced RSA and AES Cryptographic Provider'
+    //or
+    //'Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)'
+    printWideString(headerPtr->encryptionInfo.cspName, sizeof( headerPtr->encryptionInfo.cspName));
+    fprintf(stderr, "\n");
+
+
+    for (idx = 0; idx < sizeof( headerPtr->encryptionInfo.cspName) - 1; idx += 2) {
+        if (((uint16_t *) &(headerPtr->encryptionInfo.cspName[idx]))[0] == 0){
+            break;
+        }
+        fprintf(stderr, "%02x %02x ", headerPtr->encryptionInfo.cspName[idx], headerPtr->encryptionInfo.cspName[idx+1]);
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "idx = %zu\n", idx);
+
+    idx += 2;
+    if ((sizeof(headerPtr->encryptionInfo.cspName) - idx) <= sizeof(encryption_verifier_t)){
+        fprintf(stderr, "ERROR: No encryption_verifier_t\n");
+        goto done;
+    }
+#if 0
+    encryption_verifier_t * ev = (encryption_verifier_t*) &(headerPtr->encryptionInfo.cspName[idx]);
+    dump_encryption_verifier(ev);
+#else
+    encryption_verifier_t ev;
+    memcpy(&ev, &(headerPtr->encryptionInfo.cspName[idx]), sizeof(encryption_verifier_t));
+    dump_encryption_verifier(&ev);
+#endif
+#if 0
+    fprintf(stderr, "TODO: Need to convert this (and all other integers) to host endianness.\n");
+    fprintf(stderr, "They are guaranteed le, so I need to convert them to big endian, and then to 'host' to guarantee they are correct\n");
+
+
+
+    fprintf(stderr, "TODO::THIS HAS ALL THE SALT INFORMATION AND THE encryption_verifier_t structure.  Need to parse this\n");
+    fprintf(stderr, "see https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/e5ad39b8-9bc1-4a19-bad3-44e6246d21e6\n");
+    {
+        for (size_t i = 0; i < (512 - 44); i++){
+            fprintf(stderr, "%02x ", headerPtr->encryptionInfo.cspName[i]);
+        }
+        fprintf(stderr, "\n");
+    }
+#endif
+
+    ret = 0;
+done:
+
+
+    exit(99);
+
+
+
+
+    return ret;
+
+
+}
+
+
+
 /**
  * @brief Extract macros and images from an ole2 file
  *
@@ -1856,6 +2190,10 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.xbat_start            = ole2_endian_convert_32(hdr.xbat_start);
     hdr.xbat_count            = ole2_endian_convert_32(hdr.xbat_count);
 
+
+    validate_encryption_header((const encryption_info_stream_standard_t *) &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
+
+
     hdr.sbat_root_start = -1;
 
     hdr.bitset = cli_bitset_init();
@@ -1896,6 +2234,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.has_xlm   = false;
     hdr.has_image = false;
     ret           = ole2_walk_property_tree(&hdr, NULL, 0, handler_enum, 0, &file_count, ctx, &scansize);
+fprintf(stderr, "%s::%d::file_count = %u\n", __FUNCTION__, __LINE__, file_count);
     cli_bitset_free(hdr.bitset);
     hdr.bitset = NULL;
     if (!file_count || !(hdr.bitset = cli_bitset_init())) {
@@ -1912,6 +2251,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
             goto done;
         }
     }
+
 
     /* If there's no VBA we scan OTF */
     if (hdr.has_vba || hdr.has_xlm || hdr.has_image) {
