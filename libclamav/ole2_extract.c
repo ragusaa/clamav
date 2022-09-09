@@ -54,6 +54,10 @@
 #include "msdoc.h"
 #endif
 
+#include "rijndael.h"
+
+
+
 #ifdef DEBUG_OLE2_LIST
 #define ole2_listmsg(...) cli_dbgmsg(__VA_ARGS__)
 #else
@@ -1679,6 +1683,7 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
 }
 
 //hack just to verify
+//TODO: TAKE THIS OUT
 if (74456 == len){
     uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
     toWrite -= 8;
@@ -2034,6 +2039,76 @@ done:
     return ret;
 }
 
+static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned char *out, const uint8_t *key, unsigned key_n, int has_iv) {
+
+    unsigned long rk[RKLENGTH(128)];
+    int nrounds;
+    size_t i;
+
+    fprintf(stderr, "key = '");
+    for (i = 0; i < key_n; i++){
+        fprintf(stderr, "%02x ", key[i]);
+    }
+    fprintf(stderr, "'\n");
+
+
+
+    nrounds = rijndaelSetupDecrypt(rk, (const unsigned char *)key, key_n * 8);
+    if (!nrounds){
+        fprintf(stderr, "%s::%d::!nrounds\n", __FUNCTION__, __LINE__);
+        exit(22);
+    }
+
+    fprintf(stderr, "%s::%d::nrounds = %d\n", __FUNCTION__, __LINE__, nrounds);
+
+    for (i = 0; i < length; i += 16){
+        rijndaelDecrypt(rk, nrounds, &(in[i]), &(out[i]));
+    }
+
+    fprintf(stderr, "%s::%d::ciphertext = '", __FUNCTION__, __LINE__);
+    for (i = 0; i < length; i++){
+        if (i){
+            fprintf(stderr, " ");
+        }
+        fprintf(stderr, "%02x", in[i]);
+    }
+    fprintf(stderr, "'\n");
+
+    fprintf(stderr, "%s::%d::plaintext = '", __FUNCTION__, __LINE__);
+    for (i = 0; i < length; i++){
+        if (i){
+            fprintf(stderr, " ");
+        }
+        fprintf(stderr, "%02x", out[i]);
+    }
+    fprintf(stderr, "'\n");
+
+
+
+
+}
+
+static void verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
+
+    uint8_t sha[SHA1_HASH_SIZE];
+    const uint32_t encrypted_verifier_hash_len = 32; //TODO: This needs to be based on algorithm
+    uint8_t decrypted[encrypted_verifier_hash_len]; //TODO: This needs to be the size of the largest value
+
+    aes_128ecb_decrypt(verifier->encrypted_verifier, sizeof(verifier->encrypted_verifier) , 
+            decrypted, key, 16, 0);
+
+    cl_sha1(decrypted, sizeof(verifier->encrypted_verifier), sha, NULL);
+
+    aes_128ecb_decrypt(verifier->encrypted_verifier_hash, verifier->verifier_hash_size,
+            decrypted, key, 16, 0);
+
+    if (0 == memcmp(sha, decrypted, verifier->verifier_hash_size)){
+        fprintf(stderr, "%s::%d::SUCCESS!!!!!\n", __FUNCTION__, __LINE__);
+    } else {
+        fprintf(stderr, "%s::%d::FAILURE!!!!!\n", __FUNCTION__, __LINE__);
+    }
+
+}
 
 
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
@@ -2217,7 +2292,8 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
     uint8_t key[16];
     compute_hash("VelvetSweatshop", key, 16, &ev);
 
-    verify_key(key);
+    dump_encryption_verifier(&ev);
+    verify_key(key, &ev);
 
 
 
