@@ -1694,6 +1694,7 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
                 memcpy(&reported, buff, 8);
                 if (reported != toWrite){
                     fprintf(stderr, "NOT RIGHT\n");
+                    /*TODO: take this out, debugging*/
                     exit(77);
                 }
                 toWrite -= 8;
