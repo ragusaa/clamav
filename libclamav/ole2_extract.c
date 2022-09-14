@@ -2088,8 +2088,12 @@ static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned 
 
 }
 
-static void verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
+/*
+ * Returns true if it is actually encrypted with the key.
+ */
+static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
 
+    bool bRet = false;
     uint8_t sha[SHA1_HASH_SIZE];
     const uint32_t encrypted_verifier_hash_len = 32; //TODO: This needs to be based on algorithm
     uint8_t decrypted[encrypted_verifier_hash_len]; //TODO: This needs to be the size of the largest value
@@ -2102,34 +2106,28 @@ static void verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
     aes_128ecb_decrypt(verifier->encrypted_verifier_hash, verifier->verifier_hash_size,
             decrypted, key, 16, 0);
 
-    if (0 == memcmp(sha, decrypted, verifier->verifier_hash_size)){
-        fprintf(stderr, "%s::%d::SUCCESS!!!!!\n", __FUNCTION__, __LINE__);
-    } else {
-        fprintf(stderr, "%s::%d::FAILURE!!!!!\n", __FUNCTION__, __LINE__);
-    }
+    bRet =  (0 == memcmp(sha, decrypted, verifier->verifier_hash_size));
 
+    return bRet;
 }
 
 
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
-static int validate_encryption_header(const encryption_info_stream_standard_t * headerPtr){
+//static int validate_encryption_header(const encryption_info_stream_standard_t * headerPtr){
+static bool has_valid_encryption_header(const encryption_info_stream_standard_t * headerPtr){
 
-    int ret = -1;
+    //int ret = -1;
+    bool bRet = false;
     size_t idx = 0;
     encryption_verifier_t ev;
 
-
-
-    const uint8_t * buffer = (const uint8_t*) headerPtr; //TODO: remove this 
-
-
-
-//    encryption_info_stream_standard_t * headerPtr = (encryption_info_stream_standard_t *) buffer;
-    fprintf(stderr, "Mini Stream Sector = '%p'\n", buffer);
+#if 0
+    fprintf(stderr, "Mini Stream Sector = '%p'\n", headerPtr);
     for (idx = 0; idx < 24; idx++) {
-        fprintf(stderr, "%02x ", buffer[idx]);
+        fprintf(stderr, "%02x ", ((const uint8_t*) headerPtr)[idx]);
     }
     fprintf(stderr, "\n");
+#endif
 
     fprintf(stderr, "Major Version   = 0x%x\n", headerPtr->version_major);
     fprintf(stderr, "Minor Version   = 0x%x\n", headerPtr->version_minor);
@@ -2137,12 +2135,12 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
 
     /*Bit 0 and 1 must be 0*/
     if (1 & headerPtr->flags){
-        fprintf(stderr, "Invalid, first bit must be 0\n");
+        cli_warnmsg("ole2: Invalid first bit, must be 0\n");
         goto done;
     }
 
     if ((1 << 1) & headerPtr->flags){
-        fprintf(stderr, "Invalid, first bit must be 0\n");
+        cli_warnmsg("ole2: Invalid first bit, must be 0\n");
         goto done;
     }
 
@@ -2153,24 +2151,20 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
     //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/200a3d61-1ab4-4402-ae11-0290b28ab9cb
     //TODO: Figure out what fdocprops are really supposed to be.  
     if ((SE_HEADER_FDOCPROPS & headerPtr->flags)){
-#if 1
-        fprintf(stderr, "Unsupported document properties encrypted\n");
+        cli_warnmsg("ole2: Unsupported document properties encrypted\n");
         goto done;
-#else
-        fprintf(stderr, "WARNING: Verify that this is set to the correct values.\n");
-#endif
     }
 
     if ((SE_HEADER_FEXTERNAL & headerPtr->flags) && 
             (SE_HEADER_FEXTERNAL != headerPtr->flags)){
-        fprintf(stderr, "Invalid fExternal flags.  If fExternal bit is set, nothing else can be\n");
+        cli_warnmsg("ole2: Invalid fExternal flags.  If fExternal bit is set, nothing else can be\n");
         goto done;
     }
 
 #define SE_HEADER_FAES (1 << 5)
     if (SE_HEADER_FAES & headerPtr->flags){
         if (!(SE_HEADER_FCRYPTOAPI & headerPtr->flags)){
-            fprintf(stderr, "Invalid combo of fAES and fCryptoApi flags\n");
+            cli_warnmsg("ole2: Invalid combo of fAES and fCryptoApi flags\n");
             goto done;
         }
 
@@ -2180,12 +2174,12 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
     fprintf(stderr, "Size            = 0x%x\n", headerPtr->size);
 
     if (headerPtr->flags != headerPtr->encryptionInfo.flags){
-        fprintf(stderr, "Flags must match\n");
+        cli_warnmsg("ole2: Flags must match\n");
         goto done;
     }
 
     if (0 != headerPtr->encryptionInfo.sizeExtra){
-        fprintf(stderr, "Size Extra must be 0\n");
+        cli_warnmsg("ole2: Size Extra must be 0\n");
         goto done;
     }
 
@@ -2205,13 +2199,13 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
         case SE_HEADER_EI_RC4:
             break;
         default:
-            fprintf(stderr, "Invalid Algorithm ID: 0x%x\n", headerPtr->encryptionInfo.algorithmID);
+            cli_warnmsg("ole2: Invalid Algorithm ID: 0x%x\n", headerPtr->encryptionInfo.algorithmID);
             goto done;
     }
 
 #define SE_HEADER_EI_SHA1 0x00008004
     if (SE_HEADER_EI_SHA1 != headerPtr->encryptionInfo.algorithmIDHash){
-        fprintf(stderr, "Invalid Algorithm ID Hash: 0x%x\n", headerPtr->encryptionInfo.algorithmIDHash);
+        cli_warnmsg("ole2: Invalid Algorithm ID Hash: 0x%x\n", headerPtr->encryptionInfo.algorithmIDHash);
         goto done;
     }
 
@@ -2227,21 +2221,22 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
         case SE_HEADER_EI_AES256_KEYSIZE:
             break;
         default:
-            fprintf(stderr, "Invalid key size: 0x%x\n", headerPtr->encryptionInfo.keySize);
+            cli_warnmsg("ole2: Invalid key size: 0x%x\n", headerPtr->encryptionInfo.keySize);
             goto done;
     }
     fprintf(stderr, "KeySize = 0x%x\n", headerPtr->encryptionInfo.keySize);
 
 #define SE_HEADER_EI_AES_PROVIDERTYPE  0x00000018
     if (SE_HEADER_EI_AES_PROVIDERTYPE != headerPtr->encryptionInfo.providerType){
-        fprintf(stderr, "WARNING: Provider Type should be '0x%x', is '0x%x'\n", 
+        cli_warnmsg("ole2: WARNING: Provider Type should be '0x%x', is '0x%x'\n", 
                 SE_HEADER_EI_AES_PROVIDERTYPE,  headerPtr->encryptionInfo.providerType);
+        goto done;
     }
 
     fprintf(stderr, "Reserved1:  0x%x\n", headerPtr->encryptionInfo.reserved1);
 
     if (0 != headerPtr->encryptionInfo.reserved2){
-        fprintf(stderr, "Reserved 2 must be zero, is 0x%x\n", headerPtr->encryptionInfo.reserved2);
+        cli_warnmsg("ole2: Reserved 2 must be zero, is 0x%x\n", headerPtr->encryptionInfo.reserved2);
         goto done;
     }
 
@@ -2265,7 +2260,7 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
 
     idx += 2;
     if ((sizeof(headerPtr->encryptionInfo.cspName) - idx) <= sizeof(encryption_verifier_t)){
-        fprintf(stderr, "ERROR: No encryption_verifier_t\n");
+        cli_warnmsg("ole2: ERROR: No encryption_verifier_t\n");
         goto done;
     }
     copy_encryption_verifier(&ev, &(headerPtr->encryptionInfo.cspName[idx]));
@@ -2293,7 +2288,9 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
     compute_hash("VelvetSweatshop", key, 16, &ev);
 
     dump_encryption_verifier(&ev);
-    verify_key(key, &ev);
+    if (! verify_key(key, &ev)){
+        goto done;
+    }
 
 
 
@@ -2308,24 +2305,10 @@ static int validate_encryption_header(const encryption_info_stream_standard_t * 
     }
     fprintf(stderr, "Verifier hash size = %d\n",ev.verifier_hash_size );
 
-
-
-
-
-
-    
-    ret = 0;
+    bRet = true;
 done:
 
-
-    exit(99);
-
-
-
-
-    return ret;
-
-
+    return bRet;
 }
 
 
@@ -2349,6 +2332,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     unsigned int file_count = 0;
     unsigned long scansize, scansize2;
     const void *phdr;
+    bool isVSEncrypted = false;
 
     cli_dbgmsg("in cli_ole2_extract()\n");
     if (!ctx) {
@@ -2409,11 +2393,9 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.xbat_count            = ole2_endian_convert_32(hdr.xbat_count);
 
 
-
     encryption_info_stream_standard_t encryption_info_stream_standard;
     copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
-    validate_encryption_header(&encryption_info_stream_standard);
-
+    isVSEncrypted  = has_valid_encryption_header(&encryption_info_stream_standard);
 
     hdr.sbat_root_start = -1;
 
@@ -2455,7 +2437,6 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.has_xlm   = false;
     hdr.has_image = false;
     ret           = ole2_walk_property_tree(&hdr, NULL, 0, handler_enum, 0, &file_count, ctx, &scansize);
-fprintf(stderr, "%s::%d::file_count = %u\n", __FUNCTION__, __LINE__, file_count);
     cli_bitset_free(hdr.bitset);
     hdr.bitset = NULL;
     if (!file_count || !(hdr.bitset = cli_bitset_init())) {
