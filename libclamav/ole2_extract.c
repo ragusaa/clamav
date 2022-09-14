@@ -2249,14 +2249,16 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
     fprintf(stderr, "\n");
 
 
+    /*The encryption info is at the end of the CPSName string.  
+     * Find the end, and we'll have the index of the EncryptionVerifier.*/
     for (idx = 0; idx < sizeof( headerPtr->encryptionInfo.cspName) - 1; idx += 2) {
         if (((uint16_t *) &(headerPtr->encryptionInfo.cspName[idx]))[0] == 0){
             break;
         }
-        fprintf(stderr, "%02x %02x ", headerPtr->encryptionInfo.cspName[idx], headerPtr->encryptionInfo.cspName[idx+1]);
+        //fprintf(stderr, "%02x %02x ", headerPtr->encryptionInfo.cspName[idx], headerPtr->encryptionInfo.cspName[idx+1]);
     }
-    fprintf(stderr, "\n");
-    fprintf(stderr, "idx = %zu\n", idx);
+    //fprintf(stderr, "\n");
+    //fprintf(stderr, "idx = %zu\n", idx);
 
     idx += 2;
     if ((sizeof(headerPtr->encryptionInfo.cspName) - idx) <= sizeof(encryption_verifier_t)){
@@ -2264,7 +2266,7 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
         goto done;
     }
     copy_encryption_verifier(&ev, &(headerPtr->encryptionInfo.cspName[idx]));
-    dump_encryption_verifier(&ev);
+    //dump_encryption_verifier(&ev);
 
 
 #if 0
@@ -2287,16 +2289,13 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
     uint8_t key[16];
     compute_hash("VelvetSweatshop", key, 16, &ev);
 
-    dump_encryption_verifier(&ev);
+    //dump_encryption_verifier(&ev);
     if (! verify_key(key, &ev)){
         goto done;
     }
 
 
-
-
-
-
+#if 0
     {size_t i;
     for (i = 0; i < 16; i++){
         fprintf(stderr, "%02x ", key[i]);
@@ -2304,6 +2303,7 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
     fprintf(stderr, "\n");
     }
     fprintf(stderr, "Verifier hash size = %d\n",ev.verifier_hash_size );
+#endif
 
     bRet = true;
 done:
