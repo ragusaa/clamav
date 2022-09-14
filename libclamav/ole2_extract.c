@@ -1911,7 +1911,7 @@ typedef struct __attribute__((packed)) {
 void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * dst, const uint8_t * src){
     uint32_t byteOffset;
 
-    memcpy(dst, src, sizeof(encryption_info_stream_standard_t));
+    memcpy(dst, src, 512);
     dst->version_major = ole2_endian_convert_16(dst->version_major);
     dst->version_minor = ole2_endian_convert_16(dst->version_minor);
 
@@ -1920,7 +1920,21 @@ void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * ds
 
     void * vp = (&(dst->encryptionInfo));
     byteOffset = vp - ((void *) dst);
-    copy_encryption_info(&(dst->encryptionInfo), &(src[byteOffset]));
+    fprintf(stderr, "%s::%d::byteOffset = %d\n", __FUNCTION__, __LINE__, byteOffset);
+//    copy_encryption_info(&(dst->encryptionInfo), &(src[byteOffset]));
+
+    dst->encryptionInfo.flags = ole2_endian_convert_32(dst->encryptionInfo.flags);
+    dst->encryptionInfo.sizeExtra = ole2_endian_convert_32(dst->encryptionInfo.sizeExtra);
+    dst->encryptionInfo.algorithmID = ole2_endian_convert_32(dst->encryptionInfo.algorithmID);
+    dst->encryptionInfo.algorithmIDHash = ole2_endian_convert_32(dst->encryptionInfo.algorithmIDHash);
+    dst->encryptionInfo.keySize = ole2_endian_convert_32(dst->encryptionInfo.keySize);
+    dst->encryptionInfo.providerType = ole2_endian_convert_32(dst->encryptionInfo.providerType);
+    dst->encryptionInfo.reserved1 = ole2_endian_convert_32(dst->encryptionInfo.reserved1);
+    dst->encryptionInfo.reserved2 = ole2_endian_convert_32(dst->encryptionInfo.reserved2);
+
+
+    fprintf(stderr, "%s::%d::memcmp = %d\n", __FUNCTION__, __LINE__, memcmp(src, dst, sizeof(encryption_info_stream_standard_t )));
+
 
 }
 
@@ -2140,6 +2154,8 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
     bool bRet = false;
     size_t idx = 0;
     encryption_verifier_t ev;
+
+    fprintf(stderr, "%s::%d::RETURNING\n", __FUNCTION__, __LINE__); return false;
 
 #if 0
     fprintf(stderr, "Mini Stream Sector = '%p'\n", headerPtr);
@@ -2417,43 +2433,59 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     encryption_info_stream_standard_t encryption_info_stream_standard;
     copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
     hdr.is_velvetsweatshop  = has_valid_encryption_header(&encryption_info_stream_standard);
+
+
+
+
+
     fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
 
     hdr.sbat_root_start = -1;
 
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     hdr.bitset = cli_bitset_init();
     if (!hdr.bitset) {
         ret = CL_EMEM;
         goto done;
     }
+    fprintf(stderr, "%s::%d::magic = %lx\n", __FUNCTION__, __LINE__, hdr.magic);
+    fprintf(stderr, "%s::%d::magic_id = %lx\n", __FUNCTION__, __LINE__, magic_id);
     if (memcmp(hdr.magic, magic_id, 8) != 0) {
+fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
         cli_dbgmsg("OLE2 magic failed!\n");
         ret = CL_EFORMAT;
         goto done;
     }
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (hdr.log2_big_block_size < 6 || hdr.log2_big_block_size > 30) {
         cli_dbgmsg("CAN'T PARSE: Invalid big block size (2^%u)\n", hdr.log2_big_block_size);
         goto done;
     }
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (!hdr.log2_small_block_size || hdr.log2_small_block_size > hdr.log2_big_block_size) {
         cli_dbgmsg("CAN'T PARSE: Invalid small block size (2^%u)\n", hdr.log2_small_block_size);
         goto done;
     }
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (hdr.sbat_cutoff != 4096) {
         cli_dbgmsg("WARNING: Untested sbat cutoff (%u); data may not extract correctly\n", hdr.sbat_cutoff);
     }
 
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (hdr.map->len > INT32_MAX) {
         cli_dbgmsg("OLE2 extract: Overflow detected\n");
         ret = CL_EFORMAT;
         goto done;
     }
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     /* 8 SBAT blocks per file block */
     hdr.max_block_no = (hdr.map->len - MAX(512, 1 << hdr.log2_big_block_size)) / (1 << hdr.log2_small_block_size);
 
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     print_ole2_header(&hdr);
     cli_dbgmsg("Max block number: %lu\n", (unsigned long int)hdr.max_block_no);
 
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     /* PASS 1 : Count files and check for VBA */
     hdr.has_vba   = false;
     hdr.has_xlm   = false;
@@ -2506,6 +2538,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         cli_dbgmsg("OLE2: no VBA projects found\n");
         /* PASS 2/B : OTF scan */
         file_count = 0;
+        fprintf(stderr, "%s::%d:DID I GET HERE\n", __FUNCTION__, __LINE__);
         ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2);
     }
     fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
