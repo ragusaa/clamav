@@ -1586,6 +1586,8 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
     bitset_t *blk_bitset = NULL;
     bool first = true;
 
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr->is_velvetsweatshop);
+
     UNUSEDPARAM(dir);
 
     if (prop->type != 2) {
