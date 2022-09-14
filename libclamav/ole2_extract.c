@@ -123,6 +123,8 @@ typedef struct ole2_header_tag {
     bool has_xlm;
     bool has_image;
     hwp5_header_t *is_hwp;
+
+    bool is_velvetsweatshop;
 } ole2_header_t;
 
 /*DirectoryEntry*/
@@ -1582,11 +1584,9 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
     int ofd              = -1;
     int is_mso           = 0;
     bitset_t *blk_bitset = NULL;
+    bool first = true;
 
     UNUSEDPARAM(dir);
-
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); 
-  //  goto done;
 
     if (prop->type != 2) {
         /* Not a file */
@@ -1642,6 +1642,10 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
         }
 
         if (prop->size < (int64_t)hdr->sbat_cutoff) {
+            {
+                fprintf(stderr, "%s::%dFIGURE OUT IF THIS HAS THE SIZE AT THE BEGINNING OF THE FIRST BLOCK LIKE THE LARGE BLOCK FILES\n", __FUNCTION__, __LINE__);
+                exit(111);
+            }
             /* Small block file */
             if (!ole2_get_sbat_data_block(hdr, buff, current_block)) {
                 cli_dbgmsg("OLE2 [handler_otf]: ole2_get_sbat_data_block failed\n");
@@ -1662,6 +1666,7 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
                 break;
             }
 
+#if 0
 {
     int i;
     fprintf(stderr, "NAME = '");
@@ -1681,28 +1686,35 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
     }
     fprintf(stderr, "\n");
 }
+#endif
 
-//hack just to verify
-//TODO: TAKE THIS OUT
-if (74456 == len){
-    uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
-    toWrite -= 8;
-            if (cli_writen(ofd, &buff[8], toWrite) != toWrite){
-                ret = CL_EWRITE;
-                goto done;
+            if (first) {
+                uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
+                uint64_t reported;
+                memcpy(&reported, buff, 8);
+                if (reported != toWrite){
+                    fprintf(stderr, "NOT RIGHT\n");
+                    exit(77);
+                }
+                toWrite -= 8;
+                if (cli_writen(ofd, &buff[8], toWrite) != toWrite){
+                    ret = CL_EWRITE;
+                    goto done;
+                }
+            } else {
+
+
+                if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
+                    ret = CL_EWRITE;
+                    goto done;
+                }
             }
-} else {
-
-
-            if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
-                ret = CL_EWRITE;
-                goto done;
-            }
-}
 
             current_block = ole2_get_next_block_number(hdr, current_block);
             len -= MIN(len, (1 << hdr->log2_big_block_size));
         }
+        
+        first = false;
     }
 
     /* defragmenting of ole2 stream complete */
@@ -2332,7 +2344,6 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     unsigned int file_count = 0;
     unsigned long scansize, scansize2;
     const void *phdr;
-    bool isVSEncrypted = false;
 
     cli_dbgmsg("in cli_ole2_extract()\n");
     if (!ctx) {
@@ -2355,16 +2366,18 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
 
     /* size of header - size of other values in struct */
     hdr_size = sizeof(struct ole2_header_tag) -
-               sizeof(int32_t) -        // sbat_root_start
-               sizeof(uint32_t) -       // max_block_no
-               sizeof(off_t) -          // m_length
-               sizeof(bitset_t *) -     // bitset
-               sizeof(struct uniq *) -  // U
-               sizeof(fmap_t *) -       // map
-               sizeof(bool) -           // has_vba
-               sizeof(bool) -           // has_xlm
-               sizeof(bool) -           // has_image
-               sizeof(hwp5_header_t *); // is_hwp
+               sizeof(int32_t) -         // sbat_root_start
+               sizeof(uint32_t) -        // max_block_no
+               sizeof(off_t) -           // m_length
+               sizeof(bitset_t *) -      // bitset
+               sizeof(struct uniq *) -   // U
+               sizeof(fmap_t *) -        // map
+               sizeof(bool) -            // has_vba
+               sizeof(bool) -            // has_xlm
+               sizeof(bool) -            // has_image
+               sizeof(hwp5_header_t *) - // is_hwp
+               sizeof(bool);             // is_velvetsweatshop
+
 
     if ((size_t)(ctx->fmap->len) < (size_t)(hdr_size)) {
         return CL_CLEAN;
@@ -2395,7 +2408,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
 
     encryption_info_stream_standard_t encryption_info_stream_standard;
     copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
-    isVSEncrypted  = has_valid_encryption_header(&encryption_info_stream_standard);
+    hdr.is_velvetsweatshop  = has_valid_encryption_header(&encryption_info_stream_standard);
 
     hdr.sbat_root_start = -1;
 
