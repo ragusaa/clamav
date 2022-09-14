@@ -1790,6 +1790,11 @@ done:
         tempfile = NULL;
     }
 
+    if (hdr->is_velvetsweatshop){
+        fprintf(stderr, "Decrypt here\n");
+        exit(33);
+    }
+
     return ret;
 }
 
@@ -2410,6 +2415,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     encryption_info_stream_standard_t encryption_info_stream_standard;
     copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
     hdr.is_velvetsweatshop  = has_valid_encryption_header(&encryption_info_stream_standard);
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
 
     hdr.sbat_root_start = -1;
 
@@ -2450,7 +2456,9 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.has_vba   = false;
     hdr.has_xlm   = false;
     hdr.has_image = false;
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     ret           = ole2_walk_property_tree(&hdr, NULL, 0, handler_enum, 0, &file_count, ctx, &scansize);
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     cli_bitset_free(hdr.bitset);
     hdr.bitset = NULL;
     if (!file_count || !(hdr.bitset = cli_bitset_init())) {
@@ -2468,6 +2476,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         }
     }
 
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
 
     /* If there's no VBA we scan OTF */
     if (hdr.has_vba || hdr.has_xlm || hdr.has_image) {
@@ -2497,6 +2506,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         file_count = 0;
         ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2);
     }
+    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
 
 done:
     if (hdr.bitset) {
