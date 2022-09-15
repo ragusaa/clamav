@@ -2457,61 +2457,46 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
 
 
 
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
-
     hdr.sbat_root_start = -1;
 
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     hdr.bitset = cli_bitset_init();
     if (!hdr.bitset) {
         ret = CL_EMEM;
         goto done;
     }
-    fprintf(stderr, "%s::%d::magic = %lx\n", __FUNCTION__, __LINE__, hdr.magic);
-    fprintf(stderr, "%s::%d::magic_id = %lx\n", __FUNCTION__, __LINE__, magic_id);
     if (memcmp(hdr.magic, magic_id, 8) != 0) {
-fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
         cli_dbgmsg("OLE2 magic failed!\n");
         ret = CL_EFORMAT;
         goto done;
     }
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (hdr.log2_big_block_size < 6 || hdr.log2_big_block_size > 30) {
         cli_dbgmsg("CAN'T PARSE: Invalid big block size (2^%u)\n", hdr.log2_big_block_size);
         goto done;
     }
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (!hdr.log2_small_block_size || hdr.log2_small_block_size > hdr.log2_big_block_size) {
         cli_dbgmsg("CAN'T PARSE: Invalid small block size (2^%u)\n", hdr.log2_small_block_size);
         goto done;
     }
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (hdr.sbat_cutoff != 4096) {
         cli_dbgmsg("WARNING: Untested sbat cutoff (%u); data may not extract correctly\n", hdr.sbat_cutoff);
     }
 
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     if (hdr.map->len > INT32_MAX) {
         cli_dbgmsg("OLE2 extract: Overflow detected\n");
         ret = CL_EFORMAT;
         goto done;
     }
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     /* 8 SBAT blocks per file block */
     hdr.max_block_no = (hdr.map->len - MAX(512, 1 << hdr.log2_big_block_size)) / (1 << hdr.log2_small_block_size);
 
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     print_ole2_header(&hdr);
     cli_dbgmsg("Max block number: %lu\n", (unsigned long int)hdr.max_block_no);
 
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     /* PASS 1 : Count files and check for VBA */
     hdr.has_vba   = false;
     hdr.has_xlm   = false;
     hdr.has_image = false;
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     ret           = ole2_walk_property_tree(&hdr, NULL, 0, handler_enum, 0, &file_count, ctx, &scansize);
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
     cli_bitset_free(hdr.bitset);
     hdr.bitset = NULL;
     if (!file_count || !(hdr.bitset = cli_bitset_init())) {
@@ -2528,8 +2513,6 @@ fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweat
             goto done;
         }
     }
-
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
 
     /* If there's no VBA we scan OTF */
     if (hdr.has_vba || hdr.has_xlm || hdr.has_image) {
@@ -2557,10 +2540,8 @@ fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweat
         cli_dbgmsg("OLE2: no VBA projects found\n");
         /* PASS 2/B : OTF scan */
         file_count = 0;
-        fprintf(stderr, "%s::%d:DID I GET HERE\n", __FUNCTION__, __LINE__);
         ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2);
     }
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr.is_velvetsweatshop);
 
 done:
     if (hdr.bitset) {
