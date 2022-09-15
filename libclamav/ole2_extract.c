@@ -1811,7 +1811,6 @@ done:
 
     if (hdr->is_velvetsweatshop){
         fprintf(stderr, "Decrypt here\n");
-        exit(33);
     }
 
     return ret;
