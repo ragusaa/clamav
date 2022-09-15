@@ -1656,7 +1656,7 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
             }
 
 #if 0
-            doesn't look like it.
+            doesn't look like it. '
             {
                 int i;
                 fprintf(stderr, "size = %d\n", prop->size);
@@ -1717,8 +1717,8 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
                 uint64_t reported;
                 memcpy(&reported, buff, 8);
 //                len = ole2_endian_convert_32(reported);
-                    fprintf(stderr, "reported = %d\n", reported);
-                    fprintf(stderr, "len = %d\n", len);
+                    fprintf(stderr, "reported = %ld\n", reported);
+                    fprintf(stderr, "len = %ld\n", len);
                     /*TODO: take this out, debugging*/
                 //    exit(77);
                 toWrite -= 8;
@@ -1930,7 +1930,7 @@ typedef struct __attribute__((packed)) {
 } encryption_info_stream_standard_t;
 
 void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * dst, const uint8_t * src){
-    uint32_t byteOffset;
+    //uint32_t byteOffset;
 
     memcpy(dst, src, 512);
     dst->version_major = ole2_endian_convert_16(dst->version_major);
@@ -1939,8 +1939,8 @@ void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * ds
     dst->flags = ole2_endian_convert_32(dst->flags);
     dst->size = ole2_endian_convert_32(dst->size);
 
-    void * vp = (&(dst->encryptionInfo));
-    byteOffset = vp - ((void *) dst);
+    //void * vp = (&(dst->encryptionInfo));
+    //byteOffset = vp - ((void *) dst);
 //    fprintf(stderr, "%s::%d::byteOffset = %d\n", __FUNCTION__, __LINE__, byteOffset);
 //    copy_encryption_info(&(dst->encryptionInfo), &(src[byteOffset]));
 
