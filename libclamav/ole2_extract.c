@@ -104,6 +104,8 @@ typedef struct ole2_header_tag {
     int32_t xbat_count __attribute__((packed));
     int32_t bat_array[109] __attribute__((packed));
 
+    //aragusa: TODO, move this to it's own structure, and pass that as a
+    //separate parameter, to avoid this.
     /*
      * The following is not part of the ole2 header, but stuff we need in
      * order to decode.
@@ -122,9 +124,12 @@ typedef struct ole2_header_tag {
     bool has_vba;
     bool has_xlm;
     bool has_image;
-    hwp5_header_t *is_hwp;
 
     bool is_velvetsweatshop;
+
+    hwp5_header_t *is_hwp;  //This value MUST be last in this structure,
+                            //otherwise you will get short file reads.
+
 } ole2_header_t;
 
 /*DirectoryEntry*/
