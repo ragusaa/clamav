@@ -1644,15 +1644,32 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
         }
 
         if (prop->size < (int64_t)hdr->sbat_cutoff) {
-            {
-                fprintf(stderr, "%s::%dFIGURE OUT IF THIS HAS THE SIZE AT THE BEGINNING OF THE FIRST BLOCK LIKE THE LARGE BLOCK FILES\n", __FUNCTION__, __LINE__);
-                exit(111);
-            }
             /* Small block file */
             if (!ole2_get_sbat_data_block(hdr, buff, current_block)) {
                 cli_dbgmsg("OLE2 [handler_otf]: ole2_get_sbat_data_block failed\n");
                 break;
             }
+
+#if 0
+            doesn't look like it.
+            {
+                int i;
+                fprintf(stderr, "size = %d\n", prop->size);
+                for (i = 0; i < 16; i++){
+                    fprintf(stderr, "%02x ", buff[i]);
+                }
+                fprintf(stderr, "\n");
+            }
+
+            {
+                fprintf(stderr, "%s::%d::FIGURE OUT IF THIS HAS THE SIZE AT THE BEGINNING OF THE FIRST BLOCK LIKE THE LARGE BLOCK FILES\n", __FUNCTION__, __LINE__);
+                exit(111);
+            }
+
+#endif
+
+
+
 
             /* buff now contains the block with N small blocks in it */
             offset = (1 << hdr->log2_small_block_size) * (current_block % (1 << (hdr->log2_big_block_size - hdr->log2_small_block_size)));
@@ -1690,15 +1707,15 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
 }
 #endif
 
-            if (first) {
+            if (first && hdr->is_velvetsweatshop) {
                 uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
                 uint64_t reported;
                 memcpy(&reported, buff, 8);
-                if (reported != toWrite){
-                    fprintf(stderr, "NOT RIGHT\n");
+//                len = ole2_endian_convert_32(reported);
+                    fprintf(stderr, "reported = %d\n", reported);
+                    fprintf(stderr, "len = %d\n", len);
                     /*TODO: take this out, debugging*/
-                    exit(77);
-                }
+                //    exit(77);
                 toWrite -= 8;
                 if (cli_writen(ofd, &buff[8], toWrite) != toWrite){
                     ret = CL_EWRITE;
@@ -1920,7 +1937,7 @@ void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * ds
 
     void * vp = (&(dst->encryptionInfo));
     byteOffset = vp - ((void *) dst);
-    fprintf(stderr, "%s::%d::byteOffset = %d\n", __FUNCTION__, __LINE__, byteOffset);
+//    fprintf(stderr, "%s::%d::byteOffset = %d\n", __FUNCTION__, __LINE__, byteOffset);
 //    copy_encryption_info(&(dst->encryptionInfo), &(src[byteOffset]));
 
     dst->encryptionInfo.flags = ole2_endian_convert_32(dst->encryptionInfo.flags);
@@ -1933,7 +1950,7 @@ void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * ds
     dst->encryptionInfo.reserved2 = ole2_endian_convert_32(dst->encryptionInfo.reserved2);
 
 
-    fprintf(stderr, "%s::%d::memcmp = %d\n", __FUNCTION__, __LINE__, memcmp(src, dst, sizeof(encryption_info_stream_standard_t )));
+//    fprintf(stderr, "%s::%d::memcmp = %d\n", __FUNCTION__, __LINE__, memcmp(src, dst, sizeof(encryption_info_stream_standard_t )));
 
 
 }
@@ -2154,8 +2171,6 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
     bool bRet = false;
     size_t idx = 0;
     encryption_verifier_t ev;
-
-    fprintf(stderr, "%s::%d::RETURNING\n", __FUNCTION__, __LINE__); return false;
 
 #if 0
     fprintf(stderr, "Mini Stream Sector = '%p'\n", headerPtr);
