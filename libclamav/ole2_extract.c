@@ -748,35 +748,17 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                 }
                 break;
             case 2: /* File */
-                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                 ole2_listmsg("file node\n");
                 if (ctx && ctx->engine->maxfiles && ((*file_count > ctx->engine->maxfiles) || (ctx->scannedfiles > ctx->engine->maxfiles - *file_count))) {
-                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                     cli_dbgmsg("OLE2: files limit reached (max: %u)\n", ctx->engine->maxfiles);
                     cli_append_virus_if_heur_exceedsmax(ctx, "Heuristics.Limits.Exceeded.MaxFiles");
                     ole2_list_delete(&node_list);
                     return CL_EMAXFILES;
                 }
                 if (!ctx || !(ctx->engine->maxfilesize) || prop_block[idx].size <= ctx->engine->maxfilesize || prop_block[idx].size <= *scansize) {
-                fprintf(stderr, "%s::%d::handler = %p\n", __FUNCTION__, __LINE__, handler);
-                fprintf(stderr, "%s::%d::handler_writefile = %p\n", __FUNCTION__, __LINE__, handler_writefile);
-                fprintf(stderr, "%s::%d::idx = %d\n", __FUNCTION__, __LINE__, idx);
                     (*file_count)++;
                     *scansize -= prop_block[idx].size;
                     ole2_listmsg("running file handler\n");
-
-
-                    {
-                        int i;
-                        for (i = 0; i < 4; i++){
-                            fprintf(stderr, "%s::%d::i = %d\n", __FUNCTION__, __LINE__, i);
-                            fprintf(stderr, "%s::%d::'", __FUNCTION__, __LINE__);
-                            printWideString((const uint8_t*) prop_block[i].name, 64);
-                            fprintf(stderr, "'\n");
-                        }
-                    }
-
-                    /*aragusa: handler called here.*/
                     ret = handler(hdr, &prop_block[idx], dir, ctx, handler_ctx);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
@@ -788,11 +770,9 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                         }
                     }
                 } else {
-                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                     cli_dbgmsg("OLE2: filesize exceeded\n");
                 }
                 if ((int)(prop_block[idx].child) != -1) {
-                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                     ret = ole2_walk_property_tree(hdr, dir, prop_block[idx].child, handler, rec_level, file_count, ctx, scansize, handler_ctx);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
@@ -902,8 +882,6 @@ static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const 
     bitset_t *blk_bitset = NULL;
     uint32_t cnt         = 0;
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); goto done;
-
     UNUSEDPARAM(ctx);
     UNUSEDPARAM(handler_ctx);
 
@@ -946,8 +924,6 @@ static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const 
 
     current_block = prop->start_block;
     len           = prop->size;
-
-    fprintf(stderr, "About to write file, start block = %x, size = %lx\n", current_block, len);
 
     CLI_MALLOC(buff, 1 << hdr->log2_big_block_size,
                cli_errmsg("OLE2 [handler_writefile]: Unable to allocate memory for buff: %u\n", 1 << hdr->log2_big_block_size);
@@ -1296,7 +1272,6 @@ static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char 
     json_object *strmobj = NULL;
 
     UNUSEDPARAM(handler_ctx);
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     name = cli_ole2_get_property_name2(prop->name, prop->name_size);
     if (name) {
@@ -1362,7 +1337,6 @@ static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char 
                         }
                         offset = (1 << hdr->log2_small_block_size) *
                                  (prop->start_block % (1 << (hdr->log2_big_block_size - hdr->log2_small_block_size)));
-fprintf(stderr, "%s::%d::offset = %x\n", __FUNCTION__, __LINE__, offset);
 
                         /* reading safety */
                         if (offset + 40 >= 1 << hdr->log2_big_block_size)
@@ -1600,8 +1574,6 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
     int is_mso           = 0;
     bitset_t *blk_bitset = NULL;
     bool first = true;
-
-    fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr->is_velvetsweatshop);
 
     UNUSEDPARAM(dir);
     UNUSEDPARAM(handler_ctx);
