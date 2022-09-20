@@ -4212,16 +4212,6 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
     if ((type == CL_TYPE_ANY) || type == CL_TYPE_PART_ANY) {
         type = cli_determine_fmap_type(ctx->fmap, ctx->engine, type);
     }
-
-#if 0
-    if (CL_TYPE_MSOLE2 == type){
-        fprintf(stderr, "INSERT HERE\n");
-        exit(112);
-    }
-#endif
-
-
-
     perf_stop(ctx, PERFT_FT);
     if (type == CL_TYPE_ERROR) {
         cli_dbgmsg("cli_magic_scan: cli_determine_fmap_type returned CL_TYPE_ERROR\n");
