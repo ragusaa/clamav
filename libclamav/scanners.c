@@ -4221,7 +4221,6 @@ cl_error_t cli_magic_scan(cli_ctx *ctx, cli_file_t type)
     }
     filetype = cli_ftname(type);
 
-
     /* set current layer to the type we found */
     cli_recursion_stack_change_type(ctx, type);
 
