@@ -565,14 +565,22 @@ ole2_get_sbat_data_block(ole2_header_t *hdr, void *buff, int32_t sbat_index)
 /**
  * @brief File handler for use when walking ole2 property trees.
  *
- * @param hdr   The ole2 header metadata
- * @param prop  The property
- * @param dir   (optional) directory to write temp files to.
- * @param ctx   The scan context
+ * @param hdr       The ole2 header metadata
+ * @param prop      The property
+ * @param dir       (optional) directory to write temp files to.
+ * @param ctx       The scan context
+ * @param ole2_data (optional) Context needed by the handler
  * @return cl_error_t
  */
-typedef cl_error_t ole2_walk_property_tree_file_handler(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx);
-static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx);
+typedef cl_error_t ole2_walk_property_tree_file_handler(ole2_header_t *hdr,
+        property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx);
+
+static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx);
+
+typedef struct {
+    uint8_t * key;
+    uint32_t key_len;
+} encryption_key_t;
 
 
 void printWideString(const uint8_t * buf, uint32_t bufLen){
@@ -601,7 +609,8 @@ void printWideString(const uint8_t * buf, uint32_t bufLen){
  */
 static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t prop_index,
                                    ole2_walk_property_tree_file_handler handler,
-                                   unsigned int rec_level, unsigned int *file_count, cli_ctx *ctx, unsigned long *scansize)
+                                   unsigned int rec_level, unsigned int *file_count,
+                                   cli_ctx *ctx, unsigned long *scansize, void * handler_ctx)
 {
     property_t prop_block[4];
     int32_t idx, current_block, i, curindex;
@@ -721,7 +730,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                 }
                 hdr->sbat_root_start = prop_block[idx].start_block;
                 if ((int)(prop_block[idx].child) != -1) {
-                    ret = ole2_walk_property_tree(hdr, dir, prop_block[idx].child, handler, rec_level + 1, file_count, ctx, scansize);
+                    ret = ole2_walk_property_tree(hdr, dir, prop_block[idx].child, handler, rec_level + 1, file_count, ctx, scansize, handler_ctx);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
                             func_ret = ret;
@@ -774,7 +783,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                     }
 
                     /*aragusa: handler called here.*/
-                    ret = handler(hdr, &prop_block[idx], dir, ctx);
+                    ret = handler(hdr, &prop_block[idx], dir, ctx, handler_ctx);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
                             func_ret = ret;
@@ -790,7 +799,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                 }
                 if ((int)(prop_block[idx].child) != -1) {
                 fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-                    ret = ole2_walk_property_tree(hdr, dir, prop_block[idx].child, handler, rec_level, file_count, ctx, scansize);
+                    ret = ole2_walk_property_tree(hdr, dir, prop_block[idx].child, handler, rec_level, file_count, ctx, scansize, handler_ctx);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
                             func_ret = ret;
@@ -846,7 +855,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
                 } else
                     dirname = NULL;
                 if ((int)(prop_block[idx].child) != -1) {
-                    ret = ole2_walk_property_tree(hdr, dirname, prop_block[idx].child, handler, rec_level + 1, file_count, ctx, scansize);
+                    ret = ole2_walk_property_tree(hdr, dirname, prop_block[idx].child, handler, rec_level + 1, file_count, ctx, scansize, handler_ctx);
                     if (ret != CL_SUCCESS) {
                         if (SCAN_ALLMATCHES && (ret == CL_VIRUS)) {
                             func_ret = ret;
@@ -886,7 +895,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
 }
 
 /* Write file Handler - write the contents of the entry to a file */
-static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx)
+static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
 {
     cl_error_t ret = CL_BREAK;
     char newname[1024];
@@ -902,6 +911,7 @@ static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const 
     fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); goto done;
 
     UNUSEDPARAM(ctx);
+    UNUSEDPARAM(handler_ctx);
 
     if (prop->type != 2) {
         /* Not a file */
@@ -1281,7 +1291,7 @@ done:
  * @param ctx   the scan context
  * @return cl_error_t
  */
-static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx)
+static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
 {
     cl_error_t status        = CL_EREAD;
     char *name               = NULL;
@@ -1291,6 +1301,7 @@ static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char 
     json_object *arrobj  = NULL;
     json_object *strmobj = NULL;
 
+    UNUSEDPARAM(handler_ctx);
     fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     name = cli_ole2_get_property_name2(prop->name, prop->name_size);
@@ -1583,7 +1594,7 @@ mso_end:
 }
 
 /*aragusa: TODO put this function back the way it was.*/
-static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx)
+static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
 {
     cl_error_t ret        = CL_BREAK;
     char *tempfile        = NULL;
@@ -1599,6 +1610,7 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
     fprintf(stderr, "%s::%d::ivs = %d\n", __FUNCTION__, __LINE__, hdr->is_velvetsweatshop);
 
     UNUSEDPARAM(dir);
+    UNUSEDPARAM(handler_ctx);
 
     if (prop->type != 2) {
         /* Not a file */
@@ -1823,7 +1835,7 @@ done:
     return ret;
 }
 
-static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx)
+static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
 {
     cl_error_t ret        = CL_BREAK;
     char *tempfile        = NULL;
@@ -1835,10 +1847,16 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     int is_mso           = 0;
     bitset_t *blk_bitset = NULL;
     int nrounds = 0;
-
     uint8_t * decryptDst = NULL;
+    encryption_key_t * key = (encryption_key_t*) handler_ctx;
 
     UNUSEDPARAM(dir);
+
+    if (NULL == key){
+        fprintf(stderr, "%s::%d::key NULL\n", __FUNCTION__, __LINE__);
+        goto done;
+    }
+
 
     if (prop->type != 2) {
         /* Not a file */
@@ -1849,17 +1867,17 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
 
 
 
-
+#if 0
     //TODO: remove this.
     const uint8_t key[] = {0xe8, 0x1d, 0x06, 0x68, 0xa9, 0x42, 0xf1, 0x7a, 0x39, 0xe6, 0x9a, 0x50, 0x34, 0x6e, 0x32, 0xf6};
     const uint32_t key_n = sizeof(key);
+#endif
     unsigned long rk[RKLENGTH(128)]; //TODO: hardcoded 128.  
+    fprintf(stderr, "%s::%d::FIX HARDCODED key lenght\n", __FUNCTION__, __LINE__);
 
 
 
-
-
-    nrounds = rijndaelSetupDecrypt(rk, key, key_n * 8);
+    nrounds = rijndaelSetupDecrypt(rk, key->key, key->key_len * 8);
 
     if (!(tempfile = cli_gentemp(ctx ? ctx->sub_tmpdir : NULL))) {
         ret = CL_EMEM;
@@ -2172,7 +2190,7 @@ void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * ds
 }
 
 
-/*DO NOT USE SIZEOF on these!!!*/
+/*DO NOT USE SIZEOF on these!!! (encrypted_verifier_hash is variable length)*/
 typedef struct {
     uint32_t salt_size;
     uint8_t salt[16];
@@ -2332,6 +2350,7 @@ static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
     uint8_t sha[SHA1_HASH_SIZE];
     const uint32_t encrypted_verifier_hash_len = 32; //TODO: This needs to be based on algorithm
     uint8_t decrypted[encrypted_verifier_hash_len]; //TODO: This needs to be the size of the largest value
+    fprintf(stderr, "%s::%d::FIX HARDCODED SIZES\n", __FUNCTION__, __LINE__);
 
     aes_128ecb_decrypt(verifier->encrypted_verifier, sizeof(verifier->encrypted_verifier) , 
             decrypted, key, 16, 0);
@@ -2567,6 +2586,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     unsigned int file_count = 0;
     unsigned long scansize, scansize2;
     const void *phdr;
+    encryption_key_t * key = NULL;
 
     cli_dbgmsg("in cli_ole2_extract()\n");
     if (!ctx) {
@@ -2672,7 +2692,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.has_vba   = false;
     hdr.has_xlm   = false;
     hdr.has_image = false;
-    ret           = ole2_walk_property_tree(&hdr, NULL, 0, handler_enum, 0, &file_count, ctx, &scansize);
+    ret           = ole2_walk_property_tree(&hdr, NULL, 0, handler_enum, 0, &file_count, ctx, &scansize, NULL);
     cli_bitset_free(hdr.bitset);
     hdr.bitset = NULL;
     if (!file_count || !(hdr.bitset = cli_bitset_init())) {
@@ -2700,7 +2720,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
             goto done;
         }
         file_count = 0;
-        ole2_walk_property_tree(&hdr, dirname, 0, handler_writefile, 0, &file_count, ctx, &scansize2);
+        ole2_walk_property_tree(&hdr, dirname, 0, handler_writefile, 0, &file_count, ctx, &scansize2, NULL);
         ret    = CL_CLEAN;
         *files = hdr.U;
         if (has_vba) {
@@ -2717,9 +2737,9 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         /* PASS 2/B : OTF scan */
         file_count = 0;
         if (hdr.is_velvetsweatshop){
-            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf_velvetsweatshop, 0, &file_count, ctx, &scansize2);
+            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf_velvetsweatshop, 0, &file_count, ctx, &scansize2, key);
         } else {
-            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2);
+            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2, NULL);
         }
     }
 
