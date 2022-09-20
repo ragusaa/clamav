@@ -5260,7 +5260,11 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
     ctx.engine  = engine;
     ctx.virname = virname;
     ctx.scanned = scanned;
-    ctx.options = malloc(sizeof(struct cl_scan_options)); /*aragusa: malloc could fail*/
+    ctx.options = malloc(sizeof(struct cl_scan_options));
+    if (NULL == ctx.options){
+        status = CL_EMEM;
+        goto done;
+    }
     memcpy(ctx.options, scanoptions, sizeof(struct cl_scan_options));
     ctx.found_possibly_unwanted = 0;
 
