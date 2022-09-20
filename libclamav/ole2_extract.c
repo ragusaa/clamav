@@ -1748,9 +1748,7 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     int nrounds           = 0;
     uint8_t *decryptDst   = NULL;
     encryption_key_t *key = (encryption_key_t *)handler_ctx;
-
-    unsigned long rk[RKLENGTH(128)]; //TODO: hardcoded 128.
-    fprintf(stderr, "%s::%d::FIX HARDCODED key lenght\n", __FUNCTION__, __LINE__);
+    unsigned long * rk = NULL;
 
     UNUSEDPARAM(dir);
 
@@ -1764,6 +1762,9 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
         ret = CL_SUCCESS;
         goto done;
     }
+
+    CLI_MALLOC(rk, RKLENGTH(key->key_len * 8) * sizeof(unsigned long), ret = CL_EMEM);
+
     print_ole2_property(prop);
 
     nrounds = rijndaelSetupDecrypt(rk, key->key, key->key_len * 8);
@@ -1960,6 +1961,7 @@ done:
         tempfile = NULL;
     }
     FREE(decryptDst);
+    FREE(rk);
 
     return ret;
 }
