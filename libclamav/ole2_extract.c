@@ -1561,7 +1561,6 @@ mso_end:
     return ret;
 }
 
-/*aragusa: TODO put this function back the way it was.*/
 static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
 {
     cl_error_t ret        = CL_BREAK;
