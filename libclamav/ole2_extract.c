@@ -578,7 +578,7 @@ typedef cl_error_t ole2_walk_property_tree_file_handler(ole2_header_t *hdr,
 static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx);
 
 typedef struct {
-    uint8_t * key;
+    uint8_t key[0x100]; /*The longest key length supported by velvetsweatshop keys is 256, so use that*/
     uint32_t key_len;
 } encryption_key_t;
 
@@ -1850,6 +1850,10 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     uint8_t * decryptDst = NULL;
     encryption_key_t * key = (encryption_key_t*) handler_ctx;
 
+    unsigned long rk[RKLENGTH(128)]; //TODO: hardcoded 128.  
+    fprintf(stderr, "%s::%d::FIX HARDCODED key lenght\n", __FUNCTION__, __LINE__);
+
+
     UNUSEDPARAM(dir);
 
     if (NULL == key){
@@ -1869,15 +1873,18 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
 
 #if 0
     //TODO: remove this.
-    const uint8_t key[] = {0xe8, 0x1d, 0x06, 0x68, 0xa9, 0x42, 0xf1, 0x7a, 0x39, 0xe6, 0x9a, 0x50, 0x34, 0x6e, 0x32, 0xf6};
-    const uint32_t key_n = sizeof(key);
-#endif
-    unsigned long rk[RKLENGTH(128)]; //TODO: hardcoded 128.  
-    fprintf(stderr, "%s::%d::FIX HARDCODED key lenght\n", __FUNCTION__, __LINE__);
+    const uint8_t hardcoded_key[] = {0xe8, 0x1d, 0x06, 0x68, 0xa9, 0x42, 0xf1, 0x7a, 0x39, 0xe6, 0x9a, 0x50, 0x34, 0x6e, 0x32, 0xf6};
+    const uint32_t hardcoded_key_n = sizeof(hardcoded_key);
+    nrounds = rijndaelSetupDecrypt(rk, hardcoded_key, hardcoded_key_n * 8);
+
+    fprintf(stderr, "%s::%d::key compare = %d\n", __FUNCTION__, __LINE__, memcmp(hardcoded_key, key->key, sizeof(hardcoded_key)));
 
 
-
+#else
     nrounds = rijndaelSetupDecrypt(rk, key->key, key->key_len * 8);
+#endif
+
+
 
     if (!(tempfile = cli_gentemp(ctx ? ctx->sub_tmpdir : NULL))) {
         ret = CL_EMEM;
@@ -2240,7 +2247,7 @@ void dump_encryption_verifier (encryption_verifier_t * ev){
 
 
 /*hash is a different length for depending on the algorithm. */
-static int compute_hash(const char * const password, uint8_t * key, const uint32_t keyLength, 
+static int generate_key(const char * const password, uint8_t * key, const uint32_t keyLength, 
         encryption_verifier_t * verifier){
     uint8_t * buffer = NULL;
     size_t bufLen = 0;
@@ -2252,10 +2259,10 @@ static int compute_hash(const char * const password, uint8_t * key, const uint32
     uint8_t buf2[64];
     uint8_t doubleSha[SHA1_HASH_SIZE * 2];
 
-    if ((0x80 != keyLength) /*aes-128*/
-            && (0xc0 != keyLength) /*aes-192*/
-            && (0x100 != keyLength)){
-        fprintf(stderr, "%s::%d::Invalid key length\n", __FUNCTION__, __LINE__);
+    if ((0x10 != keyLength) /*aes-128*/
+            && (0x18 != keyLength) /*aes-192*/
+            && (0x20 != keyLength)){
+        fprintf(stderr, "%s::%d::Invalid key length '0x%x'\n", __FUNCTION__, __LINE__, keyLength);
         goto done;
     }
 
@@ -2366,12 +2373,20 @@ static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
 
 
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
-static bool has_valid_encryption_header(const encryption_info_stream_standard_t * headerPtr){
+static bool initialize_encryption_verifier(const encryption_info_stream_standard_t * headerPtr,
+        encryption_verifier_t * encryptionVerifier, 
+        encryption_key_t * encryptionKey){
 
     //int ret = -1;
     bool bRet = false;
     size_t idx = 0;
+    encryption_key_t key;
+
     encryption_verifier_t ev;
+
+    memset(encryptionVerifier, 0, sizeof(encryption_verifier_t));
+    memset(encryptionKey, 0, sizeof(encryption_key_t));
+    memset(&key, 0, sizeof(encryption_key_t));
 
     fprintf(stderr, "Major Version   = 0x%x\n", headerPtr->version_major);
     fprintf(stderr, "Minor Version   = 0x%x\n", headerPtr->version_minor);
@@ -2441,8 +2456,10 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
         case SE_HEADER_EI_AES256:
             break;
         case SE_HEADER_EI_RC4:
+fprintf(stderr, "%s::%d::TODO:: FIX THIS:: Unimplemented\n", __FUNCTION__, __LINE__); goto done;
             break;
         default:
+            fprintf(stderr, "%s::%d::Invalid Algorithm ID: 0x%x\n", __FUNCTION__, __LINE__, headerPtr->encryptionInfo.algorithmID);
             cli_warnmsg("ole2: Invalid Algorithm ID: 0x%x\n", headerPtr->encryptionInfo.algorithmID);
             goto done;
     }
@@ -2510,19 +2527,27 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
         goto done;
     }
     copy_encryption_verifier(&ev, &(headerPtr->encryptionInfo.cspName[idx]));
+    //copy_encryption_verifier(encryptionVerifier, &(headerPtr->encryptionInfo.cspName[idx]));
     //dump_encryption_verifier(&ev);
 
 
-    uint8_t key[16];
-    compute_hash("VelvetSweatshop", key, 16, &ev);
+
+
+
+
+    //uint8_t key[16];
+    key.key_len = headerPtr->encryptionInfo.keySize / 8;
+    generate_key("VelvetSweatshop", key.key, key.key_len, &ev);
     fprintf(stderr, "%s::%d::Determine key length based on algorithm\n", __FUNCTION__, __LINE__);
 
     //dump_encryption_verifier(&ev);
-    if (! verify_key(key, &ev)){
+    if (! verify_key(key.key, &ev)){
         fprintf(stderr, "%s::%d::Key verification failed\n", __FUNCTION__, __LINE__);
         goto done;
     }
 
+//    memcpy(encryptionVerifier, &ev, sizeof(encryption_verifier_t));
+    memcpy(encryptionKey, &key, sizeof(encryption_key_t));
     bRet = true;
 done:
 
@@ -2550,7 +2575,8 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     unsigned int file_count = 0;
     unsigned long scansize, scansize2;
     const void *phdr;
-    encryption_key_t * key = NULL;
+    encryption_key_t key;
+    encryption_verifier_t encryptionVerifier;
 
     cli_dbgmsg("in cli_ole2_extract()\n");
     if (!ctx) {
@@ -2615,7 +2641,21 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
 
     encryption_info_stream_standard_t encryption_info_stream_standard;
     copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
-    hdr.is_velvetsweatshop  = has_valid_encryption_header(&encryption_info_stream_standard);
+    hdr.is_velvetsweatshop  = initialize_encryption_verifier(&encryption_info_stream_standard, &encryptionVerifier, &key);
+#if 0
+    if (hdr.is_velvetsweatshop  ){
+
+    //    uint8_t key[16];
+        generate_key("VelvetSweatshop", key.key, 16, &ev);
+        fprintf(stderr, "%s::%d::Determine key length based on algorithm\n", __FUNCTION__, __LINE__);
+
+        //dump_encryption_verifier(&ev);
+        if (! verify_key(key, &ev)){
+            fprintf(stderr, "%s::%d::Key verification failed\n", __FUNCTION__, __LINE__);
+            goto done;
+        }
+    }
+#endif
 
     hdr.sbat_root_start = -1;
 
@@ -2701,7 +2741,7 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         /* PASS 2/B : OTF scan */
         file_count = 0;
         if (hdr.is_velvetsweatshop){
-            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf_velvetsweatshop, 0, &file_count, ctx, &scansize2, key);
+            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf_velvetsweatshop, 0, &file_count, ctx, &scansize2, &key);
         } else {
             ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2, NULL);
         }
