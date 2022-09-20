@@ -1846,12 +1846,17 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     }
     print_ole2_property(prop);
 
+
+
+
     //TODO: remove this.
     const uint8_t key[] = {0xe8, 0x1d, 0x06, 0x68, 0xa9, 0x42, 0xf1, 0x7a, 0x39, 0xe6, 0x9a, 0x50, 0x34, 0x6e, 0x32, 0xf6};
     const uint32_t key_n = sizeof(key);
     unsigned long rk[RKLENGTH(128)]; //TODO: hardcoded 128.  
 
-    fprintf(stderr, "%s::%d::Entering\n", __FUNCTION__, __LINE__);
+
+
+
 
     nrounds = rijndaelSetupDecrypt(rk, key, key_n * 8);
 
@@ -1925,6 +1930,7 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
                 goto done;
             }
 
+            /*Make sure we don't write more data than the file is actually supposed to be.*/
             if ((decryptDstIdx + bytesWritten) > actualFileLength){
                 decryptDstIdx = actualFileLength - bytesWritten;
             }
@@ -2626,10 +2632,6 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
     hdr.is_velvetsweatshop  = has_valid_encryption_header(&encryption_info_stream_standard);
 
-
-
-
-
     hdr.sbat_root_start = -1;
 
     hdr.bitset = cli_bitset_init();
@@ -2713,15 +2715,11 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         cli_dbgmsg("OLE2: no VBA projects found\n");
         /* PASS 2/B : OTF scan */
         file_count = 0;
-#if 1
         if (hdr.is_velvetsweatshop){
             ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf_velvetsweatshop, 0, &file_count, ctx, &scansize2);
         } else {
             ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2);
         }
-#else
-            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2);
-#endif
     }
 
 done:
