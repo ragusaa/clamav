@@ -514,7 +514,6 @@ ole2_get_next_sbat_block(ole2_header_t *hdr, int32_t current_block)
 
 
     if (current_block < 0) {
-    fprintf(stderr, "%s;:%d\n", __FUNCTION__, __LINE__);
         return -1;
     }
     current_bat_block = hdr->sbat_start;
@@ -524,10 +523,8 @@ ole2_get_next_sbat_block(ole2_header_t *hdr, int32_t current_block)
         iter--;
     }
     if (!ole2_read_block(hdr, &sbat, 512, current_bat_block)) {
-    fprintf(stderr, "%s;:%d\n", __FUNCTION__, __LINE__);
         return -1;
     }
-    fprintf(stderr, "%s;:%d\n", __FUNCTION__, __LINE__);
     return ole2_endian_convert_32(sbat[current_block % 128]);
 }
 
