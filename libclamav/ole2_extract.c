@@ -1638,27 +1638,6 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
                 break;
             }
 
-#if 0
-            doesn't look like it. '
-            {
-                int i;
-                fprintf(stderr, "size = %d\n", prop->size);
-                for (i = 0; i < 16; i++){
-                    fprintf(stderr, "%02x ", buff[i]);
-                }
-                fprintf(stderr, "\n");
-            }
-
-            {
-                fprintf(stderr, "%s::%d::FIGURE OUT IF THIS HAS THE SIZE AT THE BEGINNING OF THE FIRST BLOCK LIKE THE LARGE BLOCK FILES\n", __FUNCTION__, __LINE__);
-                exit(111);
-            }
-
-#endif
-
-
-
-
             /* buff now contains the block with N small blocks in it */
             offset = (1 << hdr->log2_small_block_size) * (current_block % (1 << (hdr->log2_big_block_size - hdr->log2_small_block_size)));
             if (cli_writen(ofd, &buff[offset], MIN(len, 1 << hdr->log2_small_block_size)) != MIN(len, 1 << hdr->log2_small_block_size)) {
@@ -1672,28 +1651,6 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
             if (!ole2_read_block(hdr, buff, 1 << hdr->log2_big_block_size, current_block)) {
                 break;
             }
-
-#if 0
-{
-    int i;
-    fprintf(stderr, "NAME = '");
-    for (i = 0; i < 64; i+= 2){
-        if (prop->name[i] == 0){
-            break;
-        }
-        fprintf(stderr, "%c", prop->name[i]);
-    }
-    fprintf(stderr, "'\n");
-    fprintf(stderr, "block number = '%d'\n", current_block);
-    fprintf(stderr, "len = '%ld'\n", len);
-    fprintf(stderr, "shift = '%d'\n", 1 << hdr->log2_big_block_size);
-    fprintf(stderr, "PRINTING '%s'\n", tempfile);
-    for (i = 0; i < 256; i++){
-        fprintf(stderr, "%02x ", buff[i]);
-    }
-    fprintf(stderr, "\n");
-}
-#endif
 
             if (first && hdr->is_velvetsweatshop) {
                 uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
