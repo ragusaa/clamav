@@ -2388,7 +2388,6 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
 #define SE_HEADER_FDOCPROPS (1 << 3)
 
     //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/200a3d61-1ab4-4402-ae11-0290b28ab9cb
-    //TODO: Figure out what fdocprops are really supposed to be.  
     if ((SE_HEADER_FDOCPROPS & headerPtr->flags)){
         cli_warnmsg("ole2: Unsupported document properties encrypted\n");
         goto done;
@@ -2436,7 +2435,7 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
         case SE_HEADER_EI_AES256:
             break;
         case SE_HEADER_EI_RC4:
-fprintf(stderr, "%s::%d::TODO:: FIX THIS:: Unimplemented\n", __FUNCTION__, __LINE__); goto done;
+            fprintf(stderr, "%s::%d::TODO:: FIX THIS:: RC4 Unimplemented\n", __FUNCTION__, __LINE__); goto done;
             break;
         default:
             fprintf(stderr, "%s::%d::Invalid Algorithm ID: 0x%x\n", __FUNCTION__, __LINE__, headerPtr->encryptionInfo.algorithmID);
@@ -2496,10 +2495,7 @@ fprintf(stderr, "%s::%d::TODO:: FIX THIS:: Unimplemented\n", __FUNCTION__, __LIN
         if (((uint16_t *) &(headerPtr->encryptionInfo.cspName[idx]))[0] == 0){
             break;
         }
-        //fprintf(stderr, "%02x %02x ", headerPtr->encryptionInfo.cspName[idx], headerPtr->encryptionInfo.cspName[idx+1]);
     }
-    //fprintf(stderr, "\n");
-    //fprintf(stderr, "idx = %zu\n", idx);
 
     idx += 2;
     if ((sizeof(headerPtr->encryptionInfo.cspName) - idx) <= sizeof(encryption_verifier_t)){
@@ -2507,20 +2503,10 @@ fprintf(stderr, "%s::%d::TODO:: FIX THIS:: Unimplemented\n", __FUNCTION__, __LIN
         goto done;
     }
     copy_encryption_verifier(&ev, &(headerPtr->encryptionInfo.cspName[idx]));
-    //copy_encryption_verifier(encryptionVerifier, &(headerPtr->encryptionInfo.cspName[idx]));
-    //dump_encryption_verifier(&ev);
 
-
-
-
-
-
-    //uint8_t key[16];
     key.key_len = headerPtr->encryptionInfo.keySize / 8;
     generate_key("VelvetSweatshop", key.key, key.key_len, &ev);
-    fprintf(stderr, "%s::%d::Determine key length based on algorithm\n", __FUNCTION__, __LINE__);
 
-    //dump_encryption_verifier(&ev);
     if (! verify_key(key.key, &ev)){
         fprintf(stderr, "%s::%d::Key verification failed\n", __FUNCTION__, __LINE__);
         goto done;
