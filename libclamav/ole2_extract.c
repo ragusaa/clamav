@@ -124,8 +124,8 @@ typedef struct ole2_header_tag {
 
     bool is_velvetsweatshop;
 
-    hwp5_header_t *is_hwp;  //This value MUST be last in this structure,
-                            //otherwise you will get short file reads.
+    hwp5_header_t *is_hwp; //This value MUST be last in this structure,
+                           //otherwise you will get short file reads.
 
 } ole2_header_t;
 
@@ -512,7 +512,6 @@ ole2_get_next_sbat_block(ole2_header_t *hdr, int32_t current_block)
     int32_t iter, current_bat_block;
     uint32_t sbat[128];
 
-
     if (current_block < 0) {
         return -1;
     }
@@ -567,26 +566,25 @@ ole2_get_sbat_data_block(ole2_header_t *hdr, void *buff, int32_t sbat_index)
  * @return cl_error_t
  */
 typedef cl_error_t ole2_walk_property_tree_file_handler(ole2_header_t *hdr,
-        property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx);
+                                                        property_t *prop, const char *dir, cli_ctx *ctx, void *handler_ctx);
 
-static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx);
+static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void *handler_ctx);
 
 typedef struct {
     uint8_t key[0x100]; /*The longest key length supported by velvetsweatshop keys is 256, so use that*/
     uint32_t key_len;
 } encryption_key_t;
 
-
-void printWideString(const uint8_t * buf, uint32_t bufLen){
+void printWideString(const uint8_t *buf, uint32_t bufLen)
+{
     uint32_t i;
-    for (i = 0; i < bufLen; i+= 2){
-        if ( 0 == buf[i] ){
+    for (i = 0; i < bufLen; i += 2) {
+        if (0 == buf[i]) {
             break;
         }
         fprintf(stderr, "%c", buf[i]);
     }
 }
-
 
 /**
  * @brief Walk an ole2 property tree, calling the handler for each file found
@@ -604,7 +602,7 @@ void printWideString(const uint8_t * buf, uint32_t bufLen){
 static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t prop_index,
                                    ole2_walk_property_tree_file_handler handler,
                                    unsigned int rec_level, unsigned int *file_count,
-                                   cli_ctx *ctx, unsigned long *scansize, void * handler_ctx)
+                                   cli_ctx *ctx, unsigned long *scansize, void *handler_ctx)
 {
     property_t prop_block[4];
     int32_t idx, current_block, i, curindex;
@@ -712,7 +710,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
         ole2_listmsg("prev: %d next %d child %d\n", prop_block[idx].prev, prop_block[idx].next, prop_block[idx].child);
 
         ole2_listmsg("node type: %d\n", prop_block[idx].type);
-        fprintf(stderr, "prop_block[%d].type = %d\n", idx, prop_block[idx].type) ;
+        fprintf(stderr, "prop_block[%d].type = %d\n", idx, prop_block[idx].type);
         switch (prop_block[idx].type) {
             case 5: /* Root Entry */
                 ole2_listmsg("root node\n");
@@ -869,7 +867,7 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
 }
 
 /* Write file Handler - write the contents of the entry to a file */
-static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
+static cl_error_t handler_writefile(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void *handler_ctx)
 {
     cl_error_t ret = CL_BREAK;
     char newname[1024];
@@ -1261,7 +1259,7 @@ done:
  * @param ctx   the scan context
  * @return cl_error_t
  */
-static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
+static cl_error_t handler_enum(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void *handler_ctx)
 {
     cl_error_t status        = CL_EREAD;
     char *name               = NULL;
@@ -1561,7 +1559,7 @@ mso_end:
     return ret;
 }
 
-static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
+static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void *handler_ctx)
 {
     cl_error_t ret        = CL_BREAK;
     char *tempfile        = NULL;
@@ -1735,28 +1733,28 @@ done:
     return ret;
 }
 
-static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void * handler_ctx)
+static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *prop, const char *dir, cli_ctx *ctx, void *handler_ctx)
 {
     cl_error_t ret        = CL_BREAK;
     char *tempfile        = NULL;
     char *name            = NULL;
     unsigned char *buff   = NULL;
     int32_t current_block = 0;
-    size_t len = 0;
-    size_t offset = 0;
-    int ofd              = -1;
-    int is_mso           = 0;
-    bitset_t *blk_bitset = NULL;
-    int nrounds = 0;
-    uint8_t * decryptDst = NULL;
-    encryption_key_t * key = (encryption_key_t*) handler_ctx;
+    size_t len            = 0;
+    size_t offset         = 0;
+    int ofd               = -1;
+    int is_mso            = 0;
+    bitset_t *blk_bitset  = NULL;
+    int nrounds           = 0;
+    uint8_t *decryptDst   = NULL;
+    encryption_key_t *key = (encryption_key_t *)handler_ctx;
 
-    unsigned long rk[RKLENGTH(128)]; //TODO: hardcoded 128.  
+    unsigned long rk[RKLENGTH(128)]; //TODO: hardcoded 128.
     fprintf(stderr, "%s::%d::FIX HARDCODED key lenght\n", __FUNCTION__, __LINE__);
 
     UNUSEDPARAM(dir);
 
-    if (NULL == key){
+    if (NULL == key) {
         fprintf(stderr, "%s::%d::key NULL\n", __FUNCTION__, __LINE__);
         goto done;
     }
@@ -1804,15 +1802,15 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     uint32_t bytesRead = 0;
     uint64_t actualFileLength;
     uint64_t bytesWritten = 0;
-    uint32_t leftover = 0;
-    uint32_t readIdx = 0;
-    while (bytesRead < len){
-                if (current_block > (int32_t)hdr->max_block_no) {
+    uint32_t leftover     = 0;
+    uint32_t readIdx      = 0;
+    while (bytesRead < len) {
+        if (current_block > (int32_t)hdr->max_block_no) {
             cli_dbgmsg("OLE2 [handler_otf]: Max block number for file size exceeded: %d\n", current_block);
             break;
         }
 
-                        /* Check we aren't in a loop */
+        /* Check we aren't in a loop */
         if (cli_bitset_test(blk_bitset, (unsigned long)current_block)) {
             /* Loop in block list */
             cli_dbgmsg("OLE2 [handler_otf]: Block list loop detected\n");
@@ -1823,10 +1821,8 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
             break;
         }
 
-
-
         if (prop->size < (int64_t)hdr->sbat_cutoff) {
-                        /* Small block file */
+            /* Small block file */
             if (!ole2_get_sbat_data_block(hdr, buff, current_block)) {
                 cli_dbgmsg("OLE2 [handler_otf]: ole2_get_sbat_data_block failed\n");
                 break;
@@ -1844,46 +1840,46 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
             //TODO: ARAGUSA: IT DOESN'T LOOK LIKE THESE SMALL BLOCK FILES ARE ENCRPYTED, BUT SEE IF WE CAN FIND IT IN THE DOCUMENTATION
         } else {
             //uint32_t bytesToRead = 1 << hdr->log2_big_block_size;
-            uint32_t bytesToRead = blockSize; //TODO: Probably get rid of bytesToRead
-            uint32_t bytesToWrite = MIN(len - bytesRead, bytesToRead) ;
-            uint32_t writeIdx = 0;
+            uint32_t bytesToRead   = blockSize; //TODO: Probably get rid of bytesToRead
+            uint32_t bytesToWrite  = MIN(len - bytesRead, bytesToRead);
+            uint32_t writeIdx      = 0;
             uint32_t decryptDstIdx = 0;
 
-            if (!ole2_read_block(hdr, &(buff[readIdx]), bytesToRead , current_block)) {
+            if (!ole2_read_block(hdr, &(buff[readIdx]), bytesToRead, current_block)) {
                 break;
             }
-            if (0 == bytesRead){
+            if (0 == bytesRead) {
                 //first block.  account for size of file.
 
-                writeIdx+= sizeof(uint64_t);
+                writeIdx += sizeof(uint64_t);
                 memcpy(&actualFileLength, buff, sizeof(actualFileLength));
                 //actualFileLength = ole2_endian_convert_64(actualFileLength);
                 fprintf(stderr, "%s::%d::TODO: convert 64 bit byte order\n", __FUNCTION__, __LINE__);
             }
             bytesRead += bytesToRead;
 
-            for (; writeIdx <= (leftover + bytesToWrite)-16; writeIdx += 16, decryptDstIdx += 16){
+            for (; writeIdx <= (leftover + bytesToWrite) - 16; writeIdx += 16, decryptDstIdx += 16) {
                 rijndaelDecrypt(rk, nrounds, &(buff[writeIdx]), &(decryptDst[decryptDstIdx]));
             }
 
-            if (((leftover + bytesToWrite)-writeIdx) > 8){
+            if (((leftover + bytesToWrite) - writeIdx) > 8) {
                 fprintf(stderr, "%s::%d::Add reasonable warning/error about what happened here\n", __FUNCTION__, __LINE__);
                 goto done;
             }
 
             /*Make sure we don't write more data than the file is actually supposed to be.*/
-            if ((decryptDstIdx + bytesWritten) > actualFileLength){
+            if ((decryptDstIdx + bytesWritten) > actualFileLength) {
                 decryptDstIdx = actualFileLength - bytesWritten;
             }
-            if (cli_writen(ofd, decryptDst, decryptDstIdx ) != decryptDstIdx){
+            if (cli_writen(ofd, decryptDst, decryptDstIdx) != decryptDstIdx) {
                 fprintf(stderr, "%s::%d::ERROR in write\n", __FUNCTION__, __LINE__);
                 goto done;
             }
             bytesWritten += decryptDstIdx;
 
             leftover = (leftover + bytesToWrite) - writeIdx;
-            if (leftover){
-                memmove(buff, &(buff[writeIdx ]), leftover);
+            if (leftover) {
+                memmove(buff, &(buff[writeIdx]), leftover);
             }
             readIdx = leftover;
 
@@ -1968,13 +1964,6 @@ done:
     return ret;
 }
 
-
-
-
-
-
-
-
 #if !defined(HAVE_ATTRIB_PACKED) && !defined(HAVE_PRAGMA_PACK) && !defined(HAVE_PRAGMA_PACK_HPPA)
 static int
 ole2_read_header(int fd, ole2_header_t *hdr)
@@ -2044,31 +2033,32 @@ typedef struct __attribute__((packed)) {
 
     uint32_t flags;
     uint32_t sizeExtra; //must be 0
-uint32_t algorithmID;
-uint32_t algorithmIDHash;
-uint32_t keySize;
-uint32_t providerType;
-uint32_t reserved1;
-uint32_t reserved2; //MUST be 0
+    uint32_t algorithmID;
+    uint32_t algorithmIDHash;
+    uint32_t keySize;
+    uint32_t providerType;
+    uint32_t reserved1;
+    uint32_t reserved2; //MUST be 0
 
-uint8_t cspName[512 - 56];  //really the rest of the data.  Starts with a
-                            //string of wide characters, followed by the encryption verifier.
-                            //TODO: THIS REALLY NEEDS TO BE CHANGED TO '1', and all 'sizeof(cspName)'
-                            //conditions need to be calculated based on block size minus however much
-                            //we have already used.
+    uint8_t cspName[512 - 56]; //really the rest of the data.  Starts with a
+                               //string of wide characters, followed by the encryption verifier.
+                               //TODO: THIS REALLY NEEDS TO BE CHANGED TO '1', and all 'sizeof(cspName)'
+                               //conditions need to be calculated based on block size minus however much
+                               //we have already used.
 
 } encryption_info_t;
-void copy_encryption_info(encryption_info_t * dst, const uint8_t* src){
+void copy_encryption_info(encryption_info_t *dst, const uint8_t *src)
+{
     memcpy(dst, src, 512);
 
-    dst->flags = ole2_endian_convert_32(dst->flags);
-    dst->sizeExtra = ole2_endian_convert_32(dst->sizeExtra);
-    dst->algorithmID = ole2_endian_convert_32(dst->algorithmID);
+    dst->flags           = ole2_endian_convert_32(dst->flags);
+    dst->sizeExtra       = ole2_endian_convert_32(dst->sizeExtra);
+    dst->algorithmID     = ole2_endian_convert_32(dst->algorithmID);
     dst->algorithmIDHash = ole2_endian_convert_32(dst->algorithmIDHash);
-    dst->keySize = ole2_endian_convert_32(dst->keySize);
-    dst->providerType = ole2_endian_convert_32(dst->providerType);
-    dst->reserved1 = ole2_endian_convert_32(dst->reserved1);
-    dst->reserved2 = ole2_endian_convert_32(dst->reserved2);
+    dst->keySize         = ole2_endian_convert_32(dst->keySize);
+    dst->providerType    = ole2_endian_convert_32(dst->providerType);
+    dst->reserved1       = ole2_endian_convert_32(dst->reserved1);
+    dst->reserved2       = ole2_endian_convert_32(dst->reserved2);
 }
 
 typedef struct __attribute__((packed)) {
@@ -2083,7 +2073,8 @@ typedef struct __attribute__((packed)) {
 
 } encryption_info_stream_standard_t;
 
-void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * dst, const uint8_t * src){
+void copy_encryption_info_stream_standard(encryption_info_stream_standard_t *dst, const uint8_t *src)
+{
     //uint32_t byteOffset;
 
     memcpy(dst, src, 512);
@@ -2091,28 +2082,24 @@ void copy_encryption_info_stream_standard(encryption_info_stream_standard_t * ds
     dst->version_minor = ole2_endian_convert_16(dst->version_minor);
 
     dst->flags = ole2_endian_convert_32(dst->flags);
-    dst->size = ole2_endian_convert_32(dst->size);
+    dst->size  = ole2_endian_convert_32(dst->size);
 
     //void * vp = (&(dst->encryptionInfo));
     //byteOffset = vp - ((void *) dst);
-//    fprintf(stderr, "%s::%d::byteOffset = %d\n", __FUNCTION__, __LINE__, byteOffset);
-//    copy_encryption_info(&(dst->encryptionInfo), &(src[byteOffset]));
+    //    fprintf(stderr, "%s::%d::byteOffset = %d\n", __FUNCTION__, __LINE__, byteOffset);
+    //    copy_encryption_info(&(dst->encryptionInfo), &(src[byteOffset]));
 
-    dst->encryptionInfo.flags = ole2_endian_convert_32(dst->encryptionInfo.flags);
-    dst->encryptionInfo.sizeExtra = ole2_endian_convert_32(dst->encryptionInfo.sizeExtra);
-    dst->encryptionInfo.algorithmID = ole2_endian_convert_32(dst->encryptionInfo.algorithmID);
+    dst->encryptionInfo.flags           = ole2_endian_convert_32(dst->encryptionInfo.flags);
+    dst->encryptionInfo.sizeExtra       = ole2_endian_convert_32(dst->encryptionInfo.sizeExtra);
+    dst->encryptionInfo.algorithmID     = ole2_endian_convert_32(dst->encryptionInfo.algorithmID);
     dst->encryptionInfo.algorithmIDHash = ole2_endian_convert_32(dst->encryptionInfo.algorithmIDHash);
-    dst->encryptionInfo.keySize = ole2_endian_convert_32(dst->encryptionInfo.keySize);
-    dst->encryptionInfo.providerType = ole2_endian_convert_32(dst->encryptionInfo.providerType);
-    dst->encryptionInfo.reserved1 = ole2_endian_convert_32(dst->encryptionInfo.reserved1);
-    dst->encryptionInfo.reserved2 = ole2_endian_convert_32(dst->encryptionInfo.reserved2);
+    dst->encryptionInfo.keySize         = ole2_endian_convert_32(dst->encryptionInfo.keySize);
+    dst->encryptionInfo.providerType    = ole2_endian_convert_32(dst->encryptionInfo.providerType);
+    dst->encryptionInfo.reserved1       = ole2_endian_convert_32(dst->encryptionInfo.reserved1);
+    dst->encryptionInfo.reserved2       = ole2_endian_convert_32(dst->encryptionInfo.reserved2);
 
-
-//    fprintf(stderr, "%s::%d::memcmp = %d\n", __FUNCTION__, __LINE__, memcmp(src, dst, sizeof(encryption_info_stream_standard_t )));
-
-
+    //    fprintf(stderr, "%s::%d::memcmp = %d\n", __FUNCTION__, __LINE__, memcmp(src, dst, sizeof(encryption_info_stream_standard_t )));
 }
-
 
 /*DO NOT USE SIZEOF on these!!! (encrypted_verifier_hash is variable length)*/
 typedef struct {
@@ -2124,26 +2111,28 @@ typedef struct {
 
 } encryption_verifier_t;
 
-void copy_encryption_verifier( encryption_verifier_t * dst, const uint8_t * src){
+void copy_encryption_verifier(encryption_verifier_t *dst, const uint8_t *src)
+{
     memcpy(dst, src, 512);
-    dst->salt_size = ole2_endian_convert_32(dst->salt_size);
+    dst->salt_size          = ole2_endian_convert_32(dst->salt_size);
     dst->verifier_hash_size = ole2_endian_convert_32(dst->verifier_hash_size);
 }
 
-void dump_encryption_verifier (encryption_verifier_t * ev){
+void dump_encryption_verifier(encryption_verifier_t *ev)
+{
     size_t i;
 
     fprintf(stderr, "Dumping encryption_verifier_t\n");
 
     fprintf(stderr, "Salt Size = 0x%x\n", ev->salt_size);
     fprintf(stderr, "Salt = '");
-    for (i = 0; i < ev->salt_size; i++){
+    for (i = 0; i < ev->salt_size; i++) {
         fprintf(stderr, "%02x ", ev->salt[i]);
     }
     fprintf(stderr, "'\n");
 
     fprintf(stderr, "EncryptedVerifier = '");
-    for (i = 0; i < sizeof(ev->encrypted_verifier); i++){
+    for (i = 0; i < sizeof(ev->encrypted_verifier); i++) {
         fprintf(stderr, "%02x ", ev->encrypted_verifier[i]);
     }
     fprintf(stderr, "'\n");
@@ -2152,33 +2141,31 @@ void dump_encryption_verifier (encryption_verifier_t * ev){
 
     fprintf(stderr, "TODO: HARDCODING 32 byte length for the encrypted verifier hash.  Needs to be 20 for RC4.  do that later\n");
     fprintf(stderr, "EncryptedVerifierHash = '");
-    for (i = 0; i < 32; i++){
+    for (i = 0; i < 32; i++) {
         fprintf(stderr, "%02x ", ev->encrypted_verifier_hash[i]);
     }
     fprintf(stderr, "'\n");
 
     fprintf(stderr, "TODO: Need to add code from verifyHash here\n");
-
-
 }
 
-
 /*hash is a different length for depending on the algorithm. */
-static int generate_key(const char * const password, uint8_t * key, const uint32_t keyLength, 
-        encryption_verifier_t * verifier){
-    uint8_t * buffer = NULL;
-    size_t bufLen = 0;
-    int ret = -1;
-    uint32_t i = 0;
+static int generate_key(const char *const password, uint8_t *key, const uint32_t keyLength,
+                        encryption_verifier_t *verifier)
+{
+    uint8_t *buffer                                                    = NULL;
+    size_t bufLen                                                      = 0;
+    int ret                                                            = -1;
+    uint32_t i                                                         = 0;
     uint8_t sha1[sizeof(uint32_t) + SHA1_HASH_SIZE + sizeof(uint32_t)] = {0};
-    uint8_t * sha1Dst = &(sha1[sizeof(uint32_t)]);
+    uint8_t *sha1Dst                                                   = &(sha1[sizeof(uint32_t)]);
     uint8_t buf1[64];
     uint8_t buf2[64];
     uint8_t doubleSha[SHA1_HASH_SIZE * 2];
 
-    if ((0x10 != keyLength) /*aes-128*/
-            && (0x18 != keyLength) /*aes-192*/
-            && (0x20 != keyLength)){
+    if ((0x10 != keyLength)    /*aes-128*/
+        && (0x18 != keyLength) /*aes-192*/
+        && (0x20 != keyLength)) {
         fprintf(stderr, "%s::%d::Invalid key length '0x%x'\n", __FUNCTION__, __LINE__, keyLength);
         goto done;
     }
@@ -2190,21 +2177,21 @@ static int generate_key(const char * const password, uint8_t * key, const uint32
     bufLen = verifier->salt_size + (strlen(password) * 2);
 
     buffer = calloc(bufLen, 1);
-    if (NULL == buffer){
+    if (NULL == buffer) {
         perror("calloc");
         goto done;
     }
 
-    memcpy (buffer, verifier->salt, verifier->salt_size);
+    memcpy(buffer, verifier->salt, verifier->salt_size);
 
     /*Convert to UTF16-LE*/
-    for (i = 0; i < (uint32_t) strlen(password); i++){
+    for (i = 0; i < (uint32_t)strlen(password); i++) {
         buffer[verifier->salt_size + (i * 2)] = password[i];
     }
 
     cl_sha1(buffer, bufLen, sha1Dst, NULL);
 
-    for (i = 0; i < ITER_COUNT; i++){
+    for (i = 0; i < ITER_COUNT; i++) {
         uint32_t eye = ole2_endian_convert_32(i);
 
         memcpy(sha1, &eye, sizeof(eye));
@@ -2216,16 +2203,15 @@ static int generate_key(const char * const password, uint8_t * key, const uint32
     cl_sha1(sha1Dst, SHA1_HASH_SIZE + sizeof(uint32_t), sha1Dst, NULL);
 
     memset(buf1, 0x36, sizeof(buf1));
-    for (i = 0; i < SHA1_HASH_SIZE; i++){
+    for (i = 0; i < SHA1_HASH_SIZE; i++) {
         buf1[i] = buf1[i] ^ sha1Dst[i];
     }
 
     //now sha1 buf1
     cl_sha1(buf1, sizeof(buf1), doubleSha, NULL);
 
-
     memset(buf2, 0x5c, sizeof(buf2));
-    for (i = 0; i < SHA1_HASH_SIZE; i++){
+    for (i = 0; i < SHA1_HASH_SIZE; i++) {
         buf2[i] = buf2[i] ^ sha1Dst[i];
     }
 
@@ -2235,26 +2221,27 @@ static int generate_key(const char * const password, uint8_t * key, const uint32
 done:
     FREE(buffer);
 
-    if (0 == ret){
+    if (0 == ret) {
         memcpy(key, doubleSha, keyLength);
     }
 
     return ret;
 }
 
-static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned char *out, const uint8_t *key, unsigned key_n) {
+static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned char *out, const uint8_t *key, unsigned key_n)
+{
 
     unsigned long rk[RKLENGTH(128)];
     int nrounds;
     size_t i;
 
     nrounds = rijndaelSetupDecrypt(rk, (const unsigned char *)key, key_n * 8);
-    if (!nrounds){
+    if (!nrounds) {
         fprintf(stderr, "%s::%d::!nrounds\n", __FUNCTION__, __LINE__);
         exit(22);
     }
 
-    for (i = 0; i < length; i += 16){
+    for (i = 0; i < length; i += 16) {
         rijndaelDecrypt(rk, nrounds, &(in[i]), &(out[i]));
     }
 }
@@ -2265,35 +2252,36 @@ static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned 
  * Details here
  * https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/e5ad39b8-9bc1-4a19-bad3-44e6246d21e6
  */
-static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
+static bool verify_key(uint8_t key[16], encryption_verifier_t *verifier)
+{
 
     bool bRet = false;
     uint8_t sha[SHA1_HASH_SIZE];
     const uint32_t encrypted_verifier_hash_len = 32; //TODO: This needs to be based on algorithm
-    uint8_t decrypted[encrypted_verifier_hash_len]; //TODO: This needs to be the size of the largest value
+    uint8_t decrypted[encrypted_verifier_hash_len];  //TODO: This needs to be the size of the largest value
     fprintf(stderr, "%s::%d::FIX HARDCODED SIZES\n", __FUNCTION__, __LINE__);
 
-    aes_128ecb_decrypt(verifier->encrypted_verifier, sizeof(verifier->encrypted_verifier) , 
-            decrypted, key, 16);
+    aes_128ecb_decrypt(verifier->encrypted_verifier, sizeof(verifier->encrypted_verifier),
+                       decrypted, key, 16);
 
     cl_sha1(decrypted, sizeof(verifier->encrypted_verifier), sha, NULL);
 
     fprintf(stderr, "Verifier Hash Size = 0x%x\n", verifier->verifier_hash_size);
 
     aes_128ecb_decrypt(verifier->encrypted_verifier_hash, verifier->verifier_hash_size,
-            decrypted, key, 16);
+                       decrypted, key, 16);
 
-    bRet =  (0 == memcmp(sha, decrypted, verifier->verifier_hash_size));
+    bRet = (0 == memcmp(sha, decrypted, verifier->verifier_hash_size));
 
     return bRet;
 }
 
-
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
-static bool initialize_encryption_key(const encryption_info_stream_standard_t * headerPtr,
-        encryption_key_t * encryptionKey){
+static bool initialize_encryption_key(const encryption_info_stream_standard_t *headerPtr,
+                                      encryption_key_t *encryptionKey)
+{
 
-    bool bRet = false;
+    bool bRet  = false;
     size_t idx = 0;
     encryption_key_t key;
     encryption_verifier_t ev;
@@ -2306,12 +2294,12 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
     fprintf(stderr, "Flags           = 0x%x\n", headerPtr->flags);
 
     /*Bit 0 and 1 must be 0*/
-    if (1 & headerPtr->flags){
+    if (1 & headerPtr->flags) {
         cli_warnmsg("ole2: Invalid first bit, must be 0\n");
         goto done;
     }
 
-    if ((1 << 1) & headerPtr->flags){
+    if ((1 << 1) & headerPtr->flags) {
         cli_warnmsg("ole2: Invalid first bit, must be 0\n");
         goto done;
     }
@@ -2321,20 +2309,20 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
 #define SE_HEADER_FDOCPROPS (1 << 3)
 
     //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/200a3d61-1ab4-4402-ae11-0290b28ab9cb
-    if ((SE_HEADER_FDOCPROPS & headerPtr->flags)){
+    if ((SE_HEADER_FDOCPROPS & headerPtr->flags)) {
         cli_warnmsg("ole2: Unsupported document properties encrypted\n");
         goto done;
     }
 
-    if ((SE_HEADER_FEXTERNAL & headerPtr->flags) && 
-            (SE_HEADER_FEXTERNAL != headerPtr->flags)){
+    if ((SE_HEADER_FEXTERNAL & headerPtr->flags) &&
+        (SE_HEADER_FEXTERNAL != headerPtr->flags)) {
         cli_warnmsg("ole2: Invalid fExternal flags.  If fExternal bit is set, nothing else can be\n");
         goto done;
     }
 
 #define SE_HEADER_FAES (1 << 5)
-    if (SE_HEADER_FAES & headerPtr->flags){
-        if (!(SE_HEADER_FCRYPTOAPI & headerPtr->flags)){
+    if (SE_HEADER_FAES & headerPtr->flags) {
+        if (!(SE_HEADER_FCRYPTOAPI & headerPtr->flags)) {
             cli_warnmsg("ole2: Invalid combo of fAES and fCryptoApi flags\n");
             goto done;
         }
@@ -2344,12 +2332,12 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
 
     fprintf(stderr, "Size            = 0x%x\n", headerPtr->size);
 
-    if (headerPtr->flags != headerPtr->encryptionInfo.flags){
+    if (headerPtr->flags != headerPtr->encryptionInfo.flags) {
         cli_warnmsg("ole2: Flags must match\n");
         goto done;
     }
 
-    if (0 != headerPtr->encryptionInfo.sizeExtra){
+    if (0 != headerPtr->encryptionInfo.sizeExtra) {
         cli_warnmsg("ole2: Size Extra must be 0\n");
         goto done;
     }
@@ -2358,9 +2346,9 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
 #define SE_HEADER_EI_AES192 0x0000660f
 #define SE_HEADER_EI_AES256 0x00006610
 
-#define SE_HEADER_EI_RC4    0x00006801
+#define SE_HEADER_EI_RC4 0x00006801
 
-    switch (headerPtr->encryptionInfo.algorithmID){
+    switch (headerPtr->encryptionInfo.algorithmID) {
         case SE_HEADER_EI_AES128:
             break;
         case SE_HEADER_EI_AES192:
@@ -2368,7 +2356,8 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
         case SE_HEADER_EI_AES256:
             break;
         case SE_HEADER_EI_RC4:
-            fprintf(stderr, "%s::%d::TODO:: FIX THIS:: RC4 Unimplemented\n", __FUNCTION__, __LINE__); goto done;
+            fprintf(stderr, "%s::%d::TODO:: FIX THIS:: RC4 Unimplemented\n", __FUNCTION__, __LINE__);
+            goto done;
             break;
         default:
             fprintf(stderr, "%s::%d::Invalid Algorithm ID: 0x%x\n", __FUNCTION__, __LINE__, headerPtr->encryptionInfo.algorithmID);
@@ -2377,7 +2366,7 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
     }
 
 #define SE_HEADER_EI_SHA1 0x00008004
-    if (SE_HEADER_EI_SHA1 != headerPtr->encryptionInfo.algorithmIDHash){
+    if (SE_HEADER_EI_SHA1 != headerPtr->encryptionInfo.algorithmIDHash) {
         cli_warnmsg("ole2: Invalid Algorithm ID Hash: 0x%x\n", headerPtr->encryptionInfo.algorithmIDHash);
         goto done;
     }
@@ -2386,7 +2375,7 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
 #define SE_HEADER_EI_AES192_KEYSIZE 0x000000c0
 #define SE_HEADER_EI_AES256_KEYSIZE 0x00000100
 
-    switch (headerPtr->encryptionInfo.keySize){
+    switch (headerPtr->encryptionInfo.keySize) {
         case SE_HEADER_EI_AES128_KEYSIZE:
             break;
         case SE_HEADER_EI_AES192_KEYSIZE:
@@ -2399,39 +2388,38 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
     }
     fprintf(stderr, "KeySize = 0x%x\n", headerPtr->encryptionInfo.keySize);
 
-#define SE_HEADER_EI_AES_PROVIDERTYPE  0x00000018
-    if (SE_HEADER_EI_AES_PROVIDERTYPE != headerPtr->encryptionInfo.providerType){
-        cli_warnmsg("ole2: WARNING: Provider Type should be '0x%x', is '0x%x'\n", 
-                SE_HEADER_EI_AES_PROVIDERTYPE,  headerPtr->encryptionInfo.providerType);
+#define SE_HEADER_EI_AES_PROVIDERTYPE 0x00000018
+    if (SE_HEADER_EI_AES_PROVIDERTYPE != headerPtr->encryptionInfo.providerType) {
+        cli_warnmsg("ole2: WARNING: Provider Type should be '0x%x', is '0x%x'\n",
+                    SE_HEADER_EI_AES_PROVIDERTYPE, headerPtr->encryptionInfo.providerType);
         goto done;
     }
 
     fprintf(stderr, "Reserved1:  0x%x\n", headerPtr->encryptionInfo.reserved1);
 
-    if (0 != headerPtr->encryptionInfo.reserved2){
+    if (0 != headerPtr->encryptionInfo.reserved2) {
         cli_warnmsg("ole2: Reserved 2 must be zero, is 0x%x\n", headerPtr->encryptionInfo.reserved2);
         goto done;
     }
 
     fprintf(stderr, "CPSPName: ");
-    //Expected either 
+    //Expected either
     //'Microsoft Enhanced RSA and AES Cryptographic Provider'
     //or
     //'Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)'
-    printWideString(headerPtr->encryptionInfo.cspName, sizeof( headerPtr->encryptionInfo.cspName));
+    printWideString(headerPtr->encryptionInfo.cspName, sizeof(headerPtr->encryptionInfo.cspName));
     fprintf(stderr, "\n");
-
 
     /*The encryption info is at the end of the CPSName string.  
      * Find the end, and we'll have the index of the EncryptionVerifier.*/
-    for (idx = 0; idx < sizeof( headerPtr->encryptionInfo.cspName) - 1; idx += 2) {
-        if (((uint16_t *) &(headerPtr->encryptionInfo.cspName[idx]))[0] == 0){
+    for (idx = 0; idx < sizeof(headerPtr->encryptionInfo.cspName) - 1; idx += 2) {
+        if (((uint16_t *)&(headerPtr->encryptionInfo.cspName[idx]))[0] == 0) {
             break;
         }
     }
 
     idx += 2;
-    if ((sizeof(headerPtr->encryptionInfo.cspName) - idx) <= sizeof(encryption_verifier_t)){
+    if ((sizeof(headerPtr->encryptionInfo.cspName) - idx) <= sizeof(encryption_verifier_t)) {
         cli_warnmsg("ole2: ERROR: No encryption_verifier_t\n");
         goto done;
     }
@@ -2440,7 +2428,7 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t * 
     key.key_len = headerPtr->encryptionInfo.keySize / 8;
     generate_key("VelvetSweatshop", key.key, key.key_len, &ev);
 
-    if (! verify_key(key.key, &ev)){
+    if (!verify_key(key.key, &ev)) {
         fprintf(stderr, "%s::%d::Key verification failed\n", __FUNCTION__, __LINE__);
         goto done;
     }
@@ -2451,8 +2439,6 @@ done:
 
     return bRet;
 }
-
-
 
 /**
  * @brief Extract macros and images from an ole2 file
@@ -2508,7 +2494,6 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
                sizeof(hwp5_header_t *) - // is_hwp
                sizeof(bool);             // is_velvetsweatshop
 
-
     if ((size_t)(ctx->fmap->len) < (size_t)(hdr_size)) {
         return CL_CLEAN;
     }
@@ -2535,10 +2520,9 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     hdr.xbat_start            = ole2_endian_convert_32(hdr.xbat_start);
     hdr.xbat_count            = ole2_endian_convert_32(hdr.xbat_count);
 
-
     encryption_info_stream_standard_t encryption_info_stream_standard;
-    copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t*) phdr)[4 * (1 << hdr.log2_big_block_size)]));
-    hdr.is_velvetsweatshop  = initialize_encryption_key(&encryption_info_stream_standard, &key);
+    copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t *)phdr)[4 * (1 << hdr.log2_big_block_size)]));
+    hdr.is_velvetsweatshop = initialize_encryption_key(&encryption_info_stream_standard, &key);
 
     hdr.sbat_root_start = -1;
 
@@ -2623,10 +2607,10 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         cli_dbgmsg("OLE2: no VBA projects found\n");
         /* PASS 2/B : OTF scan */
         file_count = 0;
-        if (hdr.is_velvetsweatshop){
-            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf_velvetsweatshop, 0, &file_count, ctx, &scansize2, &key);
+        if (hdr.is_velvetsweatshop) {
+            ret = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf_velvetsweatshop, 0, &file_count, ctx, &scansize2, &key);
         } else {
-            ret        = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2, NULL);
+            ret = ole2_walk_property_tree(&hdr, NULL, 0, handler_otf, 0, &file_count, ctx, &scansize2, NULL);
         }
     }
 
