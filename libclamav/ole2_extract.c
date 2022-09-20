@@ -1652,27 +1652,9 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
                 break;
             }
 
-            if (first && hdr->is_velvetsweatshop) {
-                uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
-                uint64_t reported;
-                memcpy(&reported, buff, 8);
-//                len = ole2_endian_convert_32(reported);
-                    fprintf(stderr, "reported = %ld\n", reported);
-                    fprintf(stderr, "len = %ld\n", len);
-                    /*TODO: take this out, debugging*/
-                //    exit(77);
-                toWrite -= 8;
-                if (cli_writen(ofd, &buff[8], toWrite) != toWrite){
-                    ret = CL_EWRITE;
-                    goto done;
-                }
-            } else {
-
-
             if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
                 ret = CL_EWRITE;
                 goto done;
-            }
             }
 
             current_block = ole2_get_next_block_number(hdr, current_block);
