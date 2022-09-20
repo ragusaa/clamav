@@ -1888,7 +1888,7 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
 
     uint32_t bytesRead = 0;
     uint64_t actualFileLength;
-    //
+    uint64_t bytesWritten = 0;
     uint32_t leftover = 0;
     uint32_t readIdx = 0;
     while (bytesRead < len){
@@ -1925,14 +1925,19 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
                 goto done;
             }
 
-
+            if ((decryptDstIdx + bytesWritten) > actualFileLength){
+                decryptDstIdx = actualFileLength - bytesWritten;
+            }
             if (cli_writen(ofd, decryptDst, decryptDstIdx ) != decryptDstIdx){
                 fprintf(stderr, "%s::%d::ERROR in write\n", __FUNCTION__, __LINE__);
                 goto done;
             }
+            bytesWritten += decryptDstIdx;
 
             leftover = (leftover + bytesToWrite) - writeIdx;
-            memmove(buff, &(buff[writeIdx ]), leftover);
+            if (leftover){
+                memmove(buff, &(buff[writeIdx ]), leftover);
+            }
             readIdx = leftover;
 
             current_block = ole2_get_next_block_number(hdr, current_block);
