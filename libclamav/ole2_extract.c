@@ -2324,7 +2324,7 @@ done:
     return ret;
 }
 
-static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned char *out, const uint8_t *key, unsigned key_n, int has_iv) {
+static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned char *out, const uint8_t *key, unsigned key_n) {
 
     unsigned long rk[RKLENGTH(128)];
     int nrounds;
@@ -2353,12 +2353,12 @@ static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
     fprintf(stderr, "%s::%d::FIX HARDCODED SIZES\n", __FUNCTION__, __LINE__);
 
     aes_128ecb_decrypt(verifier->encrypted_verifier, sizeof(verifier->encrypted_verifier) , 
-            decrypted, key, 16, 0);
+            decrypted, key, 16);
 
     cl_sha1(decrypted, sizeof(verifier->encrypted_verifier), sha, NULL);
 
     aes_128ecb_decrypt(verifier->encrypted_verifier_hash, verifier->verifier_hash_size,
-            decrypted, key, 16, 0);
+            decrypted, key, 16);
 
     bRet =  (0 == memcmp(sha, decrypted, verifier->verifier_hash_size));
 
