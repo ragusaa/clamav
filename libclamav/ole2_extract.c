@@ -707,7 +707,6 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
         ole2_listmsg("prev: %d next %d child %d\n", prop_block[idx].prev, prop_block[idx].next, prop_block[idx].child);
 
         ole2_listmsg("node type: %d\n", prop_block[idx].type);
-        fprintf(stderr, "prop_block[%d].type = %d\n", idx, prop_block[idx].type);
         switch (prop_block[idx].type) {
             case 5: /* Root Entry */
                 ole2_listmsg("root node\n");
