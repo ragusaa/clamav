@@ -642,7 +642,6 @@ static int ole2_walk_property_tree(ole2_header_t *hdr, const char *dir, int32_t 
         return ret;
     }
 
-    fprintf(stderr, "before while, ole2_list_is_empty = %d\n", ole2_list_is_empty(&node_list));
     while (!ole2_list_is_empty(&node_list)) {
         ole2_listmsg("within working loop, worklist size: %d\n", ole2_list_size(&node_list));
 #if HAVE_JSON
