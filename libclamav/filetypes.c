@@ -210,16 +210,8 @@ cli_file_t cli_compare_ftm_file(const unsigned char *buf, size_t buflen, const s
     while (ftype) {
         if (ftype->offset + ftype->length <= buflen) {
             if (!memcmp(buf + ftype->offset, ftype->magic, ftype->length)) {
-                char buffer[1024 + 1];
-                memset (buffer, 0, sizeof(buffer));
-                size_t andy = 0;
-                for (; andy < ftype->length; andy++){
-                    sprintf(&(buffer[strlen(buffer)]), "0x%02x ", buf[ftype->offset + andy]);
-                }
-                fprintf(stderr, "%s::%d::FOUND IT HERE::'%s'::%d\n", __FUNCTION__, __LINE__, buffer, (CL_TYPE_MSOLE2 == ftype->type));
                 cli_dbgmsg("Recognized %s file\n", ftype->tname);
-                fprintf(stderr, "%s::%d::FOUND IT HERE\n", __FUNCTION__, __LINE__);
-                return ftype->type; /*aragusa: in this case, ftype->type == CLI_TYPE_MSOLE2*/
+                return ftype->type;
             }
         }
         ftype = ftype->next;
@@ -280,15 +272,6 @@ const struct ooxml_ftcodes {
         }                                                                       \
     } while (0)
 
-#if 0
-cli_file_t andy_test(fmap_t *map, const struct cl_engine *engine, cli_file_t basetype)
-{
-
-    exit(11);
-    return 0;
-}
-#endif
-
 cli_file_t cli_determine_fmap_type(fmap_t *map, const struct cl_engine *engine, cli_file_t basetype)
 {
     unsigned char buffer[MAGIC_BUFFER_SIZE];
@@ -329,9 +312,7 @@ cli_file_t cli_determine_fmap_type(fmap_t *map, const struct cl_engine *engine, 
     if (basetype == CL_TYPE_PART_ANY) { /* typing a partition */
         ret = cli_compare_ftm_partition(buff, bread, engine);
     } else { /* typing a file */
-        fprintf(stderr, "%s::%d::CALLING cli_compare_ftm_file\n", __FUNCTION__, __LINE__);
         ret = cli_compare_ftm_file(buff, bread, engine);
-        fprintf(stderr, "%s::%d::CALLING cli_compare_ftm_file\n", __FUNCTION__, __LINE__);
 
         if (ret == CL_TYPE_BINARY_DATA) {
             switch (is_tar(buff, bread)) {
@@ -420,15 +401,6 @@ cli_file_t cli_determine_fmap_type(fmap_t *map, const struct cl_engine *engine, 
             ret = CL_TYPE_BINARY_DATA;
         }
     }
-
-#if 0
-    if (CL_TYPE_MSOLE2 == ret) {
-    //    andy_test();
-        fprintf(stderr, "\n\n\nDo the VelvetSweatshop decryption here\n");
-        fprintf(stderr, "HOPEFULLY CAN MAKE IT A CALLBACK, in case there are other types of unpacking routines that need to be added\n");
-        exit(88);
-    }
-#endif
 
     if (ret >= CL_TYPE_TEXT_ASCII && ret <= CL_TYPE_BINARY_DATA) {
         /* HTML files may contain special characters and could be
