@@ -1829,14 +1829,12 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     char *name            = NULL;
     unsigned char *buff   = NULL;
     int32_t current_block = 0;
-    size_t len = 0, offset = 0;
+    size_t len = 0;
     int ofd              = -1;
     int is_mso           = 0;
     bitset_t *blk_bitset = NULL;
-    bool first = true;
     int nrounds = 0;
 
-    size_t decryptDstIdx = 0;
     uint8_t * decryptDst = NULL;
 
     UNUSEDPARAM(dir);
@@ -1888,10 +1886,8 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
         goto done;
     }
 
-#if 1
     uint32_t bytesRead = 0;
     uint64_t actualFileLength;
-    uint8_t * readPointer = buff;
     //
     uint32_t leftover = 0;
     uint32_t readIdx = 0;
@@ -1904,11 +1900,8 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
             //uint32_t bytesToRead = 1 << hdr->log2_big_block_size;
             uint32_t bytesToRead = blockSize; //TODO: Probably get rid of bytesToRead
             uint32_t bytesToWrite = MIN(len - bytesRead, bytesToRead) ;
-
-
-            {
             uint32_t writeIdx = 0;
-
+            uint32_t decryptDstIdx = 0;
 
             if (!ole2_read_block(hdr, &(buff[readIdx]), bytesToRead , current_block)) {
                 break;
@@ -1919,255 +1912,32 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
                 writeIdx+= sizeof(uint64_t);
                 memcpy(&actualFileLength, buff, sizeof(actualFileLength));
                 //actualFileLength = ole2_endian_convert_64(actualFileLength);
-                fprintf(stderr, "%s::%d::actualFileLength = %lu\n", __FUNCTION__, __LINE__, actualFileLength);
                 fprintf(stderr, "%s::%d::TODO: convert 64 bit byte order\n", __FUNCTION__, __LINE__);
             }
             bytesRead += bytesToRead;
 
-            uint32_t decryptDstIdx = 0;
             for (; writeIdx <= (leftover + bytesToWrite)-16; writeIdx += 16, decryptDstIdx += 16){
-//                fprintf(stderr, "%s::%d::Decrypt HERE\n", __FUNCTION__, __LINE__);
-
-#if 1
                 rijndaelDecrypt(rk, nrounds, &(buff[writeIdx]), &(decryptDst[decryptDstIdx]));
-#else
-                memcpy(&(decryptDst[decryptDstIdx]), &(buff[writeIdx]), 16);
-#endif
-
             }
-            fprintf(stderr, "%s::%d::After for, writeIdx = %u\n", __FUNCTION__, __LINE__, writeIdx);
-            fprintf(stderr, "%s::%d::After for, leftover = %u\n", __FUNCTION__, __LINE__, leftover);
-            fprintf(stderr, "%s::%d::After for, bytesToWrite = %u\n", __FUNCTION__, __LINE__, bytesToWrite);
-            fprintf(stderr, "%s::%d::After for, decryptDstIdx = %u\n", __FUNCTION__, __LINE__, decryptDstIdx);
 
             if (((leftover + bytesToWrite)-writeIdx) > 8){
-                fprintf(stderr, "%s::%d::bytesToWrite = %u\n", __FUNCTION__, __LINE__, bytesToWrite );
-                fprintf(stderr, "%s::%d::writeIdx = %u\n", __FUNCTION__, __LINE__, writeIdx);
-                fprintf(stderr, "%s::%d::bytesToWrite - writeIdx = %u\n", __FUNCTION__, __LINE__, bytesToWrite - writeIdx);
-                exit(11);
+                fprintf(stderr, "%s::%d::Add reasonable warning/error about what happened here\n", __FUNCTION__, __LINE__);
+                goto done;
             }
 
 
             if (cli_writen(ofd, decryptDst, decryptDstIdx ) != decryptDstIdx){
-                fprintf(stderr, "%s::%d::cleanup\n", __FUNCTION__, __LINE__);
-                exit(12);
+                fprintf(stderr, "%s::%d::ERROR in write\n", __FUNCTION__, __LINE__);
                 goto done;
             }
 
             leftover = (leftover + bytesToWrite) - writeIdx;
-            fprintf(stderr, "%s::%d::leftover = %u\n", __FUNCTION__, __LINE__, leftover );
             memmove(buff, &(buff[writeIdx ]), leftover);
             readIdx = leftover;
 
-
-
             current_block = ole2_get_next_block_number(hdr, current_block);
-
-
-
-
-
-
-            }
-
-
-
-
-
-#if 0
-            continue;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            uint8_t * writePointer = buff;
-            fprintf(stderr, "%s::%d::buff = %p\n", __FUNCTION__, __LINE__, buff);
-            fprintf(stderr, "%s::%d::readPointer = %p\n", __FUNCTION__, __LINE__, readPointer);
-
-            /* Big block file */
-            fprintf(stderr, "%s::%d::current block = %d\n", __FUNCTION__, __LINE__, current_block);
-            fprintf(stderr, "%s::%d::bytesToRead = %u\n", __FUNCTION__, __LINE__, bytesToRead);
-            if (!ole2_read_block(hdr, readPointer, bytesToRead , current_block)) {
-                break;
-            }
-
-            if (0 == bytesRead){
-                //first block.  account for size of file.
-                writePointer += sizeof(uint64_t);
-                bytesToWrite -= sizeof(uint64_t); 
-                memcpy(&actualFileLength, buff, sizeof(actualFileLength));
-                //actualFileLength = ole2_endian_convert_64(actualFileLength);
-                fprintf(stderr, "%s::%d::TODO: convert 64 bit byte order\n", __FUNCTION__, __LINE__);
-            }
-            bytesRead += bytesToRead;
-
-//            fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
-            size_t i = 0;
-            size_t lastWritten = 0;
-            fprintf(stderr, "%s::%d::bytesToWrite = %u\n", __FUNCTION__, __LINE__, bytesToWrite);
-            for (i = 0; i < bytesToWrite; i+=16, decryptDstIdx += 16){
-            fprintf(stderr, "%s::%d::i = %u\n", __FUNCTION__, __LINE__, i);
-                lastWritten = i;
-#if 0
-                rijndaelDecrypt(rk, nrounds, &(writePointer[i]), &(decryptDst[decryptDstIdx]));
-                memcpy;
-#else
-                {
-                    static int first = 1;
-                    if (first) fprintf(stderr, "%s::%d::put decryuption back\n", __FUNCTION__, __LINE__);
-                    first = 0;
-                }
-#endif
-            }
-            fprintf(stderr, "%s::%d::DONE\n", __FUNCTION__, __LINE__);
-
-            fprintf(stderr, "%s::%d::buff = %p\n", __FUNCTION__, __LINE__, buff);
-            fprintf(stderr, "%s::%d::writePointer = %p\n", __FUNCTION__, __LINE__, writePointer);
-            if (cli_writen(ofd, writePointer, bytesToWrite) != bytesToWrite){
-                fprintf(stderr, "%s::%d::cleanup\n", __FUNCTION__, __LINE__);
-                goto done;
-            }
-
- //           fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-            /*Decrypt in 16-byte blocks, so if we have some leftover, we'll get them next time.*/
-            //if (lastWritten != (bytesToWrite-16)) {
-            if (lastWritten != (bytesToWrite-16)) {
-                uint32_t leftover = bytesToWrite - lastWritten;
-
-                fprintf(stderr, "%s::%d::leftover = %d\n", __FUNCTION__, __LINE__, leftover);
-                fprintf(stderr, "%s::%d::lastWritten = %ld\n", __FUNCTION__, __LINE__, lastWritten);
-                fprintf(stderr, "%s::%d::bytesToWrite = %d\n", __FUNCTION__, __LINE__, bytesToWrite);
-
-                if (8 != leftover){
-                    fprintf(stderr, "%s::%d::leftover = %d\n", __FUNCTION__, __LINE__, leftover);
-                //    exit(22);
-                }
-                if (blockSize != (lastWritten + 16)){
-                    fprintf(stderr, "%s::%d::bytesRead= %u\n", __FUNCTION__, __LINE__, bytesRead);
-                    fprintf(stderr, "%s::%d::len= %lu\n", __FUNCTION__, __LINE__, len);
-                    fprintf(stderr, "%s::%d::lastWritten+16 = %lu\n", __FUNCTION__, __LINE__, lastWritten + 16);
-                    fprintf(stderr, "%s::%d::bytesToWrite = %u\n", __FUNCTION__, __LINE__, bytesToWrite );
-                    //exit(11);
-
-                }
-                memmove(buff, &(buff[lastWritten + 16]), leftover);
-                //
-                //memmove(buff, &(buff[lastWritten]), leftover);
-                //
-                readPointer = &(buff[leftover]);
-            } else {
-fprintf(stderr, "%s::%d::lastWritten = %lu\n", __FUNCTION__, __LINE__, lastWritten);
-fprintf(stderr, "%s::%d::bytesToWrite = %u\n", __FUNCTION__, __LINE__, bytesToWrite);
-fprintf(stderr, "%s::%d::(bytesToWrite-16) = %u\n", __FUNCTION__, __LINE__, bytesToWrite-16);
-fprintf(stderr, "%s::%d::((bytesToWrite-16) == lastWritten) = %u\n", __FUNCTION__, __LINE__, ((bytesToWrite-16) == lastWritten));
-                readPointer = buff;
-                //leftover = 0;
-            }
-
-            //fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
-
-            current_block = ole2_get_next_block_number(hdr, current_block);
-            fprintf(stderr, "%s::%d::current_block = %d\n", __FUNCTION__, __LINE__, current_block);
-#endif
         }
-
-
-
     }
-
-
-
-#else
-
-
-
-    while ((current_block >= 0) && (len > 0)) {
-        if (current_block > (int32_t)hdr->max_block_no) {
-            cli_dbgmsg("OLE2 [handler_otf]: Max block number for file size exceeded: %d\n", current_block);
-            break;
-        }
-
-        /* Check we aren't in a loop */
-        if (cli_bitset_test(blk_bitset, (unsigned long)current_block)) {
-            /* Loop in block list */
-            cli_dbgmsg("OLE2 [handler_otf]: Block list loop detected\n");
-            break;
-        }
-
-        if (!cli_bitset_set(blk_bitset, (unsigned long)current_block)) {
-            break;
-        }
-
-        if (prop->size < (int64_t)hdr->sbat_cutoff) {
-            /* Small block file */
-            if (!ole2_get_sbat_data_block(hdr, buff, current_block)) {
-                cli_dbgmsg("OLE2 [handler_otf]: ole2_get_sbat_data_block failed\n");
-                break;
-            }
-
-            /* buff now contains the block with N small blocks in it */
-            offset = (1 << hdr->log2_small_block_size) * (current_block % (1 << (hdr->log2_big_block_size - hdr->log2_small_block_size)));
-            if (cli_writen(ofd, &buff[offset], MIN(len, 1 << hdr->log2_small_block_size)) != MIN(len, 1 << hdr->log2_small_block_size)) {
-                goto done;
-            }
-
-            len -= MIN(len, 1 << hdr->log2_small_block_size);
-            current_block = ole2_get_next_sbat_block(hdr, current_block);
-        } else {
-            /* Big block file */
-            if (!ole2_read_block(hdr, buff, 1 << hdr->log2_big_block_size, current_block)) {
-                break;
-            }
-
-            if (first) {
-                uint64_t toWrite = MIN(len, (1 << hdr->log2_big_block_size));
-                uint64_t reported;
-                memcpy(&reported, buff, 8);
-                reported = ole2_endian_convert_32(reported);
-                len = reported + sizeof(reported);
-
-                fprintf(stderr, "reported = %ld\n", reported);
-                fprintf(stderr, "len = %ld\n", len);
-
-                toWrite -= 8;
-                if (cli_writen(ofd, &buff[8], toWrite) != toWrite){
-                    ret = CL_EWRITE;
-                    goto done;
-                }
-            } else {
-
-
-                if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
-                    ret = CL_EWRITE;
-                    goto done;
-                }
-            }
-
-            current_block = ole2_get_next_block_number(hdr, current_block);
-            len -= MIN(len, (1 << hdr->log2_big_block_size));
-        }
-        
-        first = false;
-    }
-#endif
-
 
     /* defragmenting of ole2 stream complete */
 
