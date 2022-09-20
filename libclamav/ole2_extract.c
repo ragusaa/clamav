@@ -2239,7 +2239,6 @@ void dump_encryption_verifier (encryption_verifier_t * ev){
 }
 
 
-/*TODO: determine if keyLength varies with version.  I *think* it does*/
 /*hash is a different length for depending on the algorithm. */
 static int compute_hash(const char * const password, uint8_t * key, const uint32_t keyLength, 
         encryption_verifier_t * verifier){
@@ -2252,6 +2251,13 @@ static int compute_hash(const char * const password, uint8_t * key, const uint32
     uint8_t buf1[64];
     uint8_t buf2[64];
     uint8_t doubleSha[SHA1_HASH_SIZE * 2];
+
+    if ((0x80 != keyLength) /*aes-128*/
+            && (0xc0 != keyLength) /*aes-192*/
+            && (0x100 != keyLength)){
+        fprintf(stderr, "%s::%d::Invalid key length\n", __FUNCTION__, __LINE__);
+        goto done;
+    }
 
     memset(key, 0, keyLength);
 
@@ -2274,7 +2280,6 @@ static int compute_hash(const char * const password, uint8_t * key, const uint32
 
     cl_sha1(buffer, bufLen, sha1Dst, NULL);
 
-    //dump(sha1Dst, SHA1_HASH_SIZE);
     for (i = 0; i < ITER_COUNT; i++){
         uint32_t eye = ole2_endian_convert_32(i);
 
@@ -2286,13 +2291,10 @@ static int compute_hash(const char * const password, uint8_t * key, const uint32
 
     cl_sha1(sha1Dst, SHA1_HASH_SIZE + sizeof(uint32_t), sha1Dst, NULL);
 
-    //dump(sha1Dst, SHA1_HASH_SIZE); //'hfinal = ' in the python code
-
     memset(buf1, 0x36, sizeof(buf1));
     for (i = 0; i < SHA1_HASH_SIZE; i++){
         buf1[i] = buf1[i] ^ sha1Dst[i];
     }
-    //dump(buf1, sizeof(buf1));
 
     //now sha1 buf1
     cl_sha1(buf1, sizeof(buf1), doubleSha, NULL);
@@ -2302,16 +2304,8 @@ static int compute_hash(const char * const password, uint8_t * key, const uint32
     for (i = 0; i < SHA1_HASH_SIZE; i++){
         buf2[i] = buf2[i] ^ sha1Dst[i];
     }
-    //dump(buf2, sizeof(buf2));
 
     cl_sha1(buf2, sizeof(buf2), &(doubleSha[SHA1_HASH_SIZE]), NULL);
-
-#if 0
-    for (i = 0; i < keyLength; i++){
-        fprintf(stderr, "%02x ", doubleSha[i]);
-    }
-    fprintf(stderr, "\n");
-#endif
 
     ret = 0;
 done:
@@ -2343,6 +2337,9 @@ static void aes_128ecb_decrypt(const unsigned char *in, size_t length, unsigned 
 
 /*
  * Returns true if it is actually encrypted with the key.
+ *
+ * Details here
+ * https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/e5ad39b8-9bc1-4a19-bad3-44e6246d21e6
  */
 static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
 
@@ -2357,6 +2354,8 @@ static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
 
     cl_sha1(decrypted, sizeof(verifier->encrypted_verifier), sha, NULL);
 
+    fprintf(stderr, "Verifier Hash Size = 0x%x\n", verifier->verifier_hash_size);
+
     aes_128ecb_decrypt(verifier->encrypted_verifier_hash, verifier->verifier_hash_size,
             decrypted, key, 16);
 
@@ -2367,21 +2366,12 @@ static bool verify_key( uint8_t key[16], encryption_verifier_t * verifier ){
 
 
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
-//static int validate_encryption_header(const encryption_info_stream_standard_t * headerPtr){
 static bool has_valid_encryption_header(const encryption_info_stream_standard_t * headerPtr){
 
     //int ret = -1;
     bool bRet = false;
     size_t idx = 0;
     encryption_verifier_t ev;
-
-#if 0
-    fprintf(stderr, "Mini Stream Sector = '%p'\n", headerPtr);
-    for (idx = 0; idx < 24; idx++) {
-        fprintf(stderr, "%02x ", ((const uint8_t*) headerPtr)[idx]);
-    }
-    fprintf(stderr, "\n");
-#endif
 
     fprintf(stderr, "Major Version   = 0x%x\n", headerPtr->version_major);
     fprintf(stderr, "Minor Version   = 0x%x\n", headerPtr->version_minor);
@@ -2523,41 +2513,15 @@ static bool has_valid_encryption_header(const encryption_info_stream_standard_t 
     //dump_encryption_verifier(&ev);
 
 
-#if 0
-    fprintf(stderr, "TODO: Need to convert this (and all other integers) to host endianness.\n");
-    fprintf(stderr, "They are guaranteed le, so I need to convert them to big endian, and then to 'host' to guarantee they are correct\n");
-
-
-
-    fprintf(stderr, "TODO::THIS HAS ALL THE SALT INFORMATION AND THE encryption_verifier_t structure.  Need to parse this\n");
-    fprintf(stderr, "see https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/e5ad39b8-9bc1-4a19-bad3-44e6246d21e6\n");
-    {
-        for (size_t i = 0; i < (512 - 44); i++){
-            fprintf(stderr, "%02x ", headerPtr->encryptionInfo.cspName[i]);
-        }
-        fprintf(stderr, "\n");
-    }
-#endif
-
-    /*TODO: determine what key length based on algorithm.*/
     uint8_t key[16];
     compute_hash("VelvetSweatshop", key, 16, &ev);
+    fprintf(stderr, "%s::%d::Determine key length based on algorithm\n", __FUNCTION__, __LINE__);
 
     //dump_encryption_verifier(&ev);
     if (! verify_key(key, &ev)){
+        fprintf(stderr, "%s::%d::Key verification failed\n", __FUNCTION__, __LINE__);
         goto done;
     }
-
-
-#if 0
-    {size_t i;
-    for (i = 0; i < 16; i++){
-        fprintf(stderr, "%02x ", key[i]);
-    }
-    fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "Verifier hash size = %d\n",ev.verifier_hash_size );
-#endif
 
     bRet = true;
 done:
