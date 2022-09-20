@@ -3719,14 +3719,6 @@ typedef enum ptg_expr {
 #pragma pack 1
 #endif
 
-/*aragusa:
- *
- * This is the end of all the define stuff
- *
- * */
-
-
-
 /**
  * @brief The OfficeArtRecordHeader fined on page 27 of the MSO-ODRAW specification:
  *   https://interoperability.blob.core.windows.net/files/MS-ODRAW/%5bMS-ODRAW%5d.pdf
@@ -4664,9 +4656,6 @@ cl_error_t cli_extract_xlm_macros_and_images(const char *dir, cli_ctx *ctx, char
     biff8_opcode previous_biff8_opcode = 0x0; // Initialize to 0x0, which isn't even in our enum.
                                               // This variable will allow the OPC_CONTINUE record
                                               // to know which record it is continuing.
-
-
-    fprintf(stderr, "%s::%d::HEREHEREHERE\n", __FUNCTION__, __LINE__);
 
     snprintf(fullname, sizeof(fullname), "%s" PATHSEP "%s_%u", dir, hash, which);
     fullname[sizeof(fullname) - 1] = '\0';
