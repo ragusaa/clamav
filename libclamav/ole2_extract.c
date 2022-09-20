@@ -1669,10 +1669,10 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
             } else {
 
 
-                if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
-                    ret = CL_EWRITE;
-                    goto done;
-                }
+            if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
+                ret = CL_EWRITE;
+                goto done;
+            }
             }
 
             current_block = ole2_get_next_block_number(hdr, current_block);
