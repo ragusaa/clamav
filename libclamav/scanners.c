@@ -2549,8 +2549,6 @@ static cl_error_t cli_ole2_scan_tempdir(
 
     cli_dbgmsg("cli_ole2_scan_tempdir: %s\n", dir);
 
-    fprintf(stderr, "%s::%d::BLAH BLAH BLAH\n", __FUNCTION__, __LINE__); exit(11);
-
     /* Output JSON Summary Information */
     if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
         (void)cli_ole2_tempdir_scan_summary(dir, ctx, files);
