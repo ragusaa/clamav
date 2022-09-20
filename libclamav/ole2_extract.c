@@ -53,10 +53,7 @@
 #if HAVE_JSON
 #include "msdoc.h"
 #endif
-
 #include "rijndael.h"
-
-
 
 #ifdef DEBUG_OLE2_LIST
 #define ole2_listmsg(...) cli_dbgmsg(__VA_ARGS__)
