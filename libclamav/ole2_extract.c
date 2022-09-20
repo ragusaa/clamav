@@ -1743,6 +1743,7 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     unsigned char *buff   = NULL;
     int32_t current_block = 0;
     size_t len = 0;
+    size_t offset = 0;
     int ofd              = -1;
     int is_mso           = 0;
     bitset_t *blk_bitset = NULL;
@@ -1759,7 +1760,6 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
         fprintf(stderr, "%s::%d::key NULL\n", __FUNCTION__, __LINE__);
         goto done;
     }
-
 
     if (prop->type != 2) {
         /* Not a file */
@@ -1807,10 +1807,41 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
     uint32_t leftover = 0;
     uint32_t readIdx = 0;
     while (bytesRead < len){
+                if (current_block > (int32_t)hdr->max_block_no) {
+            cli_dbgmsg("OLE2 [handler_otf]: Max block number for file size exceeded: %d\n", current_block);
+            break;
+        }
+
+                        /* Check we aren't in a loop */
+        if (cli_bitset_test(blk_bitset, (unsigned long)current_block)) {
+            /* Loop in block list */
+            cli_dbgmsg("OLE2 [handler_otf]: Block list loop detected\n");
+            break;
+        }
+
+        if (!cli_bitset_set(blk_bitset, (unsigned long)current_block)) {
+            break;
+        }
+
+
 
         if (prop->size < (int64_t)hdr->sbat_cutoff) {
-            //TODO: put all the small block stuff in
-            fprintf(stderr, "%s::%d::not handled\n", __FUNCTION__, __LINE__); break;
+                        /* Small block file */
+            if (!ole2_get_sbat_data_block(hdr, buff, current_block)) {
+                cli_dbgmsg("OLE2 [handler_otf]: ole2_get_sbat_data_block failed\n");
+                break;
+            }
+
+            /* buff now contains the block with N small blocks in it */
+            offset = (1 << hdr->log2_small_block_size) * (current_block % (1 << (hdr->log2_big_block_size - hdr->log2_small_block_size)));
+            if (cli_writen(ofd, &buff[offset], MIN(len, 1 << hdr->log2_small_block_size)) != MIN(len, 1 << hdr->log2_small_block_size)) {
+                goto done;
+            }
+
+            len -= MIN(len, 1 << hdr->log2_small_block_size);
+            current_block = ole2_get_next_sbat_block(hdr, current_block);
+
+            //TODO: ARAGUSA: IT DOESN'T LOOK LIKE THESE SMALL BLOCK FILES ARE ENCRPYTED, BUT SEE IF WE CAN FIND IT IN THE DOCUMENTATION
         } else {
             //uint32_t bytesToRead = 1 << hdr->log2_big_block_size;
             uint32_t bytesToRead = blockSize; //TODO: Probably get rid of bytesToRead
@@ -1871,6 +1902,7 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
 #if HAVE_JSON
     /* JSON Output Summary Information */
     if (SCAN_COLLECT_METADATA && (ctx->properties != NULL)) {
+        //aragusa: TODO: put something in the json stating it was velvetsweatshop.
         if (!name) {
             name = cli_ole2_get_property_name2(prop->name, prop->name_size);
         }
@@ -1931,6 +1963,7 @@ done:
         free(tempfile);
         tempfile = NULL;
     }
+    FREE(decryptDst);
 
     return ret;
 }
