@@ -1573,7 +1573,6 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
     int ofd              = -1;
     int is_mso           = 0;
     bitset_t *blk_bitset = NULL;
-    bool first = true;
 
     UNUSEDPARAM(dir);
     UNUSEDPARAM(handler_ctx);
@@ -1652,18 +1651,14 @@ static cl_error_t handler_otf(ole2_header_t *hdr, property_t *prop, const char *
                 break;
             }
 
-
             if (cli_writen(ofd, buff, MIN(len, (1 << hdr->log2_big_block_size))) != MIN(len, (1 << hdr->log2_big_block_size))) {
                 ret = CL_EWRITE;
                 goto done;
             }
 
             current_block = ole2_get_next_block_number(hdr, current_block);
-            fprintf(stderr, "%s::%d::current_block = %d\n", __FUNCTION__, __LINE__, current_block);
             len -= MIN(len, (1 << hdr->log2_big_block_size));
         }
-        
-        first = false;
     }
 
     /* defragmenting of ole2 stream complete */
