@@ -5382,8 +5382,6 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
 
     cli_logg_setup(&ctx);
 
-    /*aragusa: seems like we can do the velvetsweatshop decrypting here.*/
-
     /* We have a limit of around 2GB (INT_MAX - 2). Enforce it here. */
     /* TODO: Large file support is large-ly untested. Remove this restriction
      * and test with a large set of large files of various types. libclamav's
@@ -5399,7 +5397,6 @@ static cl_error_t scan_common(cl_fmap_t *map, const char *filepath, const char *
         goto done;
     }
 
-    /*aragusa: look for unpackers here.*/
     status = cli_magic_scan(&ctx, CL_TYPE_ANY);
 
     if (status == CL_CLEAN && ctx.found_possibly_unwanted) {
