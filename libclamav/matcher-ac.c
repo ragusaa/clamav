@@ -685,9 +685,6 @@ void cli_ac_free(struct cli_matcher *root)
     uint32_t i               = 0;
     struct cli_ac_patt *patt = NULL;
 
-    fprintf(stderr, "%s::%d, time = %d\n", __FUNCTION__, __LINE__, time(NULL));
-    return;
-
     for (i = 0; i < root->ac_patterns; i++) {
         patt = root->ac_pattable[i];
         MPOOL_FREE(root->mempool, patt->prefix ? patt->prefix : patt->pattern);
@@ -711,7 +708,6 @@ void cli_ac_free(struct cli_matcher *root)
         MPOOL_FREE(root->mempool, root->ac_reloff);
     }
 
-    fprintf(stderr, "%s::%d, time = %d\n", __FUNCTION__, __LINE__, time(NULL));
     /* Freeing trans nodes must be done before freeing table nodes! */
     for (i = 0; i < root->ac_nodes; i++) {
         if (!IS_LEAF(root->ac_nodetable[i]) &&
@@ -722,7 +718,6 @@ void cli_ac_free(struct cli_matcher *root)
             }
         }
     }
-    fprintf(stderr, "%s::%d, time = %d\n", __FUNCTION__, __LINE__, time(NULL));
 
     for (i = 0; i < root->ac_lists; i++) {
         MPOOL_FREE(root->mempool, root->ac_listtable[i]);
@@ -748,8 +743,6 @@ void cli_ac_free(struct cli_matcher *root)
     if (root->filter) {
         MPOOL_FREE(root->mempool, root->filter);
     }
-
-    fprintf(stderr, "%s::%d, time = %d\n", __FUNCTION__, __LINE__, time(NULL));
 }
 
 /*
