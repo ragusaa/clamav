@@ -2275,6 +2275,7 @@ static bool verify_key(uint8_t key[16], encryption_verifier_t *verifier)
 }
 
 //https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/dca653b5-b93b-48df-8e1e-0fb9e1c83b0f
+//https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/2895eba1-acb1-4624-9bde-2cdad3fea015
 static bool initialize_encryption_key(const encryption_info_stream_standard_t *headerPtr,
                                       encryption_key_t *encryptionKey)
 {
@@ -2298,7 +2299,7 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t *h
     }
 
     if ((1 << 1) & headerPtr->flags) {
-        cli_warnmsg("ole2: Invalid first bit, must be 0\n");
+        cli_warnmsg("ole2: Invalid second bit, must be 0\n");
         goto done;
     }
 
@@ -2350,15 +2351,17 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t *h
         case SE_HEADER_EI_AES128:
             break;
         case SE_HEADER_EI_AES192:
+fprintf(stderr, "%s::%d::TODO:: FIX THIS:: AES192 Unimplemented\n", __FUNCTION__, __LINE__); exit(11);
             break;
         case SE_HEADER_EI_AES256:
+fprintf(stderr, "%s::%d::TODO:: FIX THIS:: AES256 Unimplemented\n", __FUNCTION__, __LINE__); exit(12);
             break;
         case SE_HEADER_EI_RC4:
-            fprintf(stderr, "%s::%d::TODO:: FIX THIS:: RC4 Unimplemented\n", __FUNCTION__, __LINE__);
-            goto done;
+
+fprintf(stderr, "%s::%d::TODO:: FIX THIS:: RC4 Unimplemented\n", __FUNCTION__, __LINE__); goto done;
+
             break;
         default:
-            fprintf(stderr, "%s::%d::Invalid Algorithm ID: 0x%x\n", __FUNCTION__, __LINE__, headerPtr->encryptionInfo.algorithmID);
             cli_warnmsg("ole2: Invalid Algorithm ID: 0x%x\n", headerPtr->encryptionInfo.algorithmID);
             goto done;
     }
