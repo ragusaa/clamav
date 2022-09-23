@@ -586,6 +586,33 @@ void printWideString(const uint8_t *buf, uint32_t bufLen)
     }
 }
 
+void printAllWideStrings(const uint8_t *buf, uint32_t bufLen)
+{
+    uint32_t i;
+    char asciiBuf[513];
+    char byteBuf[6 * 513];
+    uint32_t bufferIdx = 0;
+    memset(asciiBuf, 0, sizeof(asciiBuf));
+    memset(byteBuf, 0, sizeof(byteBuf));
+
+    for (i = 0; i < bufLen; i += 2) {
+        if (buf[i] < 0x20 || buf[i] > 0x7f){
+            if (strlen(asciiBuf)){
+                fprintf(stderr, "%s\n", byteBuf);
+                fprintf(stderr, "%s\n", asciiBuf);
+                memset(asciiBuf, 0, sizeof(asciiBuf));
+                memset(byteBuf, 0, sizeof(byteBuf));
+            }
+            continue;
+        }
+
+        sprintf(&(asciiBuf[strlen(asciiBuf)]), "%c", buf[i]);
+        sprintf(&(byteBuf[strlen(byteBuf)]), "%02x 00 ", buf[i]);
+
+        //fprintf(stderr, "%c", buf[i]);
+    }
+}
+
 /**
  * @brief Walk an ole2 property tree, calling the handler for each file found
  *
@@ -1748,6 +1775,9 @@ static cl_error_t handler_otf_velvetsweatshop(ole2_header_t *hdr, property_t *pr
 
     UNUSEDPARAM(dir);
 
+
+    fprintf(stderr, "%s::%d::Entering\n", __FUNCTION__, __LINE__);
+
     if (NULL == key) {
         fprintf(stderr, "%s::%d::key NULL\n", __FUNCTION__, __LINE__);
         goto done;
@@ -1958,6 +1988,8 @@ done:
     }
     FREE(decryptDst);
     FREE(rk);
+
+    fprintf(stderr, "%s::%d::Leaving::ret = %d\n", __FUNCTION__, __LINE__, ret);
 
     return ret;
 }
@@ -2288,6 +2320,11 @@ static bool initialize_encryption_key(const encryption_info_stream_standard_t *h
     memset(encryptionKey, 0, sizeof(encryption_key_t));
     memset(&key, 0, sizeof(encryption_key_t));
 
+    if (headerPtr->version_major < 2 || headerPtr->version_major > 4){
+        fprintf(stderr, "Invalid major version\n");
+        goto done;
+    }
+
     fprintf(stderr, "Major Version   = 0x%x\n", headerPtr->version_major);
     fprintf(stderr, "Minor Version   = 0x%x\n", headerPtr->version_minor);
     fprintf(stderr, "Flags           = 0x%x\n", headerPtr->flags);
@@ -2436,8 +2473,486 @@ fprintf(stderr, "%s::%d::TODO:: FIX THIS:: RC4 Unimplemented\n", __FUNCTION__, _
 
     memcpy(encryptionKey, &key, sizeof(encryption_key_t));
     bRet = true;
+
+    fprintf(stderr, "%s::%d::Initialize returning true\n", __FUNCTION__, __LINE__);
 done:
 
+    return bRet;
+}
+
+
+    //aragusa::TODO: convert all the rest of these to use this.
+#ifndef copy32
+#define copy32(dst, ary, aryIdx) \
+    memcpy(&dst, &(ary[aryIdx]), 4); \
+    dst = ole2_endian_convert_32(dst); \
+    aryIdx += 4;
+#endif
+
+#ifndef copy16
+#define copy16(dst, ary, aryIdx) \
+    memcpy(&dst, &(ary[aryIdx]), 2); \
+    dst = ole2_endian_convert_16(dst); \
+    aryIdx += 2;
+#endif
+
+#ifndef DEBUG32
+#define DEBUG_UINT32(val) fprintf(stderr, "%s::%d::%s = %u (0x%x)\n", __FUNCTION__, __LINE__, #val, val, val)
+#endif
+
+
+
+#ifndef DEBUG_UINT32
+#define DEBUG_UINT32(val) fprintf(stderr, "%s::%d::%s = %u (0x%x)\n", __FUNCTION__, __LINE__, #val, val, val)
+#endif
+
+#ifndef DEBUG_STRING
+#define DEBUG_STRING(val) fprintf(stderr, "%s::%d::%s", __FUNCTION__, __LINE__, val)
+#endif
+
+
+
+
+
+static bool dumpUnicodeLPP4(const uint8_t * const buff, uint32_t * inc){
+
+    uint32_t length;
+    bool bRet = false;
+*inc = 0;
+
+    //https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/87415b55-7d53-498a-ad53-5ed648a1a196
+    //NOTE: data is NOT null-terminated.
+    memcpy(&length, buff, sizeof(length));
+    length = ole2_endian_convert_32(length); //length does NOT include the size of length or padding.
+
+    if (length > 512 - sizeof(length)){
+        //Sometimes the length looks like 'VBA' written in wide characters.  Skip for now.
+        fprintf(stderr, "%s::%d::Invalid length (%u)\n", __FUNCTION__, __LINE__, length);
+        goto done;
+    }
+
+            /*Empty string*/
+            if (0 == length || 4 == length){
+                *inc = 4;
+                bRet = true;
+                goto done;
+            }
+
+
+    fprintf(stderr, "%s::%d::Length = %u (0x%x)\n", __FUNCTION__, __LINE__, length, length);
+    printWideString(&(buff[sizeof(length)]), length);
+    fprintf(stderr, "\n");
+    uint32_t padding = (sizeof(length) + length) % 4;
+    if (padding){
+        padding = 4 - padding;
+    }
+    if (0 != padding && 2 != padding){
+        fprintf(stderr, "%s::%d::Invalid padding value of '%u'\n", __FUNCTION__, __LINE__, padding);
+        goto done;
+    }
+    fprintf(stderr, "%s::%d::Padding length = %d\n", __FUNCTION__, __LINE__, padding);
+
+    *inc = (sizeof (length) + length + padding);
+    bRet = true;
+done:
+    return bRet;
+
+
+}
+
+        static bool dumpUTF8LPP4(const uint8_t * const buff, uint32_t * inc){
+            *inc = 0;
+            uint32_t length;
+            uint32_t buffIdx = 0;
+            uint32_t padding = 0;
+            bool bRet = false;
+
+            copy32(length, buff, buffIdx);
+
+            if (length > 512){
+
+                fprintf(stderr, "%s::%d::Invalid length of '%u'\n", __FUNCTION__, __LINE__, length);
+                goto done;
+            }
+
+            /*Empty string*/
+            if (0 == length || 4 == length){
+                *inc = 4;
+                bRet = true;
+                goto done;
+            }
+
+            DEBUG_UINT32(length);
+
+            printWideString(&(buff[buffIdx]), length);
+
+
+            padding = (length + sizeof(length)) % 4;
+            if (padding){
+                padding = 4 - padding;
+            }
+
+
+            *inc = (sizeof (length) + length + padding);
+            bRet = true;
+done:
+            return bRet;
+        }
+
+
+
+/*https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/4f2e28a1-624a-4bed-b3ec-816f0df484ff*/
+/*Document encryption*/
+/*
+ * Determined by a DirectoryStream with the name DataSpace (no valid sector though).
+ * TODO: find the DirectoryEntry stream, instead of guessing based on what we find.
+ *
+ * */
+/*This document appears to be ECMA-376 Document Encryption*/
+static bool initialize_encryption_key_dataspace(const encryption_info_stream_standard_t *headerPtr,
+                                      encryption_key_t *encryptionKey) {
+
+    bool bRet = false;
+    size_t i;
+    uint8_t * buff = (uint8_t*) headerPtr;
+    uint32_t length;
+    uint32_t buffIdx = 0;
+    uint32_t tmp;
+    uint32_t padding;
+
+    uint32_t hackSave = 0;
+
+
+    UNUSEDPARAM(encryptionKey);
+
+
+    fprintf(stderr, "%s::%d::Raw Data\n", __FUNCTION__, __LINE__);
+    for (i = buffIdx; i < 512; i++){
+        fprintf(stderr, "%02x ", buff[i]);
+    }
+    fprintf(stderr, "\n");
+
+
+    DEBUG_STRING("DataSpaceVersionInfo\n");
+
+
+
+#if 0
+
+    //https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/87415b55-7d53-498a-ad53-5ed648a1a196
+    //NOTE: data is NOT null-terminated.
+    memcpy(&length, &(buff[buffIdx]), sizeof(length));
+    length = ole2_endian_convert_32(length); //length does NOT include the size of length or padding.
+
+    if (length > 512 - sizeof(length)){
+        //Sometimes the length looks like 'VBA' written in wide characters.  Skip for now.
+        fprintf(stderr, "%s::%d::Invalid length (%u)\n", __FUNCTION__, __LINE__, length);
+        goto done;
+    }
+
+
+    fprintf(stderr, "%s::%d::Length = %u (0x%x)\n", __FUNCTION__, __LINE__, length, length);
+    printWideString(&(buff[sizeof(length)]), length);
+    fprintf(stderr, "\n");
+    uint32_t padding = (sizeof(length) + length) % 4;
+    if (padding){
+        padding = 4 - padding;
+    }
+    if (0 != padding && 2 != padding){
+        fprintf(stderr, "%s::%d::Invalid padding value of '%u'\n", __FUNCTION__, __LINE__, padding);
+        goto done;
+    }
+    fprintf(stderr, "%s::%d::Padding length = %d\n", __FUNCTION__, __LINE__, padding);
+
+    buffIdx += sizeof (length) + length + padding;
+#else
+    DEBUG_STRING("FeatureIdentifier\n");
+    if (dumpUnicodeLPP4(&(buff[buffIdx]), &tmp)){
+        buffIdx += tmp;
+    }
+#endif
+
+
+    fprintf(stderr, "%s::%d::buffIdx = %d\n", __FUNCTION__, __LINE__, buffIdx );
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+
+
+
+    //https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/82592730-321b-4ec4-bb3e-87748976af33
+    //
+    
+    fprintf(stderr, "%s::%d::Raw Data\n", __FUNCTION__, __LINE__);
+    for (i = buffIdx; i < 512; i++){
+        fprintf(stderr, "%02x ", buff[i]);
+    }
+    fprintf(stderr, "\n");
+
+    memcpy(&length, &(buff[buffIdx]), sizeof(length));
+    length = ole2_endian_convert_32(length); //length does NOT include the size of length or padding.
+    fprintf(stderr, "%s::%d::Length = %u (0x%x)\n", __FUNCTION__, __LINE__, length, length);
+
+    padding = ((sizeof(length) + length)%4);
+    if (padding){
+        padding = 4 - padding;
+    }
+    fprintf(stderr, "%s::%d::Padding length = %d\n", __FUNCTION__, __LINE__, padding);
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+
+    buffIdx += sizeof(length) + length + padding;
+
+    uint16_t version_major;
+    uint16_t version_minor;
+    memcpy(&version_major, &(buff[buffIdx]), sizeof(uint16_t));
+    version_major = ole2_endian_convert_16(version_major);
+    buffIdx += sizeof(version_major);
+    memcpy(&version_minor, &(buff[buffIdx]), sizeof(uint16_t));
+    version_minor = ole2_endian_convert_16(version_minor);
+    buffIdx += sizeof(version_minor);
+    fprintf(stderr, "%s::%d::version_major = %d (0x%x)\n", __FUNCTION__, __LINE__, version_major, version_major);
+    fprintf(stderr, "%s::%d::version_minor = %d (0x%x)\n", __FUNCTION__, __LINE__, version_minor, version_minor);
+
+    fprintf(stderr, "%s::%d::Raw Data\n", __FUNCTION__, __LINE__);
+    for (i = buffIdx; i < 512; i++){
+        fprintf(stderr, "%02x ", buff[i]);
+    }
+    fprintf(stderr, "\n");
+
+    //Next is https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/78a22c61-178c-4496-9410-56e574271b6c
+    //It is referencing another UNICODE-LP-P4 (2.1.2), but that
+    //isn't in the sample I am looking at, so I am going to skip
+    //looks like 52 bytes of zeros in some of hte files instead.
+    //
+
+    //TODO: Figure out a better way to do this.
+    hackSave = buffIdx;
+    for (i = buffIdx; i < 512; i++){
+        if (buff[i] == 0x08){
+            buffIdx = i;
+            break;
+        }
+    }
+    fprintf(stderr, "%s::%d::TODO: Figure out where these (%u) extra zeros are coming from\n", __FUNCTION__, __LINE__, buffIdx - hackSave);
+
+    memcpy(&length, &(buff[buffIdx]), sizeof(length));
+    length = ole2_endian_convert_32(length);
+    if (8 != length){
+        fprintf(stderr, "%s::%d::Invalid length of '%u'\n", __FUNCTION__, __LINE__, length);
+        goto done;
+    }
+    buffIdx += sizeof(length);
+
+    uint32_t entry_cnt;
+    memcpy(&entry_cnt, &(buff[buffIdx]), sizeof(entry_cnt));
+    entry_cnt = ole2_endian_convert_32(entry_cnt);
+    fprintf(stderr, "%s::%d::entry_cnt = %u\n", __FUNCTION__, __LINE__, entry_cnt);
+    buffIdx += sizeof(entry_cnt);
+
+
+
+    fprintf(stderr, "%s::%d::Before DataSpaceMapEntryStructure, buffIdx = %u\n", __FUNCTION__, __LINE__, buffIdx);
+
+    //https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/1902a39e-5f9a-41b8-b8d3-2aa1f51519d5
+    fprintf(stderr, "%s::%d::DataSpaceMapEntryStructure\n", __FUNCTION__, __LINE__);
+    memcpy(&length, &(buff[buffIdx]), sizeof(length));
+    length = ole2_endian_convert_32(length); //now, length includes the whole structure.
+    fprintf(stderr, "%s::%d::length = %u\n", __FUNCTION__, __LINE__, length);
+    buffIdx += sizeof(length);
+
+
+    uint32_t reference_component_cnt;
+    memcpy(&reference_component_cnt, &(buff[buffIdx]), sizeof(reference_component_cnt));
+    reference_component_cnt = ole2_endian_convert_32(reference_component_cnt);
+    buffIdx += sizeof(reference_component_cnt );
+
+    fprintf(stderr, "%s::%d::reference_component_cnt = %u\n", __FUNCTION__, __LINE__, reference_component_cnt);
+
+    fprintf(stderr, "%s::%d::ReferenceComponents\n", __FUNCTION__, __LINE__);
+    for (i = 0; i < reference_component_cnt ; i++){
+        //https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/5b88af55-09c2-4b45-9a83-b1da1a8f9935
+        uint32_t reference_component_type;
+#if 0
+        memcpy(&reference_component_type, &(buff[buffIdx]), sizeof(uint32_t));
+        reference_component_type = ole2_endian_convert_32(reference_component_type);
+#else
+        copy32(reference_component_type, buff, buffIdx);
+#endif
+        fprintf(stderr, "%s::%d::reference_component_type = %d (", __FUNCTION__, __LINE__, reference_component_type );
+        if (0 == reference_component_type){
+            fprintf(stderr, "STREAM)\n");
+        } else if (1 == reference_component_type){
+            fprintf(stderr, "STORAGE)\n");
+        } else {
+            fprintf(stderr, "INVALID)\n");
+            goto done;
+        }
+
+//        buffIdx += sizeof(uint32_t);
+        if (dumpUnicodeLPP4(&(buff[buffIdx]), &tmp)){
+            buffIdx += tmp;
+        }
+    }
+
+    fprintf(stderr, "%s::%d::DataSpaceName\n", __FUNCTION__, __LINE__);
+    if (dumpUnicodeLPP4(&(buff[buffIdx]), &tmp)){
+        buffIdx += tmp;
+    }
+
+
+    fprintf(stderr, "%s::%d::After DataSpaceMapEntryStructure, buffIdx = %u\n", __FUNCTION__, __LINE__, buffIdx);
+    //off by 16 bytes.
+
+
+
+
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "%s::%d::Raw Data\n", __FUNCTION__, __LINE__);
+    for (i = buffIdx; i < 512; i++){
+        fprintf(stderr, "%02x ", buff[i]);
+    }
+    fprintf(stderr, "\n");
+
+
+    /*Block of (16 in this case) zeros that I can't find any explanation for in the documentation.  
+     * TODO: Figure this out
+     */
+    hackSave = buffIdx;
+    for (i = buffIdx; i < 512; i++){
+        if (buff[i] == 8){
+            buffIdx = i;
+            break;
+        }
+    }
+    fprintf(stderr, "%s::%d::TODO: Figure out where these (%u) extra zeros are coming from\n", 
+            __FUNCTION__, __LINE__, buffIdx - hackSave);
+
+
+    //https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/9c59e994-3888-41cc-9f98-ca986a2803c3
+    fprintf(stderr, "%s::%d::DataSpaceDefinition\n", __FUNCTION__, __LINE__);
+    copy32(length, buff, buffIdx);
+    DEBUG_UINT32(length);
+    if (8 != length){
+        fprintf(stderr, "%s::%d::Invalid length '%u (0x%x)'\n", __FUNCTION__, __LINE__, length, length);
+        goto done;
+    }
+
+    uint32_t transform_reference_cnt;
+    copy32(transform_reference_cnt, buff, buffIdx);
+    DEBUG_UINT32(transform_reference_cnt);
+
+    fprintf(stderr, "%s::%d::TransformReferences\n", __FUNCTION__, __LINE__);
+    if (dumpUnicodeLPP4(&(buff[buffIdx]), &tmp)){
+        buffIdx += tmp;
+    }
+
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "%s::%d::Raw Data\n", __FUNCTION__, __LINE__);
+    for (i = buffIdx; i < 512; i++){
+        fprintf(stderr, "%02x ", buff[i]);
+    }
+    fprintf(stderr, "\n");
+
+    /*TransformInfoHeader is INSIDE of the IRMDSTransformInfo*/
+    fprintf(stderr, "%s::%d::TransformInfoHeader\n", __FUNCTION__, __LINE__);
+    uint32_t transform_length;
+    copy32(transform_length, buff, buffIdx);
+    DEBUG_UINT32(transform_length);
+
+    uint32_t transform_type;
+    copy32(transform_type, buff, buffIdx);
+    DEBUG_UINT32(transform_type);
+    if (1 != transform_type){
+        fprintf(stderr, "%s::%d::Invalid transform type of '%u (0x%x)'\n", 
+                __FUNCTION__, __LINE__, transform_type, transform_type);
+        goto done;
+    }
+
+    fprintf(stderr, "%s::%d::TransformID\n", __FUNCTION__, __LINE__);
+    if (dumpUnicodeLPP4(&(buff[buffIdx]), &tmp)){
+        buffIdx += tmp;
+    }
+
+    fprintf(stderr, "%s::%d::TransformName\n", __FUNCTION__, __LINE__);
+    if (dumpUnicodeLPP4(&(buff[buffIdx]), &tmp)){
+        buffIdx += tmp;
+    }
+
+    uint16_t transform_reader_vmajor;
+    uint16_t transform_reader_vminor;
+    copy16(transform_reader_vmajor, buff, buffIdx);
+    copy16(transform_reader_vminor, buff, buffIdx);
+    DEBUG_UINT32(transform_reader_vmajor);
+    DEBUG_UINT32(transform_reader_vminor);
+
+    uint16_t transform_updater_vmajor;
+    uint16_t transform_updater_vminor;
+    copy16(transform_updater_vmajor, buff, buffIdx);
+    copy16(transform_updater_vminor, buff, buffIdx);
+    DEBUG_UINT32(transform_updater_vmajor);
+    DEBUG_UINT32(transform_updater_vminor);
+
+    uint16_t transform_writer_vmajor;
+    uint16_t transform_writer_vminor;
+    copy16(transform_writer_vmajor, buff, buffIdx);
+    copy16(transform_writer_vminor, buff, buffIdx);
+    DEBUG_UINT32(transform_writer_vmajor);
+    DEBUG_UINT32(transform_writer_vminor);
+
+
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "%s::%d::Raw Data\n", __FUNCTION__, __LINE__);
+    for (i = buffIdx; i < 512; i++){
+        fprintf(stderr, "%02x ", buff[i]);
+    }
+    fprintf(stderr, "\n");
+
+    //current file doesn't appear to have this part.
+    //This *MAY* be an ExtensibilityHeader
+
+
+    /*If agile encryption is used, the EncryptionTransformInfo struct will be all zeros (which it is in this case) 
+     *
+     *
+     * 00 00 00 00 00 00 00 00 
+     * see https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/74830503-01e0-4749-8123-07ee3b01b376
+     * "If the agile encryption method is used, the EncryptionName field of the EncryptionTransformInfo structure MUST be a null string (0x00000000)."
+     */
+
+
+    //https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/14edd752-6c2a-419e-9063-85ed700c6568
+    DEBUG_STRING("EncryptionTransformInfo\n");
+    if (dumpUTF8LPP4(&(buff[buffIdx]), &tmp)){
+        buffIdx += tmp;
+    }
+
+    uint32_t encryption_block_size;
+    copy32(encryption_block_size, buff, buffIdx);
+    DEBUG_UINT32(encryption_block_size);
+
+    uint32_t cipher_mode;
+    copy32(cipher_mode, buff, buffIdx);
+    DEBUG_UINT32(cipher_mode);
+
+    uint32_t reserved;
+    copy32(reserved, buff, buffIdx);
+    DEBUG_UINT32(reserved);
+    if (4 != reserved){
+        fprintf(stderr, "%s::%d::Invalid reserved '%u'\n", __FUNCTION__, __LINE__, reserved);
+    }
+
+    fprintf(stderr, "%s::%d::EXITING\n", __FUNCTION__, __LINE__); exit(99);
+
+
+    bRet = true;
+done:
     return bRet;
 }
 
@@ -2524,6 +3039,30 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     encryption_info_stream_standard_t encryption_info_stream_standard;
     copy_encryption_info_stream_standard(&encryption_info_stream_standard, &(((const uint8_t *)phdr)[4 * (1 << hdr.log2_big_block_size)]));
     hdr.is_velvetsweatshop = initialize_encryption_key(&encryption_info_stream_standard, &key);
+    if (!hdr.is_velvetsweatshop ){
+
+        {
+            //looks like I can find the xml string that has all of the encryption info
+            //in searching for it in ascii.  Verify this more.
+            //Testing with 0163d300e2cf9c085f905538b7730da0b9eb448b2ed4405ed509bbe7fc0de197
+            size_t i = 0;
+            for (i = 0; i < 20480; i++){
+                if (i && (0 == i%512)){
+                    fprintf(stderr, "\n");
+                    fprintf(stderr, "%s::%d::sector = %d\n", __FUNCTION__, __LINE__, i/512);
+                  //  printWideString(&(phdr[i]), 512);
+                    printAllWideStrings(&(phdr[i]), 512);
+                    fprintf(stderr, "\n");
+                }
+                fprintf(stderr, "%02x ", ((uint8_t*) phdr)[i]);
+            }
+                    fprintf(stderr, "\n");
+
+        }
+
+
+        initialize_encryption_key_dataspace(&encryption_info_stream_standard, &key);
+    }
 
     hdr.sbat_root_start = -1;
 
