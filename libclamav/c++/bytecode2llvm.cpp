@@ -986,9 +986,16 @@ class LLVMCodegen
             Value *idxs[1] = {
                 ConstantInt::get(Type::getInt64Ty(Context), components[c++])};
             unsigned idx = components[c++];
-            if (!idx)
+            if (!idx) {
                 return ConstantPointerNull::get(PTy);
-            assert(idx < globals.size());
+            }
+            if (idx >= globals.size()){
+
+                fprintf(stderr, "%s::%d::FIXME::TAKE THE exit 99 out, just adding for now to determine where the actual issue is coming from\n", __FUNCTION__, __LINE__); exit(99);
+
+                assert (idx < globals.size() && "Invalid idx");
+                return ConstantPointerNull::get(PTy);
+            }
             GlobalVariable *GV = cast<GlobalVariable>(globals[idx]);
             Type *IP8Ty        = PointerType::getUnqual(Type::getInt8Ty(Ty->getContext()));
             Constant *C        = ConstantExpr::getPointerCast(GV, IP8Ty);
