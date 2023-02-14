@@ -137,43 +137,4 @@ cl_error_t cli_magic_scan_dir(const char *dirname, cli_ctx *ctx, uint32_t attrib
  */
 void emax_reached(cli_ctx *ctx);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-cl_error_t cli_ole2_scan_tempdir(
-    cli_ctx *ctx,
-    const char *dir,
-    struct uniq *files,
-    int has_vba,
-    int has_xlm,
-    int has_image);
-#endif
-
 #endif

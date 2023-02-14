@@ -786,8 +786,6 @@ cl_error_t cli_scan_desc(int desc, cli_ctx *ctx, cli_file_t ftype, bool filetype
     fmap_t *new_map = NULL;
     fmap_t *map     = ctx->fmap; /* Store off the parent fmap for easy reference */
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
     new_map = fmap_check_empty(desc, 0, 0, &empty, name);
     if (NULL == new_map) {
         if (!empty) {
@@ -796,28 +794,22 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         }
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     status = cli_recursion_stack_push(ctx, new_map, ftype, true, attributes); /* Perform scan with child fmap */
     if (CL_SUCCESS != status) {
         cli_dbgmsg("cli_scan_desc: Failed to scan fmap.\n");
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     status = cli_scan_fmap(ctx, ftype, filetype_only, ftoffset, acmode, acres, NULL);
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     map->dont_cache_flag = ctx->fmap->dont_cache_flag; /* Set the parent layer's "don't cache" flag to match the child.
                                                           TODO: This may not be needed since `emax_reached()` should've
                                                           already done that for us. */
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     (void)cli_recursion_stack_pop(ctx); /* Restore the parent fmap */
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 done:
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (NULL != new_map) {
         funmap(new_map);
     }

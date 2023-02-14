@@ -1114,21 +1114,13 @@ cl_error_t cli_checklimits(const char *who, cli_ctx *ctx, unsigned long need1, u
     cl_error_t ret = CL_SUCCESS;
     unsigned long needed;
 
-
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    return ret;
-
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
     if (!ctx) {
         /* if called without limits, go on, unpack, scan */
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     needed = (need1 > need2) ? need1 : need2;
     needed = (needed > need3) ? needed : need3;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     /* Enforce global time limit, if limit enabled */
     ret = cli_checktimelimit(ctx);
@@ -1137,37 +1129,27 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         // The logic for this and the possible heuristic is done inside the cli_checktimelimit function.
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-fprintf(stderr, "%s::%d::ctx = %p\n", __FUNCTION__, __LINE__, ctx);
-fprintf(stderr, "%s::%d::ctx->engine = %p\n", __FUNCTION__, __LINE__, ctx->engine);
-fprintf(stderr, "%s::%d::ctx->engine->maxscansize = %lu\n", __FUNCTION__, __LINE__, ctx->engine->maxscansize);
-fprintf(stderr, "%s::%d::ctx->->scansize = %lu\n", __FUNCTION__, __LINE__, ctx->scansize);
 
     /* Enforce global scan-size limit, if limit enabled */
     if (needed && (ctx->engine->maxscansize != 0) && (ctx->engine->maxscansize - ctx->scansize < needed)) {
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         /* The size needed is greater than the remaining scansize ... Skip this file. */
         cli_dbgmsg("%s: scansize exceeded (initial: %lu, consumed: %lu, needed: %lu)\n", who, (unsigned long int)ctx->engine->maxscansize, (unsigned long int)ctx->scansize, needed);
         ret = CL_EMAXSIZE;
         cli_append_potentially_unwanted_if_heur_exceedsmax(ctx, "Heuristics.Limits.Exceeded.MaxScanSize");
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     /* Enforce per-file file-size limit, if limit enabled */
     if (needed && (ctx->engine->maxfilesize != 0) && (ctx->engine->maxfilesize < needed)) {
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         /* The size needed is greater than that limit ... Skip this file. */
         cli_dbgmsg("%s: filesize exceeded (allowed: %lu, needed: %lu)\n", who, (unsigned long int)ctx->engine->maxfilesize, needed);
         ret = CL_EMAXSIZE;
         cli_append_potentially_unwanted_if_heur_exceedsmax(ctx, "Heuristics.Limits.Exceeded.MaxFileSize");
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     /* Enforce limit on number of embedded files, if limit enabled */
     if ((ctx->engine->maxfiles != 0) && (ctx->scannedfiles >= ctx->engine->maxfiles)) {
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         /* This file would exceed the max # of files ... Skip this file. */
         cli_dbgmsg("%s: files limit reached (max: %u)\n", who, ctx->engine->maxfiles);
         ret = CL_EMAXFILES;
@@ -1179,10 +1161,8 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         // additional files from being scanned.
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 done:
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     return ret;
 }
@@ -1492,16 +1472,12 @@ cl_error_t cli_recursion_stack_push(cli_ctx *ctx, cl_fmap_t *map, cli_file_t typ
     recursion_level_t *current_container = NULL;
     recursion_level_t *new_container     = NULL;
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
     // Check the regular limits
     if (CL_SUCCESS != (status = cli_checklimits("cli_recursion_stack_push", ctx, map->len, 0, 0))) {
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         cli_dbgmsg("cli_recursion_stack_push: Some content was skipped. The scan result will not be cached.\n");
         emax_reached(ctx); // Disable caching for all recursion layers.
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     // Check the recursion limit
     if (ctx->recursion_level == ctx->recursion_stack_size - 1) {
@@ -1513,19 +1489,15 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         goto done;
     }
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     current_container = &ctx->recursion_stack[ctx->recursion_level];
     ctx->recursion_level++;
     new_container = &ctx->recursion_stack[ctx->recursion_level];
 
-fprintf(stderr, "%s::%d::new_container = %p\n", __FUNCTION__, __LINE__, new_container);
     memset(new_container, 0, sizeof(recursion_level_t));
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     new_container->fmap = map;
     new_container->type = type;
     new_container->size = map->len;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (is_new_buffer) {
         new_container->recursion_level_buffer      = current_container->recursion_level_buffer + 1;
@@ -1534,7 +1506,6 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         new_container->recursion_level_buffer_fmap = current_container->recursion_level_buffer_fmap + 1;
     }
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     // Apply the requested next-layer attributes.
     //
     // Note that this is how we also keep track of normalized layers.
@@ -1543,15 +1514,12 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     // for normalized layers "contained in" HTML / Javascript / etc.
     new_container->attributes = attributes;
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     // If the current layer is marked "decrypted", all child-layers are also marked "decrypted".
     if (current_container->attributes & LAYER_ATTRIBUTES_DECRYPTED) {
         new_container->attributes |= LAYER_ATTRIBUTES_DECRYPTED;
     }
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     ctx->fmap = new_container->fmap;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 done:
 
