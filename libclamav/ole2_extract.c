@@ -1076,7 +1076,7 @@ static cl_error_t scan_biff_for_xlm_macros_and_images(
                             cli_dbgmsg("[scan_biff_for_xlm_macros_and_images] Found XLM macro sheet\n");
 #if HAVE_JSON
                             if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
-                                cli_jsonbool(ctx->wrkproperty, "HasMacros", 1);
+                                cli_jsonbool(ctx->wrkproperty, "HasMacros_ole2_extract_1079", 1);
                                 json_object *macro_languages = cli_jsonarray(ctx->wrkproperty, "MacroLanguages");
                                 if (macro_languages) {
                                     cli_jsonstr(macro_languages, NULL, "XLM");
@@ -2445,6 +2445,8 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     encryption_key_t key;
     bool bEncrypted          = false;
     size_t encryption_offset = 0;
+
+fprintf(stderr ,"%s:::%d\n", __FUNCTION__, __LINE__);
 
     cli_dbgmsg("in cli_ole2_extract()\n");
     if (!ctx) {
