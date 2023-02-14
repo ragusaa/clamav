@@ -1634,17 +1634,12 @@ static cl_error_t cli_ole2_tempdir_scan_vba_new(const char *dir, cli_ctx *ctx, s
     char filename[PATH_MAX];
     int tempfd = -1;
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
-
     if (CL_SUCCESS != (ret = uniq_get(U, "dir", 3, &hash, &hashcnt))) {
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
         cli_dbgmsg("cli_ole2_tempdir_scan_vba_new: uniq_get('dir') failed with ret code (%d)!\n", ret);
         return ret;
     }
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
     while (hashcnt) {
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
         // Find the directory containing the extracted dir file. This is complicated
         // because ClamAV doesn't use the file names from the OLE file, but temporary names,
         // and we have neither the complete path of the dir file in the OLE container,
@@ -1652,12 +1647,9 @@ static cl_error_t cli_ole2_tempdir_scan_vba_new(const char *dir, cli_ctx *ctx, s
         snprintf(filename, sizeof(filename), "%s_%u", hash, hashcnt);
         filename[sizeof(filename) - 1] = '\0';
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
         if (CL_SUCCESS == find_file(filename, dir, path, sizeof(path))) {
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
             cli_dbgmsg("cli_ole2_tempdir_scan_vba_new: Found dir file: %s\n", path);
             if ((ret = cli_vba_readdir_new(ctx, path, U, hash, hashcnt, &tempfd, has_macros)) != CL_SUCCESS) {
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
                 // FIXME: Since we only know the stream name of the OLE2 stream, but not its path inside the
                 //        OLE2 archive, we don't know if we have the right file. The only thing we can do is
                 //        iterate all of them until one succeeds.
@@ -1666,7 +1658,6 @@ static cl_error_t cli_ole2_tempdir_scan_vba_new(const char *dir, cli_ctx *ctx, s
                 hashcnt--;
                 continue;
             }
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
 
 #if HAVE_JSON
             if (*has_macros && SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
@@ -1679,34 +1670,26 @@ static cl_error_t cli_ole2_tempdir_scan_vba_new(const char *dir, cli_ctx *ctx, s
                 }
             }
 #endif
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
             if (SCAN_HEURISTIC_MACROS && *has_macros) {
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
                 ret = cli_append_potentially_unwanted(ctx, "Heuristics.OLE2.ContainsMacros.VBA");
                 if (ret == CL_VIRUS) {
                     goto done;
                 }
             }
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
 
             /*
              * Now rewind the extracted vba-project output FD and scan it!
              */
             if (lseek(tempfd, 0, SEEK_SET) != 0) {
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
                 cli_dbgmsg("cli_ole2_tempdir_scan_vba_new: Failed to seek to beginning of temporary VBA project file\n");
                 ret = CL_ESEEK;
                 goto done;
             }
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
 
             ret = cli_scan_desc(tempfd, ctx, CL_TYPE_SCRIPT, false, NULL, AC_SCAN_VIR, NULL, NULL, LAYER_ATTRIBUTES_NONE);
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
             if (CL_SUCCESS != ret) {
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
                 goto done;
             }
-fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macros);
 
             close(tempfd);
             tempfd = -1;
@@ -1714,10 +1697,8 @@ fprintf(stderr, "%s::%d::*has_macros =  %d\n", __FUNCTION__, __LINE__, *has_macr
 
         hashcnt--;
     }
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
 
 done:
-    fprintf(stderr, "%s::%d\n", __FUNCTION__ ,__LINE__);
     if (tempfd != -1) {
         close(tempfd);
         tempfd = -1;
@@ -1741,7 +1722,6 @@ static cl_error_t cli_ole2_tempdir_scan_summary(const char *dir, cli_ctx *ctx, s
     char summary_filename[1024];
     char *hash;
     uint32_t hashcnt = 0;
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 #if HAVE_JSON
     if (CL_SUCCESS != (ret = uniq_get(U, "_5_summaryinformation", 21, &hash, &hashcnt))) {
@@ -1809,8 +1789,6 @@ static cl_error_t cli_ole2_tempdir_scan_embedded_ole10(const char *dir, cli_ctx 
     uint32_t hashcnt = 0;
 
     int fd = -1;
-
-    //fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); exit(111);
 
     /* Check directory for embedded OLE objects */
     if (CL_SUCCESS != (ret = uniq_get(U, "_1_ole10native", 14, &hash, &hashcnt))) {
@@ -1894,7 +1872,6 @@ static cl_error_t cli_ole2_tempdir_scan_vba(const char *dir, cli_ctx *ctx, struc
                 close(fd);
                 fd = -1;
 
-                fprintf(stderr, "%s::%d::FOUND ONE\n", __FUNCTION__, __LINE__);
                 *has_macros = *has_macros + 1;
 
                 if (NULL != data) {
@@ -2528,39 +2505,20 @@ cl_error_t cli_ole2_scan_tempdir(
     char *subdirectory = NULL;
 
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
     cli_dbgmsg("cli_ole2_scan_tempdir: %s\n", dir);
-
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
-    fprintf(stderr, "%s::%d, ctx = %p\n", __FUNCTION__, __LINE__, ctx);
-    fprintf(stderr, "%s::%d, ctx->wrkproperty = %p\n", __FUNCTION__, __LINE__, ctx->wrkproperty);
-    fprintf(stderr, "%s::%d, ctx->options = %p\n", __FUNCTION__, __LINE__, ctx->options);
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-
-    fprintf(stderr, "%s::%d::results = %d\n", __FUNCTION__, __LINE__, (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) );
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     /* Output JSON Summary Information */
     if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         (void)cli_ole2_tempdir_scan_summary(dir, ctx, files);
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     }
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     status = cli_ole2_tempdir_scan_embedded_ole10(dir, ctx, files);
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (CL_SUCCESS != status) {
         goto done;
     }
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (has_vba) {
-    fprintf(stderr, "%s::%d::calling cli_ole2_tempdir_scan_vba\n", __FUNCTION__, __LINE__);
         status = cli_ole2_tempdir_scan_vba(dir, ctx, files, &has_macros);
-    fprintf(stderr, "%s::%d, status = %d\n", __FUNCTION__, __LINE__, status);
         if (CL_SUCCESS != status) {
             goto done;
         }
@@ -2571,10 +2529,8 @@ cl_error_t cli_ole2_scan_tempdir(
 
 
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
         status = cli_ole2_tempdir_scan_vba_new(dir, ctx, files, &has_macros);
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         if (CL_SUCCESS != status) {
             goto done;
         }
@@ -2585,37 +2541,16 @@ cl_error_t cli_ole2_scan_tempdir(
         fprintf(stderr, "%s::%d::exiting prematurely\n", __FUNCTION__, __LINE__); goto done;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     }
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (has_xlm) {
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         if (SCAN_HEURISTIC_MACROS) {
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             status = cli_append_potentially_unwanted(ctx, "Heuristics.OLE2.ContainsMacros.XLM");
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             if (CL_SUCCESS != status) {
                 goto done;
             }
         }
     }
-
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (has_xlm || has_image) {
         /* TODO: Consider moving image extraction to handler_enum and
@@ -2715,12 +2650,7 @@ static cl_error_t cli_scanole2(cli_ctx *ctx)
         goto done;
     }
 
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     ret = cli_ole2_extract(dir, ctx, &files, &has_vba, &has_xlm, &has_image);
-    fprintf(stderr, "%s::%d, files == NULL = %d\n", __FUNCTION__, __LINE__, files ==  NULL);
-    fprintf(stderr, "%s::%d, has_vba = %d\n", __FUNCTION__, __LINE__, has_vba);
-    fprintf(stderr, "%s::%d, has_xlm = %d\n", __FUNCTION__, __LINE__, has_xlm);
-    fprintf(stderr, "%s::%d, has_image = %d\n", __FUNCTION__, __LINE__, has_image);
     if (CL_SUCCESS != ret) {
         goto done;
     }
