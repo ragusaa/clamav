@@ -2280,6 +2280,7 @@ static int vbadump2(const struct optstruct *opts)
     char *dir;
     struct uniq *files = NULL;
     int has_vba = 0, has_xlm = 0, has_image = 0 ;
+    cl_error_t retCode = 0;
 
 
 
@@ -2430,49 +2431,26 @@ static int vbadump2(const struct optstruct *opts)
             fprintf(stderr, "%s::%d::calling sigtool_vba_scandir\n", __FUNCTION__, __LINE__);
             //sigtool_vba_scandir(dir, hex_output, files);
 
-            fprintf(stderr, "%s::%d::\n", __FUNCTION__, __LINE__);
 
-                    cli_ole2_scan_tempdir(
+//ctx->sub_tmpdir, here;
+
+            ctx.sub_tmpdir = "tmpdir.sigtool";
+
+        fprintf(stderr, "%s::%d::\n", __FUNCTION__, __LINE__);
+
+        retCode = cli_ole2_scan_tempdir(
             &ctx,
             dir,
             files,
             has_vba,
             has_xlm,
             has_image);
+
+
+
+                    fprintf(stderr, "%s::%d::retCode = %d\n", __FUNCTION__, __LINE__, retCode);
         }
 
-
-#if 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        cli_ole2_scan_tempdir(
-            ctx,
-            dir,
-            files,
-            has_vba,
-            has_xlm,
-            has_image);
-#endif
 
 done:
     /* Cleanup */

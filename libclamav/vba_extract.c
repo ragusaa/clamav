@@ -375,6 +375,8 @@ cl_error_t cli_vba_readdir_new(cli_ctx *ctx, const char *dir, struct uniq *U, co
     unsigned char *module_data = NULL, *module_data_utf8 = NULL;
     size_t module_data_size = 0, module_data_utf8_size = 0;
 
+    //fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); exit(88);
+
     if (dir == NULL || hash == NULL || tempfd == NULL || has_macros == NULL) {
         return CL_EARG;
     }
@@ -398,10 +400,14 @@ cl_error_t cli_vba_readdir_new(cli_ctx *ctx, const char *dir, struct uniq *U, co
 
     *has_macros = *has_macros + 1;
 
+    fprintf(stderr, "%s::%d::creating file with vba_project prefix in '%s'\n", __FUNCTION__, __LINE__, ctx->sub_tmpdir);
     if ((ret = cli_gentempfd_with_prefix(ctx->sub_tmpdir, "vba_project", &tempfile, tempfd)) != CL_SUCCESS) {
         cli_warnmsg("vba_readdir_new: VBA project cannot be dumped to file\n");
         goto done;
     }
+
+    //fprintf(stderr, "%s::%d::created\n", __FUNCTION__, __LINE__);
+    //exit(44);
 
     cli_dbgmsg("Dumping VBA project from dir %s to file %s\n", fullname, tempfile);
 
@@ -1345,6 +1351,8 @@ cli_vba_readdir(const char *dir, struct uniq *U, uint32_t which)
     off_t seekback;
     char fullname[1024], *hash;
     uint32_t hashcnt = 0;
+
+    //fprintf(stderr, "%s::%d::
 
     cli_dbgmsg("in cli_vba_readdir()\n");
 

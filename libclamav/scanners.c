@@ -1639,6 +1639,8 @@ static cl_error_t cli_ole2_tempdir_scan_vba_new(const char *dir, cli_ctx *ctx, s
         return ret;
     }
 
+    fprintf(stderr, "%s::%d::has_macros = %d\n:", __FUNCTION__, __LINE__, *has_macros);
+
     while (hashcnt) {
         // Find the directory containing the extracted dir file. This is complicated
         // because ClamAV doesn't use the file names from the OLE file, but temporary names,
@@ -1854,6 +1856,8 @@ static cl_error_t cli_ole2_tempdir_scan_vba(const char *dir, cli_ctx *ctx, struc
             hashcnt--;
             continue;
         }
+
+        fprintf(stderr, "%s::%d::count = %d\n", __FUNCTION__, __LINE__, vba_project->count);
 
         for (i = 0; i < vba_project->count; i++) {
             for (j = 1; (unsigned int)j <= vba_project->colls[i]; j++) {
@@ -2538,7 +2542,7 @@ cl_error_t cli_ole2_scan_tempdir(
 
 
 
-        fprintf(stderr, "%s::%d::exiting prematurely\n", __FUNCTION__, __LINE__); goto done;
+        //fprintf(stderr, "%s::%d::exiting prematurely\n", __FUNCTION__, __LINE__); goto done;
 
 
     }
