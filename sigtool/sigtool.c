@@ -2457,7 +2457,7 @@ static int vbadump2(const struct optstruct *opts)
 
         retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
 
-        fprintf(stderr, "%s::%d::retCode (cli_process_ooxml) = %d\n", __FUNCTION__, __LINE__, retCode);
+        fprintf(stderr, "%s::%d::retCode (cli_process_ooxml) = %d (retCode == CL_EFORMAT) = %d\n", __FUNCTION__, __LINE__, retCode, retCode == CL_EFORMAT);
 
 
 done:
