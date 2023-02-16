@@ -2281,8 +2281,7 @@ static int vbadump2(const struct optstruct *opts)
     struct uniq *files = NULL;
     int has_vba = 0, has_xlm = 0, has_image = 0 ;
     cl_error_t retCode = 0;
-
-
+    const struct optstruct *opt = NULL;
 
 
 
@@ -2432,11 +2431,12 @@ static int vbadump2(const struct optstruct *opts)
             //sigtool_vba_scandir(dir, hex_output, files);
 
 
-//ctx->sub_tmpdir, here;
 
-            ctx.sub_tmpdir = "tmpdir.sigtool";
-
-        fprintf(stderr, "%s::%d::\n", __FUNCTION__, __LINE__);
+    if ((opt = optget(opts, "tempdir"))->enabled) {
+        ctx.sub_tmpdir = opt->strarg;
+        fprintf(stderr, "%s::%d::Do this everywhere in this file\n", __FUNCTION__, __LINE__);
+        fprintf(stderr, "%s::%d::Create directory if it doesn't already exist\n", __FUNCTION__, __LINE__);
+    }
 
         retCode = cli_ole2_scan_tempdir(
             &ctx,
@@ -2450,6 +2450,17 @@ static int vbadump2(const struct optstruct *opts)
 
                     fprintf(stderr, "%s::%d::retCode = %d\n", __FUNCTION__, __LINE__, retCode);
         }
+
+
+
+
+
+#if 0
+        {
+            /*Get this part working */
+                    ret = cli_process_ooxml(ctx, CL_TYPE_OOXML_HWP);
+        }
+#endif
 
 
 done:
@@ -3790,6 +3801,7 @@ static void help(void)
     mprintf(LOGG_INFO, "                                           cdiff format\n");
     mprintf(LOGG_INFO, "    --run-cdiff=FILE       -r FILE         Execute update script FILE in cwd\n");
     mprintf(LOGG_INFO, "    --verify-cdiff=DIFF CVD/CLD            Verify DIFF against CVD/CLD\n");
+    mprintf(LOGG_INFO, "    --tempdir=DIRECTORY                    Create temporary files in DIRECTORY\n");
     mprintf(LOGG_INFO, "\n");
 
     return;
@@ -3798,7 +3810,7 @@ static void help(void)
 int main(int argc, char **argv)
 {
     int ret;
-    struct optstruct *opts;
+    struct optstruct *opts = NULL;
     STATBUF sb;
 
     if (check_flevel())
