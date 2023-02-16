@@ -2446,21 +2446,18 @@ static int vbadump2(const struct optstruct *opts)
             has_xlm,
             has_image);
 
+        /*This appears to be working the same as clamscan, need to figure out what type of output the users are expecting.*/
 
-
-                    fprintf(stderr, "%s::%d::retCode = %d\n", __FUNCTION__, __LINE__, retCode);
+        fprintf(stderr, "%s::%d::retCode (cli_ole2_scan_tempdir) = %d\n", __FUNCTION__, __LINE__, retCode);
         }
 
 
 
 
 
-#if 0
-        {
-            /*Get this part working */
-                    ret = cli_process_ooxml(ctx, CL_TYPE_OOXML_HWP);
-        }
-#endif
+        retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
+
+        fprintf(stderr, "%s::%d::retCode (cli_process_ooxml) = %d\n", __FUNCTION__, __LINE__, retCode);
 
 
 done:

@@ -428,6 +428,8 @@ cli_file_t cli_ooxml_filetype(cli_ctx *ctx, fmap_t *map)
 
 cl_error_t cli_process_ooxml(cli_ctx *ctx, int type)
 {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+
 #if HAVE_LIBXML2 && HAVE_JSON
     uint32_t loff  = 0;
     cl_error_t ret = CL_SUCCESS;
@@ -437,7 +439,9 @@ cl_error_t cli_process_ooxml(cli_ctx *ctx, int type)
         return CL_ENULLARG;
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (type == CL_TYPE_OOXML_HWP) {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         /* two files: version.xml and Contents/content.hpf */
         ret = unzip_search_single(ctx, "version.xml", 11, &loff);
         if (ret == CL_ETIMEOUT) {
@@ -465,24 +469,34 @@ cl_error_t cli_process_ooxml(cli_ctx *ctx, int type)
             ret = unzip_single_internal(ctx, loff, ooxml_hwp_cb);
         }
     } else {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         /* find "[Content Types].xml" */
         ret = unzip_search_single(ctx, "[Content_Types].xml", 19, &loff);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         if (ret == CL_ETIMEOUT) {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             return CL_ETIMEOUT;
         } else if (ret != CL_VIRUS) {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             cli_dbgmsg("cli_process_ooxml: failed to find "
                        "[Content_Types].xml"
                        "!\n");
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             cli_json_parse_error(ctx->wrkproperty, "OOXML_ERROR_NO_CONTENT_TYPES");
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             return CL_EFORMAT;
         }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         cli_dbgmsg("cli_process_ooxml: found "
                    "[Content_Types].xml"
                    " @ %x\n",
                    loff);
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         ret = unzip_single_internal(ctx, loff, ooxml_content_cb);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     return ret;
 #else

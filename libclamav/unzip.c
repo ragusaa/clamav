@@ -815,6 +815,7 @@ parse_central_directory_file_header(
     int last                      = 0;
     const uint8_t *central_header = NULL;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     *ret = CL_EPARSE;
 
     if (cli_checktimelimit(ctx) != CL_SUCCESS) {
@@ -823,6 +824,7 @@ parse_central_directory_file_header(
         *ret = CL_ETIMEOUT;
         goto done;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (!(central_header = fmap_need_off(map, coff, SIZEOF_CENTRAL_HEADER)) || CENTRAL_HEADER_magic != ZIP_MAGIC_CENTRAL_DIRECTORY_RECORD_BEGIN) {
         if (central_header) {
@@ -833,16 +835,19 @@ parse_central_directory_file_header(
         last = 1;
         goto done;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     coff += SIZEOF_CENTRAL_HEADER;
 
     cli_dbgmsg("cli_unzip: central header - flags %x - method %x - csize %x - usize %x - flen %x - elen %x - clen %x - disk %x - off %x\n",
                CENTRAL_HEADER_flags, CENTRAL_HEADER_method, CENTRAL_HEADER_csize, CENTRAL_HEADER_usize, CENTRAL_HEADER_flen, CENTRAL_HEADER_extra_len, CENTRAL_HEADER_comment_len, CENTRAL_HEADER_disk_num, CENTRAL_HEADER_off);
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (zsize - coff <= CENTRAL_HEADER_flen) {
         cli_dbgmsg("cli_unzip: central header - fname out of file\n");
         last = 1;
         goto done;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     name[0] = '\0';
     if (!last) {
@@ -910,6 +915,7 @@ parse_central_directory_file_header(
         }
         *ret = CL_SUCCESS;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 done:
     if (NULL != central_header) {
@@ -1417,11 +1423,14 @@ cl_error_t cli_unzip_single(cli_ctx *ctx, off_t local_header_offset)
 cl_error_t unzip_search_add(struct zip_requests *requests, const char *name, size_t nlen)
 {
     cli_dbgmsg("in unzip_search_add\n");
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (requests->namecnt >= MAX_ZIP_REQUESTS) {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         cli_dbgmsg("DEBUGGING MESSAGE GOES HERE!\n");
         return CL_BREAK;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     cli_dbgmsg("unzip_search_add: adding %s (len %llu)\n", name, (long long unsigned)nlen);
 
@@ -1444,24 +1453,33 @@ cl_error_t unzip_search(cli_ctx *ctx, fmap_t *map, struct zip_requests *requests
     uint32_t toval = 0;
 #endif
     cli_dbgmsg("in unzip_search\n");
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if ((!ctx && !map) || !requests) {
         return CL_ENULLARG;
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     /* get priority to given map over ctx->fmap */
-    if (ctx && !map)
+    if (ctx && !map) {
+    fprintf(stderr, "%s::%d::ctx = %p\n", __FUNCTION__, __LINE__, ctx);
         zmap = ctx->fmap;
+    }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     fsize = zmap->len;
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (sizeof(off_t) != sizeof(uint32_t) && fsize != zmap->len) {
         cli_dbgmsg("unzip_search: file too big\n");
         return CL_CLEAN;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (fsize < SIZEOF_CENTRAL_HEADER) {
         cli_dbgmsg("unzip_search: file too short\n");
         return CL_CLEAN;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     for (coff = fsize - 22; coff > 0; coff--) { /* sizeof(EOC)==22 */
         if (!(ptr = fmap_need_off_once(zmap, coff, 20)))
             continue;
@@ -1473,8 +1491,11 @@ cl_error_t unzip_search(cli_ctx *ctx, fmap_t *map, struct zip_requests *requests
         }
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if (coff) {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         cli_dbgmsg("unzip_search: central directory header offset: @%x\n", coff);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         while (ret == CL_CLEAN && (coff = parse_central_directory_file_header(zmap,
                                                                               coff,
                                                                               fsize,
@@ -1485,9 +1506,11 @@ cl_error_t unzip_search(cli_ctx *ctx, fmap_t *map, struct zip_requests *requests
                                                                               NULL,
                                                                               requests,
                                                                               NULL))) {
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             if (requests->match) {
                 ret = CL_VIRUS;
             }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
             file_count++;
             if (ctx && ctx->engine->maxfiles && file_count >= ctx->engine->maxfiles) {
@@ -1506,6 +1529,7 @@ cl_error_t unzip_search(cli_ctx *ctx, fmap_t *map, struct zip_requests *requests
     } else {
         cli_dbgmsg("unzip_search: cannot locate central directory\n");
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     return ret;
 }
@@ -1522,13 +1546,16 @@ cl_error_t unzip_search_single(cli_ctx *ctx, const char *name, size_t nlen, uint
 
     memset(&requests, 0, sizeof(struct zip_requests));
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     if ((ret = unzip_search_add(&requests, name, nlen)) != CL_SUCCESS) {
         return ret;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if ((ret = unzip_search(ctx, NULL, &requests)) == CL_VIRUS) {
         *loff = requests.loff;
     }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     return ret;
 }
