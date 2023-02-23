@@ -2280,7 +2280,7 @@ static int vbadump2(const struct optstruct *opts)
     cli_ctx ctx                    = {0};
     struct cl_scan_options options = {0};
     cl_fmap_t *new_map             = NULL;
-    char *dir;
+    char *dir = NULL;
     struct uniq *files = NULL;
     int has_vba = 0, has_xlm = 0, has_image = 0 ;
     cl_error_t retCode = 0;
@@ -2298,8 +2298,6 @@ static int vbadump2(const struct optstruct *opts)
             hex_output = 0;
             pt         = optget(opts, "vba")->strarg;
         }
-
-        printf("Added this print to silence the warning, need to use hex_output = %d\n", hex_output);
 
         if ((fd = open(pt, O_RDONLY | O_BINARY)) == -1) {
             mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
@@ -2395,13 +2393,28 @@ static int vbadump2(const struct optstruct *opts)
     }
 #endif
 
+    if ((opt = optget(opts, "tempdir"))->enabled) {
+        dir = opt->strarg;
+        fprintf(stderr, "%s::%d::Do this everywhere in this file\n", __FUNCTION__, __LINE__);
+        fprintf(stderr, "%s::%d::Create directory if it doesn't already exist\n", __FUNCTION__, __LINE__);
+    }
+
 
             /* generate the temporary directory */
-        if (!(dir = cli_gentemp(NULL))) {
+        if (!(dir = cli_gentemp(dir))) {
             mprintf(LOGG_ERROR, "vbadump: Can't generate temporary name\n");
             close(fd);
             goto done;
         }
+
+
+        printf("%s::%d::dir = '%s'\n", __FUNCTION__, __LINE__, dir);
+
+
+
+
+
+
 
         if (mkdir(dir, 0700)) {
             mprintf(LOGG_ERROR, "vbadump: Can't create temporary directory %s\n", dir);
@@ -2429,18 +2442,20 @@ static int vbadump2(const struct optstruct *opts)
             fprintf(stderr, "%s::%d, has_vba = %d\n", __FUNCTION__, __LINE__, has_vba);
             fprintf(stderr, "%s::%d, has_xlm = %d\n", __FUNCTION__, __LINE__, has_xlm);
 
-//        destroy_ctx(&ctx);
         if (has_vba && files) {
             fprintf(stderr, "%s::%d::calling sigtool_vba_scandir\n", __FUNCTION__, __LINE__);
-            //sigtool_vba_scandir(dir, hex_output, files);
 
 
 
+#if 0
     if ((opt = optget(opts, "tempdir"))->enabled) {
         ctx.sub_tmpdir = opt->strarg;
         fprintf(stderr, "%s::%d::Do this everywhere in this file\n", __FUNCTION__, __LINE__);
         fprintf(stderr, "%s::%d::Create directory if it doesn't already exist\n", __FUNCTION__, __LINE__);
     }
+#else
+        ctx.sub_tmpdir = dir;
+#endif
 
         retCode = cli_ole2_scan_tempdir(
             &ctx,
@@ -2454,12 +2469,19 @@ static int vbadump2(const struct optstruct *opts)
     uint32_t hashcnt;
     cl_error_t ret;
 
+#if 0
     if (CL_SUCCESS != (ret = uniq_get(files, "_vba_project", 12, NULL, &hashcnt))) {
         fprintf(stderr, "ScanDir -> uniq_get('_vba_project') failed.\n");
         goto done;
     }
 
     printf("hashcnt = %d\n", hashcnt);
+#else
+    fprintf(stderr, "%s::%d::dir =  '%s'\n", __FUNCTION__, __LINE__, dir);
+    sigtool_vba_scandir(dir, hex_output, files);
+
+#endif
+
         }
         
 
