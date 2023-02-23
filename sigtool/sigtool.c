@@ -2291,7 +2291,6 @@ static int vbadump2(const struct optstruct *opts)
     const char *pt;
     int fd, hex_output;
 
-    {
         if (optget(opts, "vba-hex")->enabled) {
             hex_output = 1;
             pt         = optget(opts, "vba-hex")->strarg;
@@ -2304,18 +2303,6 @@ static int vbadump2(const struct optstruct *opts)
             mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
             goto done;
         }
-    }
-
-
-
-
-
-    //
-    //add fmap shit ot other function here;
-    //
-    //struct cli_lsig_tdb tdb        = {0};
-
-    //mprintf(LOGG_INFO, "SUBSIG: %s\n", sig);
 
     /* Prepare file */
     lseek(fd, 0, SEEK_SET);
@@ -2389,31 +2376,6 @@ static int vbadump2(const struct optstruct *opts)
         res = res->next;
     }
 
-#if 0
-    if (matches) {
-        /* TODO: check offsets automatically */
-        mprintf(LOGG_INFO, "MATCH: ** YES%s ** (%u %s:", offset ? "/CHECK OFFSET" : "", matches, matches > 1 ? "matches at offsets" : "match at offset");
-        res = acres;
-        while (res) {
-            mprintf(LOGG_INFO, " %u", (unsigned int)res->offset);
-            res = res->next;
-        }
-        mprintf(LOGG_INFO, ")\n");
-    } else {
-        mprintf(LOGG_INFO, "MATCH: ** NO **\n");
-    }
-#endif
-
-
-
-    printf("%s::%d::dir = '%s'\n", __FUNCTION__, __LINE__, dir);
-
-
-
-
-
-
-
     if (mkdir(dir, 0700)) {
         mprintf(LOGG_ERROR, "vbadump: Can't create temporary directory %s\n", dir);
         free(dir);
@@ -2429,13 +2391,7 @@ static int vbadump2(const struct optstruct *opts)
         goto done;
     }
 
-    fprintf(stderr, "%s::%d, files == NULL = %d\n", __FUNCTION__, __LINE__, files == NULL);
-    fprintf(stderr, "%s::%d, has_vba = %d\n", __FUNCTION__, __LINE__, has_vba);
-    fprintf(stderr, "%s::%d, has_xlm = %d\n", __FUNCTION__, __LINE__, has_xlm);
-
     if (has_vba && files) {
-        fprintf(stderr, "%s::%d::calling sigtool_vba_scandir\n", __FUNCTION__, __LINE__);
-
         retCode = cli_ole2_scan_tempdir(
                 &ctx,
                 dir,
@@ -2448,30 +2404,12 @@ static int vbadump2(const struct optstruct *opts)
             uint32_t hashcnt;
             cl_error_t ret;
 
-#if 0
-            if (CL_SUCCESS != (ret = uniq_get(files, "_vba_project", 12, NULL, &hashcnt))) {
-                fprintf(stderr, "ScanDir -> uniq_get('_vba_project') failed.\n");
-                goto done;
-            }
-
-            printf("hashcnt = %d\n", hashcnt);
-#else
             fprintf(stderr, "%s::%d::dir =  '%s'\n", __FUNCTION__, __LINE__, dir);
             sigtool_vba_scandir(dir, hex_output, files);
 
-#endif
-
         }
 
-
-        /*This appears to be working the same as clamscan, need to figure out what type of output the users are expecting.*/
-
-        fprintf(stderr, "%s::%d::retCode (cli_ole2_scan_tempdir) = %d\n", __FUNCTION__, __LINE__, retCode);
     }
-
-
-
-
 
     retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
 
