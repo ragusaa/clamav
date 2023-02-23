@@ -63,6 +63,7 @@
 #include "tar.h"
 
 #include "vba.h"
+#include "ooxml.h"
 
 #define MAX_DEL_LOOKAHEAD 5000
 
@@ -435,6 +436,11 @@ static int htmlnorm(const struct optstruct *opts)
     int fd;
     fmap_t *map;
     cli_ctx *ctx = NULL;
+
+    {
+        fprintf(stderr, "%s::%d::map doesn't appear to ever be initialized, how could this not crash on funmap???\n", __FUNCTION__, __LINE__);
+        map = NULL;
+    }
 
     if ((fd = open(optget(opts, "html-normalise")->strarg, O_RDONLY | O_BINARY)) == -1) {
         mprintf(LOGG_ERROR, "htmlnorm: Can't open file %s\n", optget(opts, "html-normalise")->strarg);
@@ -1576,6 +1582,7 @@ cl_error_t cli_ole2_scan_tempdir(
     int has_xlm,
     int has_image);
 
+#if 0
 static int vbadump(const struct optstruct *opts)
 {
     int fd, hex_output;
@@ -1583,12 +1590,7 @@ static int vbadump(const struct optstruct *opts)
     const char *pt;
     struct uniq *files = NULL;
     cli_ctx *ctx = NULL;
-    //here;
-    //cl_fmap_t *new_map             = NULL;
     int has_vba = 0, has_xlm = 0/*, has_image = 0 */;
-
-    //struct cl_scan_options options = {0};
-
 
         if (optget(opts, "vba-hex")->enabled) {
             hex_output = 1;
@@ -1703,6 +1705,7 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     close(fd);
     return 0;
 }
+#endif
 
 static int comparesha(const char *diff)
 {
@@ -2282,8 +2285,7 @@ static int vbadump2(const struct optstruct *opts)
     int has_vba = 0, has_xlm = 0, has_image = 0 ;
     cl_error_t retCode = 0;
     const struct optstruct *opt = NULL;
-
-
+    int ret = -1;
 
     const char *pt;
     int fd, hex_output;
@@ -2297,9 +2299,11 @@ static int vbadump2(const struct optstruct *opts)
             pt         = optget(opts, "vba")->strarg;
         }
 
+        printf("Added this print to silence the warning, need to use hex_output = %d\n", hex_output);
+
         if ((fd = open(pt, O_RDONLY | O_BINARY)) == -1) {
             mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
-            return -1;
+            goto done;
         }
         }
 
@@ -2310,7 +2314,7 @@ static int vbadump2(const struct optstruct *opts)
     //
 //add fmap shit ot other function here;
 //
-    struct cli_lsig_tdb tdb        = {0};
+    //struct cli_lsig_tdb tdb        = {0};
 
     //mprintf(LOGG_INFO, "SUBSIG: %s\n", sig);
 
@@ -2396,14 +2400,14 @@ static int vbadump2(const struct optstruct *opts)
         if (!(dir = cli_gentemp(NULL))) {
             mprintf(LOGG_ERROR, "vbadump: Can't generate temporary name\n");
             close(fd);
-            return -1;
+            goto done;
         }
 
         if (mkdir(dir, 0700)) {
             mprintf(LOGG_ERROR, "vbadump: Can't create temporary directory %s\n", dir);
             free(dir);
             close(fd);
-            return -1;
+            goto done;
         }
 #if 0
         if (!(ctx = convenience_ctx(fd))) {
@@ -2418,7 +2422,7 @@ static int vbadump2(const struct optstruct *opts)
             cli_rmdirs(dir);
             free(dir);
             close(fd);
-            return -1;
+            goto done;
         }
 
             fprintf(stderr, "%s::%d, files == NULL = %d\n", __FUNCTION__, __LINE__, files == NULL);
@@ -2446,6 +2450,19 @@ static int vbadump2(const struct optstruct *opts)
             has_xlm,
             has_image);
 
+        {
+    uint32_t hashcnt;
+    cl_error_t ret;
+
+    if (CL_SUCCESS != (ret = uniq_get(files, "_vba_project", 12, NULL, &hashcnt))) {
+        fprintf(stderr, "ScanDir -> uniq_get('_vba_project') failed.\n");
+        goto done;
+    }
+
+    printf("hashcnt = %d\n", hashcnt);
+        }
+        
+
         /*This appears to be working the same as clamscan, need to figure out what type of output the users are expecting.*/
 
         fprintf(stderr, "%s::%d::retCode (cli_ole2_scan_tempdir) = %d\n", __FUNCTION__, __LINE__, retCode);
@@ -2460,6 +2477,7 @@ static int vbadump2(const struct optstruct *opts)
         fprintf(stderr, "%s::%d::retCode (cli_process_ooxml) = %d (retCode == CL_EFORMAT) = %d\n", __FUNCTION__, __LINE__, retCode, retCode == CL_EFORMAT);
 
 
+        ret = 0;
 done:
     /* Cleanup */
     while (acres) {
@@ -2479,6 +2497,8 @@ done:
     if (NULL != engine) {
         cl_engine_free(engine);
     }
+
+    return ret;
 }
 
 
@@ -2813,8 +2833,13 @@ static int decodehex(const char *hexsig)
     hexlen = strlen(hexsig);
     if ((wild = strchr(hexsig, '/'))) {
         /* ^offset:trigger-logic/regex/options$ */
-        char *trigger, *regex, *regex_end, *cflags;
-        size_t tlen = wild - hexsig, rlen, clen;
+        char *trigger = NULL;
+       char  *regex = NULL;
+      char *regex_end = NULL;
+      char *cflags = NULL;
+        size_t tlen = wild - hexsig;
+       size_t rlen = 0;
+      size_t clen = 0;
 
         /* check for trigger */
         if (!tlen) {
@@ -2935,7 +2960,15 @@ static int decodehex(const char *hexsig)
                 free(hexcpy);
                 return -1;
             }
+#if 0
             (void)write(1, decoded, dlen);
+#else
+            if (dlen != (write(1, decoded, dlen))){
+                mprintf(LOGG_ERROR, "Print failed\n");
+                free(decoded);
+                return -1;
+            }
+#endif
             free(decoded);
 
             if (i == parts)
@@ -3016,7 +3049,15 @@ static int decodehex(const char *hexsig)
                 free(pt);
                 return -1;
             }
+#if 0
             (void)write(1, decoded, dlen);
+#else
+            if (dlen != (write(1, decoded, dlen))){
+                mprintf(LOGG_ERROR, "Print failed\n");
+                free(decoded);
+                return -1;
+            }
+#endif
             free(decoded);
             if (i < parts)
                 mprintf(LOGG_INFO, "{WILDCARD_ANY_STRING}");
@@ -3028,7 +3069,15 @@ static int decodehex(const char *hexsig)
             mprintf(LOGG_ERROR, "Decoding failed\n");
             return -1;
         }
+#if 0
         (void)write(1, decoded, dlen);
+#else
+            if (dlen != (write(1, decoded, dlen))){
+                mprintf(LOGG_ERROR, "Print failed\n");
+                free(decoded);
+                return -1;
+            }
+#endif
         free(decoded);
     }
 
