@@ -2448,7 +2448,7 @@ static int vbadump2(const struct optstruct *opts)
             uint32_t hashcnt;
             cl_error_t ret;
 
-#if 1
+#if 0
             if (CL_SUCCESS != (ret = uniq_get(files, "_vba_project", 12, NULL, &hashcnt))) {
                 fprintf(stderr, "ScanDir -> uniq_get('_vba_project') failed.\n");
                 goto done;
