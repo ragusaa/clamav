@@ -1074,8 +1074,11 @@ static cl_error_t scan_biff_for_xlm_macros_and_images(
                             state->tmp = buff[i];
                         } else if (state->data_offset == 5 && buff[i] == 1) { // Excel 4.0 macro sheet
                             cli_dbgmsg("[scan_biff_for_xlm_macros_and_images] Found XLM macro sheet\n");
+                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
 #if HAVE_JSON
+                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
                             if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
                                 cli_jsonbool(ctx->wrkproperty, "HasMacros_ole2_extract_1079", 1);
                                 json_object *macro_languages = cli_jsonarray(ctx->wrkproperty, "MacroLanguages");
                                 if (macro_languages) {

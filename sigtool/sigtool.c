@@ -382,8 +382,8 @@ static int fuzzy_img_file(char *filename)
 
     char hashstr[17];
     snprintf(hashstr, 17, "%02x%02x%02x%02x%02x%02x%02x%02x",
-             hash.hash[0], hash.hash[1], hash.hash[2], hash.hash[3],
-             hash.hash[4], hash.hash[5], hash.hash[6], hash.hash[7]);
+            hash.hash[0], hash.hash[1], hash.hash[2], hash.hash[3],
+            hash.hash[4], hash.hash[5], hash.hash[6], hash.hash[7]);
     mprintf(LOGG_INFO, "%s: %s\n", basename(filename), hashstr);
 
     status = 0;
@@ -734,7 +734,7 @@ static int build(const struct optstruct *opts)
 
 #define FREE_LS(x)                   \
     for (i = 0; i < dblist2cnt; i++) \
-        free(x[i]);                  \
+    free(x[i]);                  \
     free(x);
 
     if (!optget(opts, "server")->enabled && !optget(opts, "unsigned")->enabled) {
@@ -1273,45 +1273,45 @@ static int listdir(const char *dirname, const regex_t *regex)
     while ((dent = readdir(dd))) {
         if (dent->d_ino) {
             if (strcmp(dent->d_name, ".") && strcmp(dent->d_name, "..") &&
-                (cli_strbcasestr(dent->d_name, ".db") ||
-                 cli_strbcasestr(dent->d_name, ".hdb") ||
-                 cli_strbcasestr(dent->d_name, ".hdu") ||
-                 cli_strbcasestr(dent->d_name, ".hsb") ||
-                 cli_strbcasestr(dent->d_name, ".hsu") ||
-                 cli_strbcasestr(dent->d_name, ".mdb") ||
-                 cli_strbcasestr(dent->d_name, ".mdu") ||
-                 cli_strbcasestr(dent->d_name, ".msb") ||
-                 cli_strbcasestr(dent->d_name, ".msu") ||
-                 cli_strbcasestr(dent->d_name, ".ndb") ||
-                 cli_strbcasestr(dent->d_name, ".ndu") ||
-                 cli_strbcasestr(dent->d_name, ".ldb") ||
-                 cli_strbcasestr(dent->d_name, ".ldu") ||
-                 cli_strbcasestr(dent->d_name, ".sdb") ||
-                 cli_strbcasestr(dent->d_name, ".zmd") ||
-                 cli_strbcasestr(dent->d_name, ".rmd") ||
-                 cli_strbcasestr(dent->d_name, ".cdb") ||
-                 cli_strbcasestr(dent->d_name, ".cbc") ||
-                 cli_strbcasestr(dent->d_name, ".cld") ||
-                 cli_strbcasestr(dent->d_name, ".cvd") ||
-                 cli_strbcasestr(dent->d_name, ".crb") ||
-                 cli_strbcasestr(dent->d_name, ".imp"))) {
+                    (cli_strbcasestr(dent->d_name, ".db") ||
+                     cli_strbcasestr(dent->d_name, ".hdb") ||
+                     cli_strbcasestr(dent->d_name, ".hdu") ||
+                     cli_strbcasestr(dent->d_name, ".hsb") ||
+                     cli_strbcasestr(dent->d_name, ".hsu") ||
+                     cli_strbcasestr(dent->d_name, ".mdb") ||
+                     cli_strbcasestr(dent->d_name, ".mdu") ||
+                     cli_strbcasestr(dent->d_name, ".msb") ||
+                     cli_strbcasestr(dent->d_name, ".msu") ||
+                     cli_strbcasestr(dent->d_name, ".ndb") ||
+                     cli_strbcasestr(dent->d_name, ".ndu") ||
+                     cli_strbcasestr(dent->d_name, ".ldb") ||
+                     cli_strbcasestr(dent->d_name, ".ldu") ||
+                     cli_strbcasestr(dent->d_name, ".sdb") ||
+                     cli_strbcasestr(dent->d_name, ".zmd") ||
+                     cli_strbcasestr(dent->d_name, ".rmd") ||
+                     cli_strbcasestr(dent->d_name, ".cdb") ||
+                     cli_strbcasestr(dent->d_name, ".cbc") ||
+                     cli_strbcasestr(dent->d_name, ".cld") ||
+                     cli_strbcasestr(dent->d_name, ".cvd") ||
+                     cli_strbcasestr(dent->d_name, ".crb") ||
+                     cli_strbcasestr(dent->d_name, ".imp"))) {
 
-                dbfile = (char *)malloc(strlen(dent->d_name) + strlen(dirname) + 2);
-                if (!dbfile) {
-                    mprintf(LOGG_ERROR, "listdir: Can't allocate memory for dbfile\n");
-                    closedir(dd);
-                    return -1;
-                }
-                sprintf(dbfile, "%s" PATHSEP "%s", dirname, dent->d_name);
+                         dbfile = (char *)malloc(strlen(dent->d_name) + strlen(dirname) + 2);
+                         if (!dbfile) {
+                             mprintf(LOGG_ERROR, "listdir: Can't allocate memory for dbfile\n");
+                             closedir(dd);
+                             return -1;
+                         }
+                         sprintf(dbfile, "%s" PATHSEP "%s", dirname, dent->d_name);
 
-                if (listdb(dbfile, regex) == -1) {
-                    mprintf(LOGG_ERROR, "listdb: Error listing database %s\n", dbfile);
-                    free(dbfile);
-                    closedir(dd);
-                    return -1;
-                }
-                free(dbfile);
-            }
+                         if (listdb(dbfile, regex) == -1) {
+                             mprintf(LOGG_ERROR, "listdb: Error listing database %s\n", dbfile);
+                             free(dbfile);
+                             closedir(dd);
+                             return -1;
+                         }
+                         free(dbfile);
+                     }
         }
     }
 
@@ -1575,14 +1575,14 @@ static int listsigs(const struct optstruct *opts, int mode)
 
 
 cl_error_t cli_ole2_scan_tempdir(
-    cli_ctx *ctx,
-    const char *dir,
-    struct uniq *files,
-    int has_vba,
-    int has_xlm,
-    int has_image);
+        cli_ctx *ctx,
+        const char *dir,
+        struct uniq *files,
+        int has_vba,
+        int has_xlm,
+        int has_image);
 
-#if 0
+#if 1
 static int vbadump(const struct optstruct *opts)
 {
     int fd, hex_output;
@@ -1592,58 +1592,59 @@ static int vbadump(const struct optstruct *opts)
     cli_ctx *ctx = NULL;
     int has_vba = 0, has_xlm = 0/*, has_image = 0 */;
 
-        if (optget(opts, "vba-hex")->enabled) {
-            hex_output = 1;
-            pt         = optget(opts, "vba-hex")->strarg;
-        } else {
-            hex_output = 0;
-            pt         = optget(opts, "vba")->strarg;
-        }
+    if (optget(opts, "vba-hex")->enabled) {
+        hex_output = 1;
+        pt         = optget(opts, "vba-hex")->strarg;
+    } else {
+        hex_output = 0;
+        pt         = optget(opts, "vba")->strarg;
+    }
 
-        if ((fd = open(pt, O_RDONLY | O_BINARY)) == -1) {
-            mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
-            return -1;
-        }
+    if ((fd = open(pt, O_RDONLY | O_BINARY)) == -1) {
+        mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
+        return -1;
+    }
 
-        /* generate the temporary directory */
-        if (!(dir = cli_gentemp(NULL))) {
-            mprintf(LOGG_ERROR, "vbadump: Can't generate temporary name\n");
-            close(fd);
-            return -1;
-        }
+    /* generate the temporary directory */
+    if (!(dir = cli_gentemp(NULL))) {
+        mprintf(LOGG_ERROR, "vbadump: Can't generate temporary name\n");
+        close(fd);
+        return -1;
+    }
+    printf("temp directory is '%s'\n", dir);
 
-        if (mkdir(dir, 0700)) {
-            mprintf(LOGG_ERROR, "vbadump: Can't create temporary directory %s\n", dir);
-            free(dir);
-            close(fd);
-            return -1;
-        }
-        if (!(ctx = convenience_ctx(fd))) {
-            close(fd);
-            free(dir);
-            return -1;
-        }
-        if (cli_ole2_extract(dir, ctx, &files, &has_vba, &has_xlm, NULL)) {
-            destroy_ctx(ctx);
-            cli_rmdirs(dir);
-            free(dir);
-            close(fd);
-            return -1;
-        }
-            fprintf(stderr, "%s::%d, files == NULL = %d\n", __FUNCTION__, __LINE__, files == NULL);
-            fprintf(stderr, "%s::%d, has_vba = %d\n", __FUNCTION__, __LINE__, has_vba);
-            fprintf(stderr, "%s::%d, has_xlm = %d\n", __FUNCTION__, __LINE__, has_xlm);
-
+    if (mkdir(dir, 0700)) {
+        mprintf(LOGG_ERROR, "vbadump: Can't create temporary directory %s\n", dir);
+        free(dir);
+        close(fd);
+        return -1;
+    }
+    if (!(ctx = convenience_ctx(fd))) {
+        close(fd);
+        free(dir);
+        return -1;
+    }
+    if (cli_ole2_extract(dir, ctx, &files, &has_vba, &has_xlm, NULL)) {
         destroy_ctx(ctx);
-        if (has_vba && files) {
-            fprintf(stderr, "%s::%d::calling sigtool_vba_scandir\n", __FUNCTION__, __LINE__);
-            sigtool_vba_scandir(dir, hex_output, files);
+        cli_rmdirs(dir);
+        free(dir);
+        close(fd);
+        return -1;
+    }
+    fprintf(stderr, "%s::%d, files == NULL = %d\n", __FUNCTION__, __LINE__, files == NULL);
+    fprintf(stderr, "%s::%d, has_vba = %d\n", __FUNCTION__, __LINE__, has_vba);
+    fprintf(stderr, "%s::%d, has_xlm = %d\n", __FUNCTION__, __LINE__, has_xlm);
 
-            fprintf(stderr, "%s::%d::\n", __FUNCTION__, __LINE__);
+    destroy_ctx(ctx);
+    if (has_vba && files) {
+        fprintf(stderr, "%s::%d::calling sigtool_vba_scandir\n", __FUNCTION__, __LINE__);
+        sigtool_vba_scandir(dir, hex_output, files);
+
+        fprintf(stderr, "%s::%d::\n", __FUNCTION__, __LINE__);
 
 #if 0
-            
-    struct cl_engine *engine       = NULL;
+
+        struct cl_engine *engine       = NULL;
 
         /*aragusa: not used*/
         STATBUF sb;
@@ -1651,56 +1652,56 @@ static int vbadump(const struct optstruct *opts)
         lseek(fd, 0, SEEK_SET);
         FSTAT(fd, &sb);
 
-    fprintf(stderr, "%s::%d::sb.st_size = %d\n", __FUNCTION__, __LINE__, sb.st_size);
+        fprintf(stderr, "%s::%d::sb.st_size = %d\n", __FUNCTION__, __LINE__, sb.st_size);
         new_map = fmap(fd, 0, sb.st_size, NULL);
         if (NULL == new_map) {
-        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); exit(99);
-    }
+            fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); exit(99);
+        }
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
         ctx->options = &options;
-    ctx->options->parse = ~0;
+        ctx->options->parse = ~0;
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    ctx->recursion_stack_size = ctx->engine->max_recursion_level;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    ctx->recursion_stack      = cli_calloc(sizeof(recursion_level_t), ctx->recursion_stack_size);
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    if (!ctx->recursion_stack) {
-        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); exit(99);
-    }
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        ctx->recursion_stack_size = ctx->engine->max_recursion_level;
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        ctx->recursion_stack      = cli_calloc(sizeof(recursion_level_t), ctx->recursion_stack_size);
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        if (!ctx->recursion_stack) {
+            fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__); exit(99);
+        }
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    // ctx was memset, so recursion_level starts at 0.
-    ctx->recursion_stack[ctx->recursion_level].fmap = new_map;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    ctx->recursion_stack[ctx->recursion_level].type = CL_TYPE_ANY; // ANY for the top level, because we don't yet know the type.
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    ctx->recursion_stack[ctx->recursion_level].size = new_map->len;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        // ctx was memset, so recursion_level starts at 0.
+        ctx->recursion_stack[ctx->recursion_level].fmap = new_map;
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        ctx->recursion_stack[ctx->recursion_level].type = CL_TYPE_ANY; // ANY for the top level, because we don't yet know the type.
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        ctx->recursion_stack[ctx->recursion_level].size = new_map->len;
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
-    ctx->fmap = ctx->recursion_stack[ctx->recursion_level].fmap;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+        ctx->fmap = ctx->recursion_stack[ctx->recursion_level].fmap;
+        fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
 
 
 
 
         cli_ole2_scan_tempdir(
-            ctx,
-            dir,
-            files,
-            has_vba,
-            has_xlm,
-            has_image);
+                ctx,
+                dir,
+                files,
+                has_vba,
+                has_xlm,
+                has_image);
 #endif
         fprintf(stderr, "%s::%d::\n", __FUNCTION__, __LINE__);
 
 
 
     }
-    cli_rmdirs(dir);
+    //    cli_rmdirs(dir);
     free(dir);
     close(fd);
     return 0;
@@ -2158,8 +2159,8 @@ static void matchsig(char *sig, const char *offset, int fd)
     struct cl_scan_options options = {0};
     cl_fmap_t *new_map             = NULL;
     //
-//add fmap shit ot other function here;
-//
+    //add fmap shit ot other function here;
+    //
     struct cli_lsig_tdb tdb        = {0};
 
     mprintf(LOGG_INFO, "SUBSIG: %s\n", sig);
@@ -2303,15 +2304,15 @@ static int vbadump2(const struct optstruct *opts)
             mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
             goto done;
         }
-        }
+    }
 
 
 
 
 
     //
-//add fmap shit ot other function here;
-//
+    //add fmap shit ot other function here;
+    //
     //struct cli_lsig_tdb tdb        = {0};
 
     //mprintf(LOGG_INFO, "SUBSIG: %s\n", sig);
@@ -2336,13 +2337,6 @@ static int vbadump2(const struct optstruct *opts)
         mprintf(LOGG_ERROR, "matchsig: cli_initroots() failed\n");
         goto done;
     }
-
-#if 0
-    if (readdb_parse_ldb_subsignature(engine->root[0], "test", sig, "*", NULL, 0, 0, 1, &tdb) != CL_SUCCESS) {
-        mprintf(LOGG_ERROR, "matchsig: Can't parse signature\n");
-        goto done;
-    }
-#endif
 
     if (cl_engine_compile(engine) != CL_SUCCESS) {
         mprintf(LOGG_ERROR, "matchsig: Can't compile engine\n");
@@ -2370,6 +2364,23 @@ static int vbadump2(const struct optstruct *opts)
 
     ctx.fmap = ctx.recursion_stack[ctx.recursion_level].fmap;
 
+
+    if ((opt = optget(opts, "tempdir"))->enabled) {
+        dir = opt->strarg;
+    }
+
+    /* generate the temporary directory */
+    if (!(dir = cli_gentemp(dir))) {
+        mprintf(LOGG_ERROR, "vbadump: Can't generate temporary name\n");
+        close(fd);
+        goto done;
+    }
+
+
+    ctx.sub_tmpdir = dir;
+
+    //ctx.options->general |= CL_SCAN_GENERAL_COLLECT_METADATA;
+
     (void)cli_scan_fmap(&ctx, CL_TYPE_ANY, false, NULL, AC_SCAN_VIR, &acres, NULL);
 
     res = acres;
@@ -2393,22 +2404,9 @@ static int vbadump2(const struct optstruct *opts)
     }
 #endif
 
-    if ((opt = optget(opts, "tempdir"))->enabled) {
-        dir = opt->strarg;
-        fprintf(stderr, "%s::%d::Do this everywhere in this file\n", __FUNCTION__, __LINE__);
-        fprintf(stderr, "%s::%d::Create directory if it doesn't already exist\n", __FUNCTION__, __LINE__);
-    }
 
 
-            /* generate the temporary directory */
-        if (!(dir = cli_gentemp(dir))) {
-            mprintf(LOGG_ERROR, "vbadump: Can't generate temporary name\n");
-            close(fd);
-            goto done;
-        }
-
-
-        printf("%s::%d::dir = '%s'\n", __FUNCTION__, __LINE__, dir);
+    printf("%s::%d::dir = '%s'\n", __FUNCTION__, __LINE__, dir);
 
 
 
@@ -2416,90 +2414,71 @@ static int vbadump2(const struct optstruct *opts)
 
 
 
-        if (mkdir(dir, 0700)) {
-            mprintf(LOGG_ERROR, "vbadump: Can't create temporary directory %s\n", dir);
-            free(dir);
-            close(fd);
-            goto done;
-        }
-#if 0
-        if (!(ctx = convenience_ctx(fd))) {
-            close(fd);
-            free(dir);
-            return -1;
-        }
-#endif
-
-        if (cli_ole2_extract(dir, &ctx, &files, &has_vba, &has_xlm, NULL)) {
-            destroy_ctx(&ctx);
-            cli_rmdirs(dir);
-            free(dir);
-            close(fd);
-            goto done;
-        }
-
-            fprintf(stderr, "%s::%d, files == NULL = %d\n", __FUNCTION__, __LINE__, files == NULL);
-            fprintf(stderr, "%s::%d, has_vba = %d\n", __FUNCTION__, __LINE__, has_vba);
-            fprintf(stderr, "%s::%d, has_xlm = %d\n", __FUNCTION__, __LINE__, has_xlm);
-
-        if (has_vba && files) {
-            fprintf(stderr, "%s::%d::calling sigtool_vba_scandir\n", __FUNCTION__, __LINE__);
-
-
-
-#if 0
-    if ((opt = optget(opts, "tempdir"))->enabled) {
-        ctx.sub_tmpdir = opt->strarg;
-        fprintf(stderr, "%s::%d::Do this everywhere in this file\n", __FUNCTION__, __LINE__);
-        fprintf(stderr, "%s::%d::Create directory if it doesn't already exist\n", __FUNCTION__, __LINE__);
-    }
-#else
-        ctx.sub_tmpdir = dir;
-#endif
-
-        retCode = cli_ole2_scan_tempdir(
-            &ctx,
-            dir,
-            files,
-            has_vba,
-            has_xlm,
-            has_image);
-
-        {
-    uint32_t hashcnt;
-    cl_error_t ret;
-
-#if 0
-    if (CL_SUCCESS != (ret = uniq_get(files, "_vba_project", 12, NULL, &hashcnt))) {
-        fprintf(stderr, "ScanDir -> uniq_get('_vba_project') failed.\n");
+    if (mkdir(dir, 0700)) {
+        mprintf(LOGG_ERROR, "vbadump: Can't create temporary directory %s\n", dir);
+        free(dir);
+        close(fd);
         goto done;
     }
 
-    printf("hashcnt = %d\n", hashcnt);
+    if (cli_ole2_extract(dir, &ctx, &files, &has_vba, &has_xlm, NULL)) {
+        destroy_ctx(&ctx);
+        cli_rmdirs(dir);
+        free(dir);
+        close(fd);
+        goto done;
+    }
+
+    fprintf(stderr, "%s::%d, files == NULL = %d\n", __FUNCTION__, __LINE__, files == NULL);
+    fprintf(stderr, "%s::%d, has_vba = %d\n", __FUNCTION__, __LINE__, has_vba);
+    fprintf(stderr, "%s::%d, has_xlm = %d\n", __FUNCTION__, __LINE__, has_xlm);
+
+    if (has_vba && files) {
+        fprintf(stderr, "%s::%d::calling sigtool_vba_scandir\n", __FUNCTION__, __LINE__);
+
+        retCode = cli_ole2_scan_tempdir(
+                &ctx,
+                dir,
+                files,
+                has_vba,
+                has_xlm,
+                has_image);
+
+        {
+            uint32_t hashcnt;
+            cl_error_t ret;
+
+#if 1
+            if (CL_SUCCESS != (ret = uniq_get(files, "_vba_project", 12, NULL, &hashcnt))) {
+                fprintf(stderr, "ScanDir -> uniq_get('_vba_project') failed.\n");
+                goto done;
+            }
+
+            printf("hashcnt = %d\n", hashcnt);
 #else
-    fprintf(stderr, "%s::%d::dir =  '%s'\n", __FUNCTION__, __LINE__, dir);
-    sigtool_vba_scandir(dir, hex_output, files);
+            fprintf(stderr, "%s::%d::dir =  '%s'\n", __FUNCTION__, __LINE__, dir);
+            sigtool_vba_scandir(dir, hex_output, files);
 
 #endif
 
         }
-        
+
 
         /*This appears to be working the same as clamscan, need to figure out what type of output the users are expecting.*/
 
         fprintf(stderr, "%s::%d::retCode (cli_ole2_scan_tempdir) = %d\n", __FUNCTION__, __LINE__, retCode);
-        }
+    }
 
 
 
 
 
-        retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
+    retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
 
-        fprintf(stderr, "%s::%d::retCode (cli_process_ooxml) = %d (retCode == CL_EFORMAT) = %d\n", __FUNCTION__, __LINE__, retCode, retCode == CL_EFORMAT);
+    fprintf(stderr, "%s::%d::retCode (cli_process_ooxml) = %d (retCode == CL_EFORMAT) = %d\n", __FUNCTION__, __LINE__, retCode, retCode == CL_EFORMAT);
 
 
-        ret = 0;
+    ret = 0;
 done:
     /* Cleanup */
     while (acres) {
@@ -2856,12 +2835,12 @@ static int decodehex(const char *hexsig)
     if ((wild = strchr(hexsig, '/'))) {
         /* ^offset:trigger-logic/regex/options$ */
         char *trigger = NULL;
-       char  *regex = NULL;
-      char *regex_end = NULL;
-      char *cflags = NULL;
+        char  *regex = NULL;
+        char *regex_end = NULL;
+        char *cflags = NULL;
         size_t tlen = wild - hexsig;
-       size_t rlen = 0;
-      size_t clen = 0;
+        size_t rlen = 0;
+        size_t clen = 0;
 
         /* check for trigger */
         if (!tlen) {
@@ -3094,11 +3073,11 @@ static int decodehex(const char *hexsig)
 #if 0
         (void)write(1, decoded, dlen);
 #else
-            if (dlen != (write(1, decoded, dlen))){
-                mprintf(LOGG_ERROR, "Print failed\n");
-                free(decoded);
-                return -1;
-            }
+        if (dlen != (write(1, decoded, dlen))){
+            mprintf(LOGG_ERROR, "Print failed\n");
+            free(decoded);
+            return -1;
+        }
 #endif
         free(decoded);
     }
@@ -3955,6 +3934,7 @@ int main(int argc, char **argv)
         ret = testsigs(opts);
     else if (optget(opts, "vba")->enabled || optget(opts, "vba-hex")->enabled)
         ret = vbadump2(opts);
+    //ret = vbadump(opts);
     else if (optget(opts, "diff")->enabled)
         ret = makediff(opts);
     else if (optget(opts, "compare")->enabled)
