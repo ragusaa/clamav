@@ -2384,12 +2384,7 @@ static int vbadump2(const struct optstruct *opts)
             has_xlm,
             has_image);
 
-        {
-            uint32_t hashcnt;
-            cl_error_t ret;
-
             sigtool_vba_scandir(dir, hex_output, files);
-        }
     }
 
     retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
