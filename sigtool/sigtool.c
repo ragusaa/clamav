@@ -2271,10 +2271,10 @@ done:
 
 
 
-//static void vbadump2(char *sig, const char *offset, int fd)
 static int vbadump2(const struct optstruct *opts)
 {
-    struct cli_ac_result *acres = NULL, *res;
+    struct cli_ac_result *acres = NULL;
+    struct cli_ac_result *res = NULL;
     STATBUF sb;
     unsigned int matches           = 0;
     struct cl_engine *engine       = NULL;
@@ -2283,13 +2283,16 @@ static int vbadump2(const struct optstruct *opts)
     cl_fmap_t *new_map             = NULL;
     char *dir = NULL;
     struct uniq *files = NULL;
-    int has_vba = 0, has_xlm = 0, has_image = 0 ;
+    int has_vba = 0;
+   int has_xlm = 0;
+  int has_image = 0 ;
     cl_error_t retCode = 0;
     const struct optstruct *opt = NULL;
     int ret = -1;
 
-    const char *pt;
-    int fd, hex_output;
+    const char *pt = NULL;
+    int fd = 0;
+   int  hex_output = 0;
 
         if (optget(opts, "vba-hex")->enabled) {
             hex_output = 1;
