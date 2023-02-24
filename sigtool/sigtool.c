@@ -382,8 +382,8 @@ static int fuzzy_img_file(char *filename)
 
     char hashstr[17];
     snprintf(hashstr, 17, "%02x%02x%02x%02x%02x%02x%02x%02x",
-            hash.hash[0], hash.hash[1], hash.hash[2], hash.hash[3],
-            hash.hash[4], hash.hash[5], hash.hash[6], hash.hash[7]);
+             hash.hash[0], hash.hash[1], hash.hash[2], hash.hash[3],
+             hash.hash[4], hash.hash[5], hash.hash[6], hash.hash[7]);
     mprintf(LOGG_INFO, "%s: %s\n", basename(filename), hashstr);
 
     status = 0;
@@ -734,7 +734,7 @@ static int build(const struct optstruct *opts)
 
 #define FREE_LS(x)                   \
     for (i = 0; i < dblist2cnt; i++) \
-    free(x[i]);                  \
+        free(x[i]);                  \
     free(x);
 
     if (!optget(opts, "server")->enabled && !optget(opts, "unsigned")->enabled) {
@@ -1273,45 +1273,45 @@ static int listdir(const char *dirname, const regex_t *regex)
     while ((dent = readdir(dd))) {
         if (dent->d_ino) {
             if (strcmp(dent->d_name, ".") && strcmp(dent->d_name, "..") &&
-                    (cli_strbcasestr(dent->d_name, ".db") ||
-                     cli_strbcasestr(dent->d_name, ".hdb") ||
-                     cli_strbcasestr(dent->d_name, ".hdu") ||
-                     cli_strbcasestr(dent->d_name, ".hsb") ||
-                     cli_strbcasestr(dent->d_name, ".hsu") ||
-                     cli_strbcasestr(dent->d_name, ".mdb") ||
-                     cli_strbcasestr(dent->d_name, ".mdu") ||
-                     cli_strbcasestr(dent->d_name, ".msb") ||
-                     cli_strbcasestr(dent->d_name, ".msu") ||
-                     cli_strbcasestr(dent->d_name, ".ndb") ||
-                     cli_strbcasestr(dent->d_name, ".ndu") ||
-                     cli_strbcasestr(dent->d_name, ".ldb") ||
-                     cli_strbcasestr(dent->d_name, ".ldu") ||
-                     cli_strbcasestr(dent->d_name, ".sdb") ||
-                     cli_strbcasestr(dent->d_name, ".zmd") ||
-                     cli_strbcasestr(dent->d_name, ".rmd") ||
-                     cli_strbcasestr(dent->d_name, ".cdb") ||
-                     cli_strbcasestr(dent->d_name, ".cbc") ||
-                     cli_strbcasestr(dent->d_name, ".cld") ||
-                     cli_strbcasestr(dent->d_name, ".cvd") ||
-                     cli_strbcasestr(dent->d_name, ".crb") ||
-                     cli_strbcasestr(dent->d_name, ".imp"))) {
+                (cli_strbcasestr(dent->d_name, ".db") ||
+                 cli_strbcasestr(dent->d_name, ".hdb") ||
+                 cli_strbcasestr(dent->d_name, ".hdu") ||
+                 cli_strbcasestr(dent->d_name, ".hsb") ||
+                 cli_strbcasestr(dent->d_name, ".hsu") ||
+                 cli_strbcasestr(dent->d_name, ".mdb") ||
+                 cli_strbcasestr(dent->d_name, ".mdu") ||
+                 cli_strbcasestr(dent->d_name, ".msb") ||
+                 cli_strbcasestr(dent->d_name, ".msu") ||
+                 cli_strbcasestr(dent->d_name, ".ndb") ||
+                 cli_strbcasestr(dent->d_name, ".ndu") ||
+                 cli_strbcasestr(dent->d_name, ".ldb") ||
+                 cli_strbcasestr(dent->d_name, ".ldu") ||
+                 cli_strbcasestr(dent->d_name, ".sdb") ||
+                 cli_strbcasestr(dent->d_name, ".zmd") ||
+                 cli_strbcasestr(dent->d_name, ".rmd") ||
+                 cli_strbcasestr(dent->d_name, ".cdb") ||
+                 cli_strbcasestr(dent->d_name, ".cbc") ||
+                 cli_strbcasestr(dent->d_name, ".cld") ||
+                 cli_strbcasestr(dent->d_name, ".cvd") ||
+                 cli_strbcasestr(dent->d_name, ".crb") ||
+                 cli_strbcasestr(dent->d_name, ".imp"))) {
 
-                         dbfile = (char *)malloc(strlen(dent->d_name) + strlen(dirname) + 2);
-                         if (!dbfile) {
-                             mprintf(LOGG_ERROR, "listdir: Can't allocate memory for dbfile\n");
-                             closedir(dd);
-                             return -1;
-                         }
-                         sprintf(dbfile, "%s" PATHSEP "%s", dirname, dent->d_name);
+                dbfile = (char *)malloc(strlen(dent->d_name) + strlen(dirname) + 2);
+                if (!dbfile) {
+                    mprintf(LOGG_ERROR, "listdir: Can't allocate memory for dbfile\n");
+                    closedir(dd);
+                    return -1;
+                }
+                sprintf(dbfile, "%s" PATHSEP "%s", dirname, dent->d_name);
 
-                         if (listdb(dbfile, regex) == -1) {
-                             mprintf(LOGG_ERROR, "listdb: Error listing database %s\n", dbfile);
-                             free(dbfile);
-                             closedir(dd);
-                             return -1;
-                         }
-                         free(dbfile);
-                     }
+                if (listdb(dbfile, regex) == -1) {
+                    mprintf(LOGG_ERROR, "listdb: Error listing database %s\n", dbfile);
+                    free(dbfile);
+                    closedir(dd);
+                    return -1;
+                }
+                free(dbfile);
+            }
         }
     }
 
@@ -1572,15 +1572,13 @@ static int listsigs(const struct optstruct *opts, int mode)
     return ret;
 }
 
-
-
 cl_error_t cli_ole2_scan_tempdir(
-        cli_ctx *ctx,
-        const char *dir,
-        struct uniq *files,
-        int has_vba,
-        int has_xlm,
-        int has_image);
+    cli_ctx *ctx,
+    const char *dir,
+    struct uniq *files,
+    int has_vba,
+    int has_xlm,
+    int has_image);
 
 #if 1
 static int vbadump(const struct optstruct *opts)
@@ -1589,8 +1587,8 @@ static int vbadump(const struct optstruct *opts)
     char *dir;
     const char *pt;
     struct uniq *files = NULL;
-    cli_ctx *ctx = NULL;
-    int has_vba = 0, has_xlm = 0/*, has_image = 0 */;
+    cli_ctx *ctx       = NULL;
+    int has_vba = 0, has_xlm = 0 /*, has_image = 0 */;
 
     if (optget(opts, "vba-hex")->enabled) {
         hex_output = 1;
@@ -1697,9 +1695,6 @@ static int vbadump(const struct optstruct *opts)
                 has_image);
 #endif
         fprintf(stderr, "%s::%d::\n", __FUNCTION__, __LINE__);
-
-
-
     }
     //    cli_rmdirs(dir);
     free(dir);
@@ -2161,7 +2156,7 @@ static void matchsig(char *sig, const char *offset, int fd)
     //
     //add fmap shit ot other function here;
     //
-    struct cli_lsig_tdb tdb        = {0};
+    struct cli_lsig_tdb tdb = {0};
 
     mprintf(LOGG_INFO, "SUBSIG: %s\n", sig);
 
@@ -2259,53 +2254,41 @@ done:
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 static int vbadump2(const struct optstruct *opts)
 {
     struct cli_ac_result *acres = NULL;
-    struct cli_ac_result *res = NULL;
+    struct cli_ac_result *res   = NULL;
     STATBUF sb;
     unsigned int matches           = 0;
     struct cl_engine *engine       = NULL;
     cli_ctx ctx                    = {0};
     struct cl_scan_options options = {0};
     cl_fmap_t *new_map             = NULL;
-    char *dir = NULL;
-    struct uniq *files = NULL;
-    int has_vba = 0;
-   int has_xlm = 0;
-  int has_image = 0 ;
-    cl_error_t retCode = 0;
-    const struct optstruct *opt = NULL;
-    int ret = -1;
+    char *dir                      = NULL;
+    struct uniq *files             = NULL;
+    int has_vba                    = 0;
+    int has_xlm                    = 0;
+    int has_image                  = 0;
+    cl_error_t retCode             = 0;
+    const struct optstruct *opt    = NULL;
+    int ret                        = -1;
 
     const char *pt = NULL;
-    int fd = 0;
-   int  hex_output = 0;
+    int fd         = 0;
+    int hex_output = 0;
 
-        if (optget(opts, "vba-hex")->enabled) {
-            hex_output = 1;
-            pt         = optget(opts, "vba-hex")->strarg;
-        } else {
-            hex_output = 0;
-            pt         = optget(opts, "vba")->strarg;
-        }
+    if (optget(opts, "vba-hex")->enabled) {
+        hex_output = 1;
+        pt         = optget(opts, "vba-hex")->strarg;
+    } else {
+        hex_output = 0;
+        pt         = optget(opts, "vba")->strarg;
+    }
 
-        if ((fd = open(pt, O_RDONLY | O_BINARY)) == -1) {
-            mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
-            goto done;
-        }
+    if ((fd = open(pt, O_RDONLY | O_BINARY)) == -1) {
+        mprintf(LOGG_ERROR, "vbadump: Can't open file %s\n", pt);
+        goto done;
+    }
 
     /* Prepare file */
     lseek(fd, 0, SEEK_SET);
@@ -2354,7 +2337,6 @@ static int vbadump2(const struct optstruct *opts)
 
     ctx.fmap = ctx.recursion_stack[ctx.recursion_level].fmap;
 
-
     if ((opt = optget(opts, "tempdir"))->enabled) {
         dir = opt->strarg;
     }
@@ -2365,7 +2347,6 @@ static int vbadump2(const struct optstruct *opts)
         close(fd);
         goto done;
     }
-
 
     ctx.sub_tmpdir = dir;
 
@@ -2396,21 +2377,19 @@ static int vbadump2(const struct optstruct *opts)
 
     if (has_vba && files) {
         retCode = cli_ole2_scan_tempdir(
-                &ctx,
-                dir,
-                files,
-                has_vba,
-                has_xlm,
-                has_image);
+            &ctx,
+            dir,
+            files,
+            has_vba,
+            has_xlm,
+            has_image);
 
         {
             uint32_t hashcnt;
             cl_error_t ret;
 
             sigtool_vba_scandir(dir, hex_output, files);
-
         }
-
     }
 
     retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
@@ -2438,37 +2417,6 @@ done:
 
     return ret;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 static char *decodehexstr(const char *hex, unsigned int *dlen)
 {
@@ -2771,13 +2719,13 @@ static int decodehex(const char *hexsig)
     hexlen = strlen(hexsig);
     if ((wild = strchr(hexsig, '/'))) {
         /* ^offset:trigger-logic/regex/options$ */
-        char *trigger = NULL;
-        char  *regex = NULL;
+        char *trigger   = NULL;
+        char *regex     = NULL;
         char *regex_end = NULL;
-        char *cflags = NULL;
-        size_t tlen = wild - hexsig;
-        size_t rlen = 0;
-        size_t clen = 0;
+        char *cflags    = NULL;
+        size_t tlen     = wild - hexsig;
+        size_t rlen     = 0;
+        size_t clen     = 0;
 
         /* check for trigger */
         if (!tlen) {
@@ -2901,7 +2849,7 @@ static int decodehex(const char *hexsig)
 #if 0
             (void)write(1, decoded, dlen);
 #else
-            if (dlen != (write(1, decoded, dlen))){
+            if (dlen != (write(1, decoded, dlen))) {
                 mprintf(LOGG_ERROR, "Print failed\n");
                 free(decoded);
                 return -1;
@@ -2990,7 +2938,7 @@ static int decodehex(const char *hexsig)
 #if 0
             (void)write(1, decoded, dlen);
 #else
-            if (dlen != (write(1, decoded, dlen))){
+            if (dlen != (write(1, decoded, dlen))) {
                 mprintf(LOGG_ERROR, "Print failed\n");
                 free(decoded);
                 return -1;
@@ -3010,7 +2958,7 @@ static int decodehex(const char *hexsig)
 #if 0
         (void)write(1, decoded, dlen);
 #else
-        if (dlen != (write(1, decoded, dlen))){
+        if (dlen != (write(1, decoded, dlen))) {
             mprintf(LOGG_ERROR, "Print failed\n");
             free(decoded);
             return -1;
