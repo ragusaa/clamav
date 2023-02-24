@@ -1647,10 +1647,8 @@ static cl_error_t cli_ole2_tempdir_scan_vba_new(const char *dir, cli_ctx *ctx, s
         snprintf(filename, sizeof(filename), "%s_%u", hash, hashcnt);
         filename[sizeof(filename) - 1] = '\0';
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
         if (CL_SUCCESS == find_file(filename, dir, path, sizeof(path))) {
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             cli_dbgmsg("cli_ole2_tempdir_scan_vba_new: Found dir file: %s\n", path);
             if ((ret = cli_vba_readdir_new(ctx, path, U, hash, hashcnt, &tempfd, has_macros)) != CL_SUCCESS) {
                 // FIXME: Since we only know the stream name of the OLE2 stream, but not its path inside the
@@ -1663,9 +1661,6 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             }
 
 #if HAVE_JSON
-fprintf(stderr, "%s::%d::F THIS THING, *has_macros = %d\n", __FUNCTION__, __LINE__, *has_macros);
-fprintf(stderr, "%s::%d::F THIS THING, ctx->wrkproperty = %s\n", __FUNCTION__, __LINE__, ctx->wrkproperty);
-fprintf(stderr, "%s::%d::F THIS THING, SCAN_COLLECT_METADATA  = %d\n", __FUNCTION__, __LINE__, SCAN_COLLECT_METADATA );
             if (*has_macros && SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
                 cli_jsonbool(ctx->wrkproperty, "HasMacros_scanners_1664", 1);
                 json_object *macro_languages = cli_jsonarray(ctx->wrkproperty, "MacroLanguages");
@@ -2012,9 +2007,7 @@ static cl_error_t cli_ole2_tempdir_scan_vba(const char *dir, cli_ctx *ctx, struc
 done:
 
     if (*has_macros) {
-                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
 #if HAVE_JSON
-                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
         if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
             cli_jsonbool(ctx->wrkproperty, "HasMacros_scanners_2011", 1);
             json_object *macro_languages = cli_jsonarray(ctx->wrkproperty, "MacroLanguages");

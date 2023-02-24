@@ -2404,7 +2404,6 @@ static int vbadump2(const struct optstruct *opts)
             uint32_t hashcnt;
             cl_error_t ret;
 
-            fprintf(stderr, "%s::%d::dir =  '%s'\n", __FUNCTION__, __LINE__, dir);
             sigtool_vba_scandir(dir, hex_output, files);
 
         }
@@ -2412,9 +2411,6 @@ static int vbadump2(const struct optstruct *opts)
     }
 
     retCode = cli_process_ooxml(&ctx, CL_TYPE_OOXML_HWP);
-
-    fprintf(stderr, "%s::%d::retCode (cli_process_ooxml) = %d (retCode == CL_EFORMAT) = %d\n", __FUNCTION__, __LINE__, retCode, retCode == CL_EFORMAT);
-
 
     ret = 0;
 done:

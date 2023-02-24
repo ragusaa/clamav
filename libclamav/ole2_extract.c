@@ -1074,11 +1074,8 @@ static cl_error_t scan_biff_for_xlm_macros_and_images(
                             state->tmp = buff[i];
                         } else if (state->data_offset == 5 && buff[i] == 1) { // Excel 4.0 macro sheet
                             cli_dbgmsg("[scan_biff_for_xlm_macros_and_images] Found XLM macro sheet\n");
-                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
 #if HAVE_JSON
-                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
                             if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
-                            fprintf(stderr, "%s::%d::F THIS THING\n", __FUNCTION__, __LINE__);
                                 cli_jsonbool(ctx->wrkproperty, "HasMacros_ole2_extract_1079", 1);
                                 json_object *macro_languages = cli_jsonarray(ctx->wrkproperty, "MacroLanguages");
                                 if (macro_languages) {
@@ -1739,7 +1736,6 @@ static cl_error_t handler_otf_encrypted(ole2_header_t *hdr, property_t *prop, co
     UNUSEDPARAM(dir);
 
     if (NULL == key) {
-        cli_errmsg("%s::%d::key NULL\n", __FUNCTION__, __LINE__);
         goto done;
     }
 
@@ -2448,8 +2444,6 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
     encryption_key_t key;
     bool bEncrypted          = false;
     size_t encryption_offset = 0;
-
-fprintf(stderr ,"%s:::%d\n", __FUNCTION__, __LINE__);
 
     cli_dbgmsg("in cli_ole2_extract()\n");
     if (!ctx) {

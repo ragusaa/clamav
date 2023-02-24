@@ -1238,22 +1238,17 @@ int sigtool_vba_scandir(const char *dirname, int hex_output, struct uniq *U)
     uint32_t hashcnt;
     unsigned int j;
 
-    printf("%s::%d\n", __FUNCTION__, __LINE__);
     if (CL_SUCCESS != (ret = uniq_get(U, "_vba_project", 12, NULL, &hashcnt))) {
         logg(LOGG_ERROR, "ScanDir -> uniq_get('_vba_project') failed.\n");
         return ret;
     }
-    printf("%s::%d::hashcnt = %d\n", __FUNCTION__, __LINE__, hashcnt);
 
     while (hashcnt) {
-printf("%s::%d::dirname = '%s'\n", __FUNCTION__, __LINE__, dirname);
         if (!(vba_project = (vba_project_t *)cli_vba_readdir(dirname, U, hashcnt))) {
-printf("%s::%d::readdir failed\n", __FUNCTION__, __LINE__);
             hashcnt--;
             continue;
         }
 
-        printf("%s::%d::vba_project->count = %d\n", __FUNCTION__, __LINE__, vba_project->count);
         for (i = 0; i < vba_project->count; i++) {
             for (j = 0; j < vba_project->colls[i]; j++) {
                 snprintf(vbaname, 1024, "%s" PATHSEP "%s_%u", vba_project->dir, vba_project->name[i], j);

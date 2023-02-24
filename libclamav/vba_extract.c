@@ -374,42 +374,35 @@ cl_error_t cli_vba_readdir_new(cli_ctx *ctx, const char *dir, struct uniq *U, co
     size_t mbcs_name_size = 0, utf16_name_size = 0;
     unsigned char *module_data = NULL, *module_data_utf8 = NULL;
     size_t module_data_size = 0, module_data_utf8_size = 0;
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (dir == NULL || hash == NULL || tempfd == NULL || has_macros == NULL) {
         return CL_EARG;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     cli_dbgmsg("vba_readdir_new: Scanning directory %s for VBA project\n", dir);
 
     snprintf(fullname, sizeof(fullname), "%s" PATHSEP "%s_%u", dir, hash, which);
     fullname[sizeof(fullname) - 1] = '\0';
     fd                             = open(fullname, O_RDONLY | O_BINARY);
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if (fd == -1) {
         ret = CL_EOPEN;
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     if ((data = cli_vba_inflate(fd, 0, &data_len)) == NULL) {
         cli_dbgmsg("vba_readdir_new: Failed to decompress 'dir'\n");
         ret = CL_EARG;
         goto done;
     }
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 
     *has_macros = *has_macros + 1;
-fprintf(stderr, "%s::%d, ctx->sub_tmpdir = '%s'\n", __FUNCTION__, __LINE__, ctx->sub_tmpdir);
 
     if ((ret = cli_gentempfd_with_prefix(ctx->sub_tmpdir, "vba_project", &tempfile, tempfd)) != CL_SUCCESS) {
         cli_warnmsg("vba_readdir_new: VBA project cannot be dumped to file\n");
         goto done;
     }
 
-fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     cli_dbgmsg("Dumping VBA project from dir %s to file %s\n", fullname, tempfile);
 
 #define CLI_WRITEN(msg, size)                                                 \
