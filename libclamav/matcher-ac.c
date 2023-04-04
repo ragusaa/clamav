@@ -726,7 +726,7 @@ void cli_ac_free(struct cli_matcher *root)
         if (!(patt->lsigid[0] == 1)) {
             /* Don't free the virname for patterns lsigs (normal or yara).
                For lsigs, we store the virname in lsig->virname, not in each ac-pattern.
-               TODO: never store the virname in the ac pattern and only store it per-signature, not per-pattern. */
+TODO: never store the virname in the ac pattern and only store it per-signature, not per-pattern. */
             MPOOL_FREE(root->mempool, patt->virname);
         }
         if (patt->special) {
@@ -1014,93 +1014,93 @@ int cli_ac_chklsig(const char *expr, const char *end, uint32_t *lsigcnt, unsigne
 }
 
 inline static int ac_findmatch_special(const unsigned char *buffer, uint32_t offset, uint32_t bp, uint32_t fileoffset, uint32_t length,
-                                       const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end, int rev);
+        const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end, int rev);
 static int ac_backward_match_branch(const unsigned char *buffer, uint32_t bp, uint32_t offset, uint32_t length, uint32_t fileoffset,
-                                    const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end);
+        const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end);
 static int ac_forward_match_branch(const unsigned char *buffer, uint32_t bp, uint32_t offset, uint32_t length, uint32_t fileoffset,
-                                   const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end);
+        const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end);
 
 /* call only by ac_findmatch_special! Does not handle recursive specials */
 #define AC_MATCH_CHAR2(p, b)                                         \
     switch (wc = p & CLI_MATCH_METADATA) {                           \
         case CLI_MATCH_CHAR:                                         \
-            if ((unsigned char)p != b)                               \
-                match = 0;                                           \
-            break;                                                   \
-                                                                     \
+                                                                     if ((unsigned char)p != b)                               \
+        match = 0;                                           \
+        break;                                                   \
+        \
         case CLI_MATCH_NOCASE:                                       \
-            if ((unsigned char)(p & 0xff) != CLI_NOCASE(b))          \
-                match = 0;                                           \
-            break;                                                   \
-                                                                     \
+                                                                     if ((unsigned char)(p & 0xff) != CLI_NOCASE(b))          \
+        match = 0;                                           \
+        break;                                                   \
+        \
         case CLI_MATCH_IGNORE:                                       \
-            break;                                                   \
-                                                                     \
+                                                                     break;                                                   \
+        \
         case CLI_MATCH_NIBBLE_HIGH:                                  \
-            if ((unsigned char)(p & 0x00f0) != (b & 0xf0))           \
-                match = 0;                                           \
-            break;                                                   \
-                                                                     \
+                                                                     if ((unsigned char)(p & 0x00f0) != (b & 0xf0))           \
+        match = 0;                                           \
+        break;                                                   \
+        \
         case CLI_MATCH_NIBBLE_LOW:                                   \
-            if ((unsigned char)(p & 0x000f) != (b & 0x0f))           \
-                match = 0;                                           \
-            break;                                                   \
-                                                                     \
+                                                                     if ((unsigned char)(p & 0x000f) != (b & 0x0f))           \
+        match = 0;                                           \
+        break;                                                   \
+        \
         default:                                                     \
-            cli_errmsg("ac_findmatch: Unknown metatype 0x%x\n", wc); \
-            match = 0;                                               \
+                                                                     cli_errmsg("ac_findmatch: Unknown metatype 0x%x\n", wc); \
+        match = 0;                                               \
     }
 
 /* call only by ac_XX_match_branch! */
 #define AC_MATCH_CHAR(p, b, rev)                                                              \
     switch (wc = p & CLI_MATCH_METADATA) {                                                    \
         case CLI_MATCH_CHAR:                                                                  \
-            if ((unsigned char)p != b)                                                        \
-                match = 0;                                                                    \
-            break;                                                                            \
-                                                                                              \
+                                                                                              if ((unsigned char)p != b)                                                        \
+        match = 0;                                                                    \
+        break;                                                                            \
+        \
         case CLI_MATCH_NOCASE:                                                                \
-            if ((unsigned char)(p & 0xff) != CLI_NOCASE(b))                                   \
-                match = 0;                                                                    \
-            break;                                                                            \
-                                                                                              \
+                                                                                              if ((unsigned char)(p & 0xff) != CLI_NOCASE(b))                                   \
+        match = 0;                                                                    \
+        break;                                                                            \
+        \
         case CLI_MATCH_IGNORE:                                                                \
-            break;                                                                            \
-                                                                                              \
+                                                                                              break;                                                                            \
+        \
         case CLI_MATCH_SPECIAL:                                                               \
-            /* >1 = movement, 0 = fail, <1 = resolved in branch */                            \
-            if ((match = ac_findmatch_special(buffer, offset, bp, fileoffset, length,         \
-                                              pattern, i, specialcnt, start, end, rev)) <= 0) \
-                return match;                                                                 \
-                                                                                              \
-            if (!rev) {                                                                       \
-                bp += (match - 1); /* -1 is for bp++ in parent loop */                        \
-                specialcnt++;                                                                 \
-            } else {                                                                          \
-                bp = bp + 1 - match; /* +1 is for bp-- in parent loop */                      \
-                specialcnt--;                                                                 \
-            }                                                                                 \
-                                                                                              \
-            break;                                                                            \
-                                                                                              \
+                                                                                              /* >1 = movement, 0 = fail, <1 = resolved in branch */                            \
+        if ((match = ac_findmatch_special(buffer, offset, bp, fileoffset, length,         \
+                        pattern, i, specialcnt, start, end, rev)) <= 0) \
+        return match;                                                                 \
+        \
+        if (!rev) {                                                                       \
+            bp += (match - 1); /* -1 is for bp++ in parent loop */                        \
+            specialcnt++;                                                                 \
+        } else {                                                                          \
+            bp = bp + 1 - match; /* +1 is for bp-- in parent loop */                      \
+            specialcnt--;                                                                 \
+        }                                                                                 \
+        \
+        break;                                                                            \
+        \
         case CLI_MATCH_NIBBLE_HIGH:                                                           \
-            if ((unsigned char)(p & 0x00f0) != (b & 0xf0))                                    \
-                match = 0;                                                                    \
-            break;                                                                            \
-                                                                                              \
+                                                                                              if ((unsigned char)(p & 0x00f0) != (b & 0xf0))                                    \
+        match = 0;                                                                    \
+        break;                                                                            \
+        \
         case CLI_MATCH_NIBBLE_LOW:                                                            \
-            if ((unsigned char)(p & 0x000f) != (b & 0x0f))                                    \
-                match = 0;                                                                    \
-            break;                                                                            \
-                                                                                              \
+                                                                                              if ((unsigned char)(p & 0x000f) != (b & 0x0f))                                    \
+        match = 0;                                                                    \
+        break;                                                                            \
+        \
         default:                                                                              \
-            cli_errmsg("ac_findmatch: Unknown metatype 0x%x\n", wc);                          \
-            match = 0;                                                                        \
+                                                                                              cli_errmsg("ac_findmatch: Unknown metatype 0x%x\n", wc);                          \
+        match = 0;                                                                        \
     }
 
 /* special handler */
 inline static int ac_findmatch_special(const unsigned char *buffer, uint32_t offset, uint32_t bp, uint32_t fileoffset, uint32_t length,
-                                       const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end, int rev)
+        const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end, int rev)
 {
     int match, cmp;
     uint16_t j, b = buffer[bp];
@@ -1216,7 +1216,7 @@ inline static int ac_findmatch_special(const unsigned char *buffer, uint32_t off
 /* state should reset on call, recursion depth = number of alternate specials */
 /* each loop iteration starts on the NEXT sequence to be validated */
 static int ac_backward_match_branch(const unsigned char *buffer, uint32_t bp, uint32_t offset, uint32_t fileoffset, uint32_t length,
-                                    const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end)
+        const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end)
 {
     int match = 0;
     uint16_t wc, i;
@@ -1302,13 +1302,14 @@ static int ac_backward_match_branch(const unsigned char *buffer, uint32_t bp, ui
             return 0;
     }
 
+    //fprintf(stderr, "%s::%d::returning true\n", __FUNCTION__, __LINE__);
     return 1;
 }
 
 /* state should reset on call, recursion depth = number of alternate specials */
 /* each loop iteration starts on the NEXT sequence to validate */
 static int ac_forward_match_branch(const unsigned char *buffer, uint32_t bp, uint32_t offset, uint32_t fileoffset, uint32_t length,
-                                   const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end)
+        const struct cli_ac_patt *pattern, uint32_t pp, uint16_t specialcnt, uint32_t *start, uint32_t *end)
 {
     int match;
     uint16_t wc, i;
@@ -1642,7 +1643,13 @@ inline static int ac_addtype(struct cli_matched_type **list, cli_file_t type, of
         return CL_EMEM;
     }
 
-    tnode->type   = type;
+    if (CL_TYPE_ISO9660 == type){
+        fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__);
+        raise(SIGINT);
+        exit(11);
+    }
+
+    tnode->type_change   = type;
     tnode->offset = offset;
 
     tnode_last = *list;
@@ -1675,10 +1682,10 @@ cl_error_t lsig_sub_matched(const struct cli_matcher *root, struct cli_ac_data *
         }
 
         if (mdata->lsigsuboff_last[lsig_id][subsig_id] != CLI_OFF_NONE &&
-            /* If this isn't the first subsig match for this logical sig and the offset
-               is earlier in the file than the last subsig match, don't count it. */
-            ((!partial && realoff <= mdata->lsigsuboff_last[lsig_id][subsig_id]) ||
-             (partial && realoff < mdata->lsigsuboff_last[lsig_id][subsig_id]))) {
+                /* If this isn't the first subsig match for this logical sig and the offset
+                   is earlier in the file than the last subsig match, don't count it. */
+                ((!partial && realoff <= mdata->lsigsuboff_last[lsig_id][subsig_id]) ||
+                 (partial && realoff < mdata->lsigsuboff_last[lsig_id][subsig_id]))) {
             return CL_SUCCESS;
         }
 
@@ -1705,7 +1712,7 @@ cl_error_t lsig_sub_matched(const struct cli_matcher *root, struct cli_ac_data *
             ls_matches = mdata->lsig_matches[lsig_id];
             if (ls_matches == NULL) { /* allocate cli_lsig_matches */
                 ls_matches = mdata->lsig_matches[lsig_id] = (struct cli_lsig_matches *)cli_calloc(1, sizeof(struct cli_lsig_matches) +
-                                                                                                         (ac_lsig->tdb.subsigs - 1) * sizeof(struct cli_subsig_matches *));
+                        (ac_lsig->tdb.subsigs - 1) * sizeof(struct cli_subsig_matches *));
                 if (ls_matches == NULL) {
                     cli_errmsg("lsig_sub_matched: cli_calloc failed for cli_lsig_matches\n");
                     return CL_EMEM;
@@ -1737,8 +1744,8 @@ cl_error_t lsig_sub_matched(const struct cli_matcher *root, struct cli_ac_data *
     }
 
     if ((tdb->macro_ptids != NULL) &&
-        (tdb->macro_ptids[subsig_id] > 0) &&
-        (mdata->lsigcnt[lsig_id][subsig_id] > 1)) {
+            (tdb->macro_ptids[subsig_id] > 0) &&
+            (mdata->lsigcnt[lsig_id][subsig_id] > 1)) {
         /*
          * This logical signature has a macro subsignature and this current subsignature has a macro following it.
          *
@@ -1767,8 +1774,8 @@ cl_error_t lsig_sub_matched(const struct cli_matcher *root, struct cli_ac_data *
         last_macroprev_match = mdata->lsigsuboff_last[lsig_id][subsig_id];
 
         if (last_macro_match == CLI_OFF_NONE ||
-            last_macroprev_match + smin > last_macro_match ||
-            last_macroprev_match + smax < last_macro_match) {
+                last_macroprev_match + smin > last_macro_match ||
+                last_macroprev_match + smax < last_macro_match) {
             cli_dbgmsg("Canceled false lsig macro match\n");
             /* Previous match was false - cancel it */
             mdata->lsigcnt[lsig_id][subsig_id]--;
@@ -1776,7 +1783,7 @@ cl_error_t lsig_sub_matched(const struct cli_matcher *root, struct cli_ac_data *
         } else {
             /* mark the macro sig itself matched */
             cli_dbgmsg("Checking macro match: %u + (%u - %u) == %u\n",
-                       last_macroprev_match, smin, smax, last_macro_match);
+                    last_macroprev_match, smin, smax, last_macro_match);
 
             mdata->lsigcnt[lsig_id][subsig_id + 1]++;
             mdata->lsigsuboff_last[lsig_id][subsig_id + 1] = last_macro_match;
@@ -1803,18 +1810,18 @@ cl_error_t cli_ac_chkmacro(struct cli_matcher *root, struct cli_ac_data *data, u
 }
 
 cl_error_t cli_ac_scanbuff(
-    const unsigned char *buffer,
-    uint32_t length,
-    const char **virname,
-    void **customdata,
-    struct cli_ac_result **res,
-    const struct cli_matcher *root,
-    struct cli_ac_data *mdata,
-    uint32_t offset,
-    cli_file_t ftype,
-    struct cli_matched_type **ftoffset,
-    unsigned int mode,
-    cli_ctx *ctx)
+        const unsigned char *buffer,
+        uint32_t length,
+        const char **virname,
+        void **customdata,
+        struct cli_ac_result **res,
+        const struct cli_matcher *root,
+        struct cli_ac_data *mdata,
+        uint32_t offset,
+        cli_file_t ftype,
+        struct cli_matched_type **ftoffset,
+        unsigned int mode,
+        cli_ctx *ctx)
 {
     struct cli_ac_node *current;
     struct cli_ac_list *pattN, *ptN;
@@ -1828,6 +1835,12 @@ cl_error_t cli_ac_scanbuff(
     cl_error_t rc;
     cl_error_t ret;
 
+    pt = NULL;
+
+    if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+    if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+    if (CL_TYPE_ISO9660 == ftype){ fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11); }
+
     if (!root->ac_root)
         return CL_CLEAN;
 
@@ -1836,7 +1849,14 @@ cl_error_t cli_ac_scanbuff(
         return CL_ENULLARG;
     }
 
+    if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+    if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+
     current = root->ac_root;
+    if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+    if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+
+    fprintf(stderr, "%s::%d::length = '%d'\n", __FUNCTION__, __LINE__, length);
 
     for (i = 0; i < length; i++) {
         current = current->trans[buffer[i]];
@@ -1845,7 +1865,9 @@ cl_error_t cli_ac_scanbuff(
             struct cli_ac_list *faillist = current->fail->list;
             pattN                        = current->list;
             while (pattN) {
+
                 patt = pattN->me;
+
                 if (patt->partno > mdata->min_partno) {
                     pattN    = faillist;
                     faillist = NULL;
@@ -1872,12 +1894,39 @@ cl_error_t cli_ac_scanbuff(
                     }
                 }
 
+                if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+                if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+
                 ptN = pattN;
+//                fprintf(stderr, "%s::%d::before findmatch\n", __FUNCTION__, __LINE__);
                 if (ac_findmatch(buffer, bp, offset + bp, length, patt, &matchstart, &matchend)) {
+//fprintf(stderr, "%s::%d:: findmatch returned true\n", __FUNCTION__, __LINE__);
+                    if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+                    int whileCnt = 0;
                     while (ptN) {
+                        whileCnt++;
+if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+if ((CL_TYPE_ISO9660 == ptN->me->type)) { 
+    fprintf(stderr, "%s::%d::FOUND IT::whielCnt = %d\n", __FUNCTION__, __LINE__, whileCnt); 
+    fprintf(stderr, "%s::%d::length 0 = %d\n", __FUNCTION__, __LINE__, patt->length[0]); 
+    fprintf(stderr, "%s::%d::length 1 = %d\n", __FUNCTION__, __LINE__, patt->length[1]); 
+    fprintf(stderr, "%s::%d::length 2 = %d\n", __FUNCTION__, __LINE__, patt->length[2]); 
+
+    size_t andy;
+    for (andy = 0; andy < patt->length[0]; andy++){
+        fprintf(stderr, "%d ", patt->pattern[andy]);
+    }
+        fprintf(stderr, "\n");
+
+
+    exit(11);
+} 
+//look at pattern;
                         pt = ptN->me;
-                        if (pt->partno > mdata->min_partno)
+                        if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+                        if (pt->partno > mdata->min_partno) {
                             break;
+                        }
 
                         if ((pt->type && !(mode & AC_SCAN_FT)) || (!pt->type && !(mode & AC_SCAN_VIR))) {
                             ptN = ptN->next_same;
@@ -1913,6 +1962,8 @@ cl_error_t cli_ac_scanbuff(
                             }
                         }
 
+                        if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+                        if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                         if (pt->sigid) { /* it's a partial signature */
 
                             /* if 2nd or later part, confirm some prior part has matched */
@@ -1967,6 +2018,8 @@ cl_error_t cli_ac_scanbuff(
                                         break;
                                 }
                             }
+                            if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+                            if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
 
                             if (pt->partno == 2 && found > 1) {
                                 swp                 = offmatrix[0][1];
@@ -1979,7 +2032,11 @@ cl_error_t cli_ac_scanbuff(
                                     offmatrix[pt->parts - 1][found] = swp;
                                 }
                             }
+                            if (pt && (CL_TYPE_ISO9660 == pt->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+                            if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
 
+                            if (CL_TYPE_ISO9660 == pt->type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
+                        //if ((CL_TYPE_ISO9660 == ptN->me->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                             if (pt->partno == 1 || (found && (pt->partno != pt->parts))) {
                                 if (offmatrix[pt->partno - 1][0] == CLI_DEFAULT_AC_TRACKLEN + 1)
                                     offmatrix[pt->partno - 1][0] = 1; /* wrap, ends up at 2 */
@@ -1989,21 +2046,26 @@ cl_error_t cli_ac_scanbuff(
                                 if (pt->partno == 1) /* save realoff for the first part */
                                     offmatrix[pt->parts - 1][offmatrix[pt->partno - 1][0]] = realoff;
                             } else if (found && pt->partno == pt->parts) {
+                        //if ((CL_TYPE_ISO9660 == ptN->me->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                                 if (pt->type) {
+                                    if (CL_TYPE_ISO9660 == pt->type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
 
                                     if (pt->type == CL_TYPE_IGNORED && (!pt->rtype || ftype == pt->rtype))
                                         return CL_TYPE_IGNORED;
 
                                     if ((pt->type > type || pt->type >= CL_TYPE_SFX || pt->type == CL_TYPE_MSEXE) &&
-                                        (pt->rtype == CL_TYPE_ANY || ftype == pt->rtype)) {
+                                            (pt->rtype == CL_TYPE_ANY || ftype == pt->rtype)) {
 
                                         cli_dbgmsg("Matched signature for file type %s\n", pt->virname);
+                                        if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                                         type = pt->type;
+                                        if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                                         if ((ftoffset != NULL) &&
-                                            ((*ftoffset == NULL) || (*ftoffset)->cnt < MAX_EMBEDDED_OBJ || type == CL_TYPE_ZIPSFX) && (type >= CL_TYPE_SFX || ((ftype == CL_TYPE_MSEXE || ftype == CL_TYPE_ZIP || ftype == CL_TYPE_MSOLE2) && type == CL_TYPE_MSEXE))) {
+                                                ((*ftoffset == NULL) || (*ftoffset)->cnt < MAX_EMBEDDED_OBJ || type == CL_TYPE_ZIPSFX) && (type >= CL_TYPE_SFX || ((ftype == CL_TYPE_MSEXE || ftype == CL_TYPE_ZIP || ftype == CL_TYPE_MSOLE2) && type == CL_TYPE_MSEXE))) {
                                             /* FIXME: the first offset in the array is most likely the correct one but
                                              * it may happen it is not
                                              */
+                                            if (CL_TYPE_ISO9660 == type) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                                             for (j = 1; j <= CLI_DEFAULT_AC_TRACKLEN + 1 && offmatrix[0][j] != (uint32_t)-1; j++)
                                                 if (ac_addtype(ftoffset, type, offmatrix[pt->parts - 1][j], ctx))
                                                     return CL_EMEM;
@@ -2057,17 +2119,18 @@ cl_error_t cli_ac_scanbuff(
                             }
 
                         } else { /* old type signature */
+                        //if ((CL_TYPE_ISO9660 == ptN->me->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                             if (pt->type) {
                                 if (pt->type == CL_TYPE_IGNORED && (pt->rtype == CL_TYPE_ANY || ftype == pt->rtype))
                                     return CL_TYPE_IGNORED;
 
                                 if ((pt->type > type || pt->type >= CL_TYPE_SFX || pt->type == CL_TYPE_MSEXE) &&
-                                    (pt->rtype == CL_TYPE_ANY || ftype == pt->rtype)) {
+                                        (pt->rtype == CL_TYPE_ANY || ftype == pt->rtype)) {
 
                                     cli_dbgmsg("Matched signature for file type %s at %u\n", pt->virname, realoff);
                                     type = pt->type;
                                     if ((ftoffset != NULL) &&
-                                        ((*ftoffset == NULL) || (*ftoffset)->cnt < MAX_EMBEDDED_OBJ || type == CL_TYPE_ZIPSFX) && (type == CL_TYPE_MBR || type >= CL_TYPE_SFX || ((ftype == CL_TYPE_MSEXE || ftype == CL_TYPE_ZIP || ftype == CL_TYPE_MSOLE2) && type == CL_TYPE_MSEXE))) {
+                                            ((*ftoffset == NULL) || (*ftoffset)->cnt < MAX_EMBEDDED_OBJ || type == CL_TYPE_ZIPSFX) && (type == CL_TYPE_MBR || type >= CL_TYPE_SFX || ((ftype == CL_TYPE_MSEXE || ftype == CL_TYPE_ZIP || ftype == CL_TYPE_MSOLE2) && type == CL_TYPE_MSEXE))) {
 
                                         if (ac_addtype(ftoffset, type, realoff, ctx))
                                             return CL_EMEM;
@@ -2118,7 +2181,9 @@ cl_error_t cli_ac_scanbuff(
                                 }
                             }
                         }
+                        //if ((CL_TYPE_ISO9660 == ptN->me->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                         ptN = ptN->next_same;
+                        //if ((CL_TYPE_ISO9660 == ptN->me->type)) { fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11);} 
                     }
                 }
                 pattN = pattN->next;
@@ -2128,6 +2193,9 @@ cl_error_t cli_ac_scanbuff(
 
     if (viruses_found)
         return CL_VIRUS;
+
+    if (CL_TYPE_ISO9660 == ftype){ fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11); }
+    if (CL_TYPE_ISO9660 == type){ fprintf(stderr, "%s::%d::FOUND IT\n", __FUNCTION__, __LINE__); exit(11); }
 
     return (mode & AC_SCAN_FT) ? type : CL_CLEAN;
 }
@@ -3003,7 +3071,7 @@ cl_error_t cli_ac_addsig(struct cli_matcher *root, const char *virname, const ch
 
                 // Check if the starting bytes at this offset are both non-zero.  If they are, then that's even better.
                 if ((0 != new->pattern[ppos]) ||
-                    ((new->length[0] > ppos + 1) && (0 != new->pattern[ppos + 1]))) {
+                        ((new->length[0] > ppos + 1) && (0 != new->pattern[ppos + 1]))) {
                     // At least one of the first two bytes is non-zero which would be better than starting with two zeroes.
 
                     if (plen >= root->ac_maxdepth) {
@@ -3027,9 +3095,9 @@ cl_error_t cli_ac_addsig(struct cli_matcher *root, const char *virname, const ch
         }
 
         if ((0 != nzplen) &&
-            (new->length[0] > ppos + 1) &&
-            (0 == new->pattern[ppos]) &&
-            (0 == new->pattern[ppos + 1])) {
+                (new->length[0] > ppos + 1) &&
+                (0 == new->pattern[ppos]) &&
+                (0 == new->pattern[ppos + 1])) {
             // The latest shifted position starts with two zeroes.
             // We found a valid static pattern earlier that doesn't start with two zeroes.
             // Let's roll back a little bit to use that instead.
@@ -3116,8 +3184,8 @@ cl_error_t cli_ac_addsig(struct cli_matcher *root, const char *virname, const ch
     }
 
     if ((new->offdata[0] != CLI_OFF_ANY) &&
-        (new->offdata[0] != CLI_OFF_ABSOLUTE) &&
-        (new->offdata[0] != CLI_OFF_MACRO)) {
+            (new->offdata[0] != CLI_OFF_ABSOLUTE) &&
+            (new->offdata[0] != CLI_OFF_MACRO)) {
 
         root->ac_reloff = (struct cli_ac_patt **)MPOOL_REALLOC2(root->mempool, root->ac_reloff, (root->ac_reloff_num + 1) * sizeof(struct cli_ac_patt *));
         if (!root->ac_reloff) {

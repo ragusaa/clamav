@@ -3337,7 +3337,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                     }
                     json_object_array_add(arrobj, ctx->wrkproperty);
 
-                    ret = cli_jsonstr(ctx->wrkproperty, "FileType", cli_ftname(fpt->type));
+                    ret = cli_jsonstr(ctx->wrkproperty, "FileType", cli_ftname(fpt->type_change));
                     if (ret != CL_SUCCESS) {
                         cli_errmsg("scanraw: failed to add string to json object\n");
                         nret = CL_EMEM;
@@ -3359,7 +3359,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                  * Do this at all fmap layers. Though we should only reassign the types
                  * if the current type makes sense for the reassignment.
                  */
-                switch (fpt->type) {
+                switch (fpt->type_change) {
                     case CL_TYPE_MHTML:
                         if (SCAN_PARSE_MAIL && (DCONF_MAIL & MAIL_CONF_MBOX)) {
                             if ((ctx->recursion_stack[ctx->recursion_level].type >= CL_TYPE_TEXT_ASCII) &&
@@ -3368,7 +3368,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                                 // misidentified as BINARY_DATA by cli_compare_ftm_file()
 
                                 // Reassign type of current layer based on what we discovered
-                                cli_recursion_stack_change_type(ctx, fpt->type);
+                                cli_recursion_stack_change_type(ctx, fpt->type_change);
 
                                 cli_dbgmsg("MHTML signature found at %u\n", (unsigned int)fpt->offset);
                                 nret = ret = cli_scanmail(ctx);
@@ -3384,7 +3384,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                                 // misidentified as BINARY_DATA by cli_compare_ftm_file()
 
                                 // Reassign type of current layer based on what we discovered
-                                cli_recursion_stack_change_type(ctx, fpt->type);
+                                cli_recursion_stack_change_type(ctx, fpt->type_change);
 
                                 cli_dbgmsg("XDP signature found at %u\n", (unsigned int)fpt->offset);
                                 nret = ret = cli_scanxdp(ctx);
@@ -3400,7 +3400,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                                 // misidentified as BINARY_DATA by cli_compare_ftm_file()
 
                                 // Reassign type of current layer based on what we discovered
-                                cli_recursion_stack_change_type(ctx, fpt->type);
+                                cli_recursion_stack_change_type(ctx, fpt->type_change);
 
                                 cli_dbgmsg("XML-WORD signature found at %u\n", (unsigned int)fpt->offset);
                                 nret = ret = cli_scanmsxml(ctx);
@@ -3415,7 +3415,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                                 // misidentified as BINARY_DATA by cli_compare_ftm_file()
 
                                 // Reassign type of current layer based on what we discovered
-                                cli_recursion_stack_change_type(ctx, fpt->type);
+                                cli_recursion_stack_change_type(ctx, fpt->type_change);
 
                                 cli_dbgmsg("XML-XL signature found at %u\n", (unsigned int)fpt->offset);
                                 nret = ret = cli_scanmsxml(ctx);
@@ -3430,7 +3430,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                                 // misidentified as BINARY_DATA by cli_compare_ftm_file()
 
                                 // Reassign type of current layer based on what we discovered
-                                cli_recursion_stack_change_type(ctx, fpt->type);
+                                cli_recursion_stack_change_type(ctx, fpt->type_change);
 
                                 cli_dbgmsg("XML-HWP signature found at %u\n", (unsigned int)fpt->offset);
                                 nret = ret = cli_scanhwpml(ctx);
@@ -3444,7 +3444,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                             // if ((ctx->recursion_stack[ctx->recursion_level].type == CL_TYPE_BZIP2) || ...))
                             {
                                 // Reassign type of current layer based on what we discovered
-                                cli_recursion_stack_change_type(ctx, fpt->type);
+                                cli_recursion_stack_change_type(ctx, fpt->type_change);
 
                                 cli_dbgmsg("DMG signature found at %u\n", (unsigned int)fpt->offset);
                                 nret = cli_scandmg(ctx);
@@ -3453,12 +3453,13 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                         break;
 
                     case CL_TYPE_ISO9660:
+                        //here;
                         if (SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_ISO9660)) {
                             // TODO: determine all types that ISO9660 may start with
                             // if ((ctx->recursion_stack[ctx->recursion_level].type == CL_TYPE_ANY) || ...))
                             {
                                 // Reassign type of current layer based on what we discovered
-                                cli_recursion_stack_change_type(ctx, fpt->type);
+                                cli_recursion_stack_change_type(ctx, fpt->type_change);
 
                                 cli_dbgmsg("DMG signature found at %u\n", (unsigned int)fpt->offset);
                                 nret = cli_scaniso(ctx, fpt->offset);
@@ -3515,11 +3516,11 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
                      * more than once when recursing with embedded file type recognition
                      * deeper within the same buffer.
                      */
-                    cli_dbgmsg("%s signature found at %u\n", cli_ftname(fpt->type), (unsigned int)fpt->offset);
+                    cli_dbgmsg("%s signature found at %u\n", cli_ftname(fpt->type_change), (unsigned int)fpt->offset);
 
                     type_has_been_handled = true;
 
-                    switch (fpt->type) {
+                    switch (fpt->type_change) {
                         case CL_TYPE_RARSFX:
                             if (type != CL_TYPE_RAR && have_rar && SCAN_PARSE_ARCHIVE && (DCONF_ARCH & ARCH_CONF_RAR)) {
 
@@ -3837,7 +3838,7 @@ static cl_error_t scanraw(cli_ctx *ctx, cli_file_t type, uint8_t typercg, cli_fi
 
                         default:
                             type_has_been_handled = false;
-                            cli_dbgmsg("scanraw: Type %u not handled in fpt loop\n", fpt->type);
+                            cli_dbgmsg("scanraw: Type %u not handled in fpt loop\n", fpt->type_change);
                     }
 
                     if (NULL != new_map) {

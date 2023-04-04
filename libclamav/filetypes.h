@@ -139,7 +139,7 @@ struct cli_ftype {
 struct cli_matched_type {
     struct cli_matched_type *next;
     off_t offset;
-    cli_file_t type;
+    cli_file_t type_change;
     unsigned short cnt;
 };
 

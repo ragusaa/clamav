@@ -267,6 +267,7 @@ cl_error_t cli_scaniso(cli_ctx *ctx, size_t offset)
             case 0x40: /* Level 1 */
                 iso.joliet = 1;
                 break;
+                /*Could be here???*/
             case 0x43: /* Level 2 */
                 iso.joliet = 2;
                 break;
