@@ -3,6 +3,9 @@
 import sys
 import binascii
 
+#01 43 44 30 30 31
+#consistently found at offset 32768 
+
 if 2 >= len(sys.argv):
     print (f"usage: {sys.argv[0]} <infile> <byte 0> <byte 1> ...")
     exit(1)
