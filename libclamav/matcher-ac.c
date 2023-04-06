@@ -1809,6 +1809,12 @@ cl_error_t cli_ac_chkmacro(struct cli_matcher *root, struct cli_ac_data *data, u
     return CL_SUCCESS;
 }
 
+/*The  pattern they are searching for is 
+ *
+ *
+    "1:*:014344303031{2043-2443}4344303031:ISO9660:CL_TYPE_ANY:CL_TYPE_ISO9660:71",
+ *
+ * */
 cl_error_t cli_ac_scanbuff(
         const unsigned char *buffer,
         uint32_t length,
@@ -1918,6 +1924,10 @@ if ((CL_TYPE_ISO9660 == ptN->me->type)) {
     }
         fprintf(stderr, "\n");
 
+    for (andy = 0; andy < patt->length[0]; andy++){
+        fprintf(stderr, "%02x ", patt->pattern[andy]);
+    }
+        fprintf(stderr, "\n");
 
     exit(11);
 } 
