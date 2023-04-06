@@ -18,11 +18,11 @@ inFileData = f.read()
 f.close()
 
 NUM_BYTES_AFTER = 12
-NUM_BYTES_AFTER = 255
+NUM_BYTES_AFTER = 32
 
 for searchIdx in idxs:
-    print (f"Dumping data around {searchIdx}")
-    print (binascii.hexlify(inFileData[searchIdx:searchIdx+NUM_BYTES_AFTER], ' '))
+    print (f"{inFile}::%s" % binascii.hexlify(inFileData[searchIdx:searchIdx+NUM_BYTES_AFTER], ' '))
+    #print (binascii.hexlify(inFileData[searchIdx:searchIdx+NUM_BYTES_AFTER], ' '))
 
 
 
