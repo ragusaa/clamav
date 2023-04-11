@@ -5,6 +5,7 @@ import binascii
 
 #01 43 44 30 30 31
 #consistently found at offset 32768 
+#files that don't have it are 00 42 45 41 30 31 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 
 if 2 >= len(sys.argv):
     print (f"usage: {sys.argv[0]} <infile> <byte 0> <byte 1> ...")
