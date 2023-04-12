@@ -1,0 +1,39 @@
+ISO files always have the header start at offset 32768.  The bytes before that
+are zeros.
+
+The samples I have looked at (only a few) have the 
+first file                          index 602112 (0x93000)
+second file                         index 604160 (0x93800)
+
+
+file 
+name = kd9o.dll 
+size = 383488
+kd9o.dll in hex (unicode)
+6b 00 64 00 39 00 6f 00 2e 00 64 00 6c 00 6c 00
+Found at 596116 
+Found at 602693
+
+name =  documents.lnk
+hex 64 00 6f 00 63 00 75 00 6d 00 65 00 6e 00 74 00 73 00 2e 00 6c 00 6e 00 6b 00 
+Found at 596048
+
+
+size = 
+00 da 05 00
+Found at 600120
+Found at 600240
+
+
+
+
+
+
+
+
+
+
+
+
+
+UDF (Universal Disk Format) file.  The volume descriptor is BEA01 instead of CD001.
