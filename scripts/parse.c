@@ -262,7 +262,7 @@ int parseFile(const char * const fileName){
     int andy = 0;
 #endif
     for (i = EMPTY_LEN; i < dataLen; i+= VOLUME_DESCRIPTOR_SIZE){
-        if (parseVolumeDescriptor(&(data[i ]), i/VOLUME_DESCRIPTOR_SIZE)){
+        if (parseVolumeDescriptor(&(data[i ]), (i - EMPTY_LEN)/VOLUME_DESCRIPTOR_SIZE)){
             goto done;
         }
 
