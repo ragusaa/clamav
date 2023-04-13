@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <assert.h>
+
 int readData(const char * const fileName, uint8_t ** data, size_t * dataLen){
     int ret = -1;
     FILE * fp = NULL;
@@ -66,6 +68,7 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     int ret = -1;
     int allZeros = 1;
     int terminator = 0;
+    char identifier[6];
 
     printf("Volume Descriptor '");
 
@@ -112,11 +115,26 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     /*TODO: According to the spec, there are only a select number of values, but some of
      * my samples have other stuff in there.  determine whether or not it is necessary / suspicious to
      * validate these strings.*/
-    printf("Identifier '");
     for (i = 0; i < 5; i++){
-        printf("%c", data[parseIdx++]);
+        identifier[i] = data[parseIdx++];
     }
-    printf("'\n");
+    identifier[5] = 0;
+    printf("Identifier '%s'\n", identifier);
+    if (0 == strcmp("BEA01", identifier)){
+        handleBEA01();
+    } else if (0 == strcmp("BOOT2", identifier)){
+        assert (0 && "NOT HANDLED");
+    } else if (0 == strcmp("CD001", identifier)){
+        assert (0 && "NOT HANDLED");
+    } else if (0 == strcmp("CDW02", identifier)){
+        assert (0 && "NOT HANDLED");
+    } else if (0 == strcmp("NSR02", identifier)){
+        assert (0 && "NOT HANDLED");
+    } else if (0 == strcmp("NSR03", identifier)){
+        assert (0 && "NOT HANDLED");
+    } else if (0 == strcmp("TEA01", identifier)){
+        assert (0 && "NOT HANDLED");
+    }
 
     printf("Version (Should always be zero) '");
     printf("%d'\n", data[parseIdx]);
