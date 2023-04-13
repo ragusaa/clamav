@@ -160,7 +160,11 @@ int parseVolumeDescriptor(const uint8_t * const data) {
             break;
         default:
             printf("Invalid Volume Descriptor '%d (0x%x)\n", data[parseIdx], data[parseIdx]);
+#if 0
             goto done;
+#else
+            printf("NOT going to done so that I can figure out what is going on here\n");
+#endif
     }
     printf("'\n");
 
