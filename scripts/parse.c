@@ -59,25 +59,25 @@ done:
 
 
 void handleBEA01(const uint8_t* const data){
-    printf("Unimplemented\n"); exit(11);
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(11);
 }
         void handleBOOT2(const uint8_t* const data){ 
-    printf("Unimplemented\n"); exit(11);
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(11);
         }
         void handleCD001(const uint8_t* const data){
-        printf("Unimplemented\n"); exit(1);
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
         }
         void handleCDW02(const uint8_t* const data){
-        printf("Unimplemented\n"); exit(1);
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
         }
         void handleNSR02(const uint8_t* const data){
-        printf("Unimplemented\n"); exit(1);
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
         }
         void handleNSR03(const uint8_t* const data){
-        printf("Unimplemented\n"); exit(1);
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
         }
         void handleTEA01(const uint8_t* const data){
-        printf("Unimplemented\n"); exit(1);
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
         }
 
 
