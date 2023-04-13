@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <assert.h>
 
@@ -55,6 +56,12 @@ done:
     }
     return ret;
 }
+
+
+void handleBEA01(const uint8_t* const data){
+}
+
+
 
 //https://en.wikipedia.org/wiki/ISO_9660
 #define EMPTY_LEN 32768
@@ -121,7 +128,7 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     identifier[5] = 0;
     printf("Identifier '%s'\n", identifier);
     if (0 == strcmp("BEA01", identifier)){
-        handleBEA01();
+        handleBEA01(data);
     } else if (0 == strcmp("BOOT2", identifier)){
         assert (0 && "NOT HANDLED");
     } else if (0 == strcmp("CD001", identifier)){
