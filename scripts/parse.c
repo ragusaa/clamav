@@ -59,7 +59,26 @@ done:
 
 
 void handleBEA01(const uint8_t* const data){
+    printf("Unimplemented\n"); exit(11);
 }
+        void handleBOOT2(const uint8_t* const data){ 
+    printf("Unimplemented\n"); exit(11);
+        }
+        void handleCD001(const uint8_t* const data){
+        printf("Unimplemented\n"); exit(1);
+        }
+        void handleCDW02(const uint8_t* const data){
+        printf("Unimplemented\n"); exit(1);
+        }
+        void handleNSR02(const uint8_t* const data){
+        printf("Unimplemented\n"); exit(1);
+        }
+        void handleNSR03(const uint8_t* const data){
+        printf("Unimplemented\n"); exit(1);
+        }
+        void handleTEA01(const uint8_t* const data){
+        printf("Unimplemented\n"); exit(1);
+        }
 
 
 
@@ -131,17 +150,17 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     if (0 == strcmp("BEA01", identifier)){
         handleBEA01(data);
     } else if (0 == strcmp("BOOT2", identifier)){
-        assert (0 && "NOT HANDLED");
+        handleBOOT2(data);
     } else if (0 == strcmp("CD001", identifier)){
-        assert (0 && "NOT HANDLED");
+        handleCD001(data);
     } else if (0 == strcmp("CDW02", identifier)){
-        assert (0 && "NOT HANDLED");
+        handleCDW02(data);
     } else if (0 == strcmp("NSR02", identifier)){
-        assert (0 && "NOT HANDLED");
+        handleNSR02(data);
     } else if (0 == strcmp("NSR03", identifier)){
-        assert (0 && "NOT HANDLED");
+        handleNSR03(data);
     } else if (0 == strcmp("TEA01", identifier)){
-        assert (0 && "NOT HANDLED");
+        handleTEA01(data);
     }
 
     printf("Version (Should always be zero) '");
