@@ -65,11 +65,29 @@ done:
  * */
 void handleBEA01(const uint8_t* const data){
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.2
-    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
+
+    printf("%s::%d::Verify All Zeros\n", __FUNCTION__, __LINE__);
 }
-        void handleBOOT2(const uint8_t* const data){ 
+        int handleBOOT2(const uint8_t* const data){ 
+
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.4
+
+
+            int ret = -1;
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
+    exit(1);
+
+    size_t idx = 0;
+    if (0 != data[idx]){
+        printf("%s::%d::Invalid Structure type of '%d (0x%x)'\n", __FUNCTION__, __LINE__, data[idx], data[idx]);
+        goto done;
+    }
+
+
+
+ret = 0;
+done:
+return ret;
         }
         void handleCD001(const uint8_t* const data){
             //ECMA-119
@@ -141,7 +159,7 @@ int parseVolumeDescriptor(const uint8_t * const data) {
         printf("%d", data[parseIdx]);
         break;
         default:
-        printf("Invalid Volume Descriptor'\n");
+        printf("Invalid Volume Descriptor '%d (0x%x)\n", data[parseIdx], data[parseIdx]);
         goto done;
     }
     printf("'\n");
