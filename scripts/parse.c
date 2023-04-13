@@ -58,26 +58,43 @@ done:
 }
 
 
+/*
+ * BEA01
+ * Beginning Extended Area Descriptor
+ *
+ * */
 void handleBEA01(const uint8_t* const data){
-    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(11);
+    //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.2
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
         void handleBOOT2(const uint8_t* const data){ 
-    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(11);
+    //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.4
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
         }
         void handleCD001(const uint8_t* const data){
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
+            //ECMA-119
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
         }
         void handleCDW02(const uint8_t* const data){
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
+            //ECMA-168
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
         }
         void handleNSR02(const uint8_t* const data){
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
+            //section 3/9.1 of ECMA167/2
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
         }
         void handleNSR03(const uint8_t* const data){
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
+            //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf    section 3/9.1
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
         }
-        void handleTEA01(const uint8_t* const data){
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(1);
+/*
+ * TEA01
+ * 
+ * Terminating Extencded Area Descriptor
+ */
+void handleTEA01(const uint8_t* const data){
+    //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.3
+        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
         }
 
 
