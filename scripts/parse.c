@@ -118,7 +118,7 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     }
     printf("'\n");
 
-    printf("Version '");
+    printf("Version (Should always be zero) '");
     printf("%d'\n", data[parseIdx]);
     parseIdx += 1;
 
@@ -145,6 +145,7 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     ret = 0;
     }
 done:
+    printf("\n");
     return ret;
 
 
