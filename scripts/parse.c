@@ -5,6 +5,19 @@
 
 #include <assert.h>
 
+
+
+//https://en.wikipedia.org/wiki/ISO_9660
+#define EMPTY_LEN 32768
+
+#define VOLUME_DESCRIPTOR_SIZE 0x800
+#define DATA_LEN 2041
+//https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
+
+#define PRIMARY_VOLUME_DESCRIPTOR 1
+
+
+
 int readData(const char * const fileName, uint8_t ** data, size_t * dataLen){
     int ret = -1;
     FILE * fp = NULL;
@@ -119,13 +132,15 @@ void handleTEA01(const uint8_t* const data){
 }
 
 
+void handlePrimaryVolumeDescriptor( const uint8_t * const data) {
+    size_t i;
+    for (i = 0; i < VOLUME_DESCRIPTOR_SIZE ; i++){
+        printf("%02x ", data[i]);
+        }
+    printf("\n");
+}
 
-//https://en.wikipedia.org/wiki/ISO_9660
-#define EMPTY_LEN 32768
 
-#define VOLUME_DESCRIPTOR_SIZE 0x800
-#define DATA_LEN 2041
-//https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
 
 int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
     size_t parseIdx = 0;
@@ -134,6 +149,16 @@ int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
     int allZeros = 1;
     int terminator = 0;
     char identifier[6];
+    uint8_t volumeDescriptorType = data[parseIdx];
+
+
+    /**/
+    if (PRIMARY_VOLUME_DESCRIPTOR == volumeDescriptorType){
+        handlePrimaryVolumeDescriptor(data);
+    }
+
+
+
 
     printf("Volume Descriptor %lu\n", sectorNumber);
 
@@ -145,7 +170,7 @@ int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
     }
 #endif
     printf("Type '");
-    switch (data[parseIdx]){
+    switch (volumeDescriptorType){
         case 255:
             printf("Terminator");
             terminator = 1;
@@ -154,15 +179,16 @@ int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
             printf("Primary Volume Descriptor");
             break;
         case 0:
+            /*Used in section 2.*/
             /*fall-through*/
         case 2:
             /*fall-through*/
         case 3:
 
-            printf("%d", data[parseIdx]);
+            printf("%d", volumeDescriptorType);
             break;
         default:
-            printf("Invalid Volume Descriptor '%d (0x%x)\n", data[parseIdx], data[parseIdx]);
+            printf("Invalid Volume Descriptor '%d (0x%x)\n", volumeDescriptorType , volumeDescriptorType);
 #if 0
             goto done;
 #else
