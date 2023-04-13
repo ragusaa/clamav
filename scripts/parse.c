@@ -98,6 +98,9 @@ void handleCDW02(const uint8_t* const data){
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
 void handleNSR02(const uint8_t* const data){
+    /*allow NSR02 in reading, but should be similar to NSR03?  Just a version number change, but don't know 
+     * what else actually changed.
+     */
     //section 3/9.1 of ECMA167/2
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
@@ -124,7 +127,7 @@ void handleTEA01(const uint8_t* const data){
 #define DATA_LEN 2041
 //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
 
-int parseVolumeDescriptor(const uint8_t * const data) {
+int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
     size_t parseIdx = 0;
     size_t i = 0;
     int ret = -1;
@@ -132,7 +135,7 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     int terminator = 0;
     char identifier[6];
 
-    printf("Volume Descriptor '");
+    printf("Volume Descriptor %lu\n", sectorNumber);
 
 #if 0
     if (255 == data[parseIdx]){
@@ -202,7 +205,7 @@ int parseVolumeDescriptor(const uint8_t * const data) {
         handleTEA01(data);
     }
 
-    printf("Version (Should always be zero) '");
+    printf("Version (Should always be one) '");
     printf("%d'\n", data[parseIdx]);
     parseIdx += 1;
 
@@ -259,7 +262,7 @@ int parseFile(const char * const fileName){
     int andy = 0;
 #endif
     for (i = EMPTY_LEN; i < dataLen; i+= VOLUME_DESCRIPTOR_SIZE){
-        if (parseVolumeDescriptor(&(data[i ]))){
+        if (parseVolumeDescriptor(&(data[i ]), i/VOLUME_DESCRIPTOR_SIZE)){
             goto done;
         }
 
