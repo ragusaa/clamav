@@ -109,6 +109,9 @@ int parseVolumeDescriptor(const uint8_t * const data) {
      */
     parseIdx += 1;
 
+    /*TODO: According to the spec, there are only a select number of values, but some of
+     * my samples have other stuff in there.  determine whether or not it is necessary / suspicious to
+     * validate these strings.*/
     printf("Identifier '");
     for (i = 0; i < 5; i++){
         printf("%c", data[parseIdx++]);
