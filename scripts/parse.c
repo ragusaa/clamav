@@ -58,16 +58,47 @@ done:
 #define EMPTY_LEN 32768
 
 #define VOLUME_DESCRIPTOR_SIZE 0x800
+#define DATA_LEN 2041
 
 int parseVolumeDescriptor(const uint8_t * const data) {
     size_t parseIdx = 0;
     size_t i = 0;
     int ret = -1;
+    int allZeros = 1;
+    int terminator = 0;
 
-    printf("Volume Descriptor\n");
+    printf("Volume Descriptor '");
 
-    printf("Type\n");
-    printf("%d\n", data[parseIdx]);
+#if 0
+    if (255 == data[parseIdx]){
+        terminator = 1;
+    } else if (1 == data[parseIdx]){
+        printf("Primary Volume Descriptor ");
+    }
+#endif
+    printf("Type '");
+    switch (data[parseIdx]){
+        case 255:
+        printf("Terminator");
+        terminator = 1;
+        break;
+        case 1:
+        printf("Primary Volume Descriptor");
+        break;
+        case 0:
+        /*fall-through*/
+        case 2:
+        /*fall-through*/
+        case 3:
+
+        printf("%d", data[parseIdx]);
+        break;
+        default:
+        printf("Invalid Volume Descriptor'\n");
+        goto done;
+    }
+    printf("'\n");
+
     /*
      * 0	Boot record volume descriptor
      * 1	Primary volume descriptor
@@ -78,28 +109,38 @@ int parseVolumeDescriptor(const uint8_t * const data) {
      */
     parseIdx += 1;
 
-    printf("Identifier\n");
+    printf("Identifier '");
     for (i = 0; i < 5; i++){
         printf("%c", data[parseIdx++]);
     }
-    printf("\n");
+    printf("'\n");
 
-    printf("Version\n");
-    printf("%d\n", data[parseIdx]);
+    printf("Version '");
+    printf("%d'\n", data[parseIdx]);
     parseIdx += 1;
 
-    printf("Data\n");
-    for (i = 0; i < 2041; i++){
-        if (0 != data[parseIdx]){
-            printf("idx = '%ld', %02x\n", parseIdx, data[parseIdx]);
-            goto done;
+    printf("Data '");
+    allZeros = 1;
+    for (i = 0; i < DATA_LEN; i++){
+        if (0 != data[parseIdx + i]){
+            allZeros = 0;
+            break;
         }
-
-        parseIdx++;
     }
-    printf("All zeros\n");
+    if (allZeros){
+        printf("All zeros");
+        parseIdx += DATA_LEN;
+    } else {
 
+        for (i = 0; i < DATA_LEN; i++){
+            printf("%02x ", data[parseIdx++]);
+        }
+    }
+        printf("'\n");
+
+    if (0 == terminator){
     ret = 0;
+    }
 done:
     return ret;
 
@@ -154,13 +195,13 @@ int parseFile(const char * const fileName){
 
 
 
-ret = 0;
+    ret = 0;
 
 done:
-if (data){
-    free(data);
-}
-return ret;
+    if (data){
+        free(data);
+    }
+    return ret;
 }
 
 int main(int argc, char ** argv){
