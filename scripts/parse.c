@@ -68,12 +68,12 @@ void handleBEA01(const uint8_t* const data){
 
     printf("%s::%d::Verify All Zeros\n", __FUNCTION__, __LINE__);
 }
-        int handleBOOT2(const uint8_t* const data){ 
+int handleBOOT2(const uint8_t* const data){ 
 
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.4
 
 
-            int ret = -1;
+    int ret = -1;
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
     exit(1);
 
@@ -85,26 +85,26 @@ void handleBEA01(const uint8_t* const data){
 
 
 
-ret = 0;
+    ret = 0;
 done:
-return ret;
-        }
-        void handleCD001(const uint8_t* const data){
-            //ECMA-119
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
-        }
-        void handleCDW02(const uint8_t* const data){
-            //ECMA-168
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
-        }
-        void handleNSR02(const uint8_t* const data){
-            //section 3/9.1 of ECMA167/2
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
-        }
-        void handleNSR03(const uint8_t* const data){
-            //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf    section 3/9.1
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
-        }
+    return ret;
+}
+void handleCD001(const uint8_t* const data){
+    //ECMA-119
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
+}
+void handleCDW02(const uint8_t* const data){
+    //ECMA-168
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
+}
+void handleNSR02(const uint8_t* const data){
+    //section 3/9.1 of ECMA167/2
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
+}
+void handleNSR03(const uint8_t* const data){
+    //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf    section 3/9.1
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
+}
 /*
  * TEA01
  * 
@@ -112,8 +112,8 @@ return ret;
  */
 void handleTEA01(const uint8_t* const data){
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.3
-        printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
-        }
+    printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
+}
 
 
 
@@ -144,23 +144,23 @@ int parseVolumeDescriptor(const uint8_t * const data) {
     printf("Type '");
     switch (data[parseIdx]){
         case 255:
-        printf("Terminator");
-        terminator = 1;
-        break;
+            printf("Terminator");
+            terminator = 1;
+            break;
         case 1:
-        printf("Primary Volume Descriptor");
-        break;
+            printf("Primary Volume Descriptor");
+            break;
         case 0:
-        /*fall-through*/
+            /*fall-through*/
         case 2:
-        /*fall-through*/
+            /*fall-through*/
         case 3:
 
-        printf("%d", data[parseIdx]);
-        break;
+            printf("%d", data[parseIdx]);
+            break;
         default:
-        printf("Invalid Volume Descriptor '%d (0x%x)\n", data[parseIdx], data[parseIdx]);
-        goto done;
+            printf("Invalid Volume Descriptor '%d (0x%x)\n", data[parseIdx], data[parseIdx]);
+            goto done;
     }
     printf("'\n");
 
@@ -219,10 +219,10 @@ int parseVolumeDescriptor(const uint8_t * const data) {
             printf("%02x ", data[parseIdx++]);
         }
     }
-        printf("'\n");
+    printf("'\n");
 
     if (0 == terminator){
-    ret = 0;
+        ret = 0;
     }
 done:
     printf("\n");
