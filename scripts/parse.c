@@ -68,6 +68,7 @@ void handleBEA01(const uint8_t* const data){
 
 #define VOLUME_DESCRIPTOR_SIZE 0x800
 #define DATA_LEN 2041
+//https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
 
 int parseVolumeDescriptor(const uint8_t * const data) {
     size_t parseIdx = 0;
