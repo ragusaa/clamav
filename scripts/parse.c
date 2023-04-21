@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <assert.h>
+#include <arpa/inet.h>
 
 
 
@@ -132,12 +133,359 @@ void handleTEA01(const uint8_t* const data){
 }
 
 
+/* 
+ * https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
+ * section 3/7.2 */
+typedef struct __attribute__((packed)) { 
+    uint16_t tagId;
+    uint16_t descriptorVersion;
+    uint8_t checksum;
+    uint8_t reserved;
+    uint16_t serialNumber;
+    uint16_t descriptorCRC;
+    uint16_t descriptorCRCLength;
+    uint32_t tagLocation;
+} DescriptorTag;
+
+void copyTag(DescriptorTag * dst, DescriptorTag * src){
+#if 0
+    dst->tagId = ntohs(src->tagId);
+    dst->descriptorVersion = ntohs(src->descriptorVersion);
+    dst->checksum = src->checksum;
+    dst->reserved = src->reserved;
+    dst->serialNumber = ntohs(src->serialNumber);
+    dst->descriptorCRC = ntohs(src->descriptorCRC);
+    dst->descriptorCRCLength = ntohs(src->descriptorCRCLength);
+    dst->tagLocation = ntohl(src->tagLocation);
+#else
+    printf("Byte order is Little Endian, handle byte order\n");
+    memcpy(dst, src, sizeof(DescriptorTag));
+#endif
+}
+
+void dumpTag(DescriptorTag * dt){
+    printf("TagId = %d (0x%x)\n", dt->tagId, dt->tagId);
+    printf("Version = %d (0x%x)\n", dt->descriptorVersion, dt->descriptorVersion);
+    printf("Checksum = %d (0x%x)\n", dt->checksum, dt->checksum);
+    printf("Serial Number = %d (0x%x)\n", dt->serialNumber, dt->serialNumber);
+    
+    printf("Descriptor CRC = %d (0x%x)\n", dt->descriptorCRC, dt->descriptorCRC);
+    printf("Descriptor CRC Length = %d (0x%x)\n", dt->descriptorCRCLength, dt->descriptorCRCLength);
+    printf("Tag Location = %d (0x%x)\n", dt->tagLocation, dt->tagLocation);
+}
+
+typedef struct __attribute__((packed)) {
+    DescriptorTag tag;
+    uint32_t volumeDescriptorSequenceNumber;
+    uint32_t primaryVolumeDescriptorNumber;
+    uint8_t volumeIdentifier[32];
+    uint16_t volumeSequenceNumber;
+    uint16_t interchangeLevel;
+    uint16_t maxInterchangeLevel;
+    uint32_t charSetList;
+    uint8_t volumeSetIdentifier[128];
+    uint8_t descriptorCharSet[64];
+    uint8_t explanatoryCharSet[64];
+    uint64_t volumeAbstract;
+    uint64_t volumeCopyrightNotice;
+    uint8_t applicationIdentifier[32];
+    uint8_t recordingDateTime[12];
+    uint8_t implementationIdentifier[32];
+    uint8_t implementationUse[64];
+    uint32_t predVolumeDescSequenceLocation;
+    uint16_t flags;
+    uint8_t reserved[22];
+
+} PrimaryVolumeDescriptor;
+
+/* https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf */
+/* 4/3 */
+typedef struct __attribute__((packed)) {
+    uint32_t logicalBlockNumber;
+
+    uint16_t partitionReferenceNumber;
+} LBAddr; 
+
+//https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
+//section 4/23
+typedef struct __attribute__((packed)) {
+    uint32_t priorRecordedNumberOfDirectEntries;
+    uint16_t strategyType;
+    uint8_t strategyParameter[2]; /*described as 'bytes' in docs, so don't want to worry about byte order.*/
+    uint16_t maxEntries;
+    uint8_t reserved_must_be_zero;
+
+    uint8_t fileType;
+
+    LBAddr parentICBLocation;
+
+    uint16_t flags;
+} ICBTag;
+
+
+#if 0
+
+//https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
+//section 4/28
+//page 98
+typedef struct __attribute__((packed)) {
+    DescriptorTag descriptorTag;
+
+    ICBTag icbTag;
+
+        uint32_t uid;
+        uint32_t gid;
+        uint32_t permissions;
+        uint16_t fileLinkCount;
+        uint8_t recordFormat;
+        uint8_t recordDisplayAttributes;
+        uint32_t recordLength;
+
+        uint64_t infoLength;
+        uint64_t logicalBlocksRecorded;
+        timestamp accessDateTime;
+        timestamp modDateTime;
+        timestamp attrDateTime;
+        uint32_t checkpoint;
+        long_ad extendedAttributeICB;
+        regid impId;
+        uint64_t uniqueId;
+        uint32_t extendedAttributeLength;
+        uint32_t allocationDescriptorLength;
+
+
+
+
+
+}FileEntry;
+#endif
+
+typedef struct __attribute__((packed)) {
+
+    uint32_t blockNumber;
+
+    uint16_t partitionReferenceNumber;
+
+} lb_addr;
+
+void copyLBAddr(lb_addr * dst, lb_addr * src){
+#if 0
+    dst->blockNumber = ntohl(src->blockNumber);
+    dst->partitionReferenceNumber = ntohs(src->partitionReferenceNumber);
+#else
+    printf("Byte order is Little Endian, handle byte order\n");
+    memcpy(dst, src, sizeof(lb_addr));
+#endif
+}
+
+void dumpLBAddr(lb_addr * lba){
+    printf("Block Number = %d (0x%x)\n", lba->blockNumber, lba->blockNumber);
+    printf("Partition Reference Number = %d (0x%x)\n", lba->partitionReferenceNumber, lba->partitionReferenceNumber);
+}
+
+typedef struct __attribute__((packed)) {
+    uint32_t length; //4/14.14.1.1
+    /*30 least significant bits are length in bytes.
+     *
+     * 2 most significant bits are described in figure 4/42
+     * 
+     * 0 extent recorded and allocated
+     * 1 extent NOT recorded but allocated
+     * 2 extent NOT recorded and NOT allocated
+     * 3 the extent is the next extent of allocation descriptors.
+     * */
+
+    lb_addr extentLocation; //logical block number.  (CAN be zero)
+
+    uint8_t implementationUse[6];
+
+} long_ad;
+
+void copyLongAd(long_ad * dst, long_ad * src){
+#if 0
+    dst->length = ntohl(src->length);
+#else
+    printf("Byte order is Little Endian, handle byte order\n");
+    dst->length = src->length;
+#endif
+    copyLBAddr(&dst->extentLocation, &src->extentLocation);
+
+    memcpy(dst->implementationUse, src->implementationUse, sizeof(src->implementationUse));
+
+}
+
+void dumpLongAd(long_ad * la){
+    int i;
+
+    printf("Length = %d (0x%x)\n", la->length, la->length);
+    dumpLBAddr(&la->extentLocation);
+
+    printf("Implementation Use = ");
+    for (i = 0; i < sizeof(la->implementationUse); i++){
+        printf("%02x ", la->implementationUse[i]);
+    }
+    printf("\n");
+}
+
+//4/21 page 91
+typedef struct __attribute__((packed)) {
+    DescriptorTag tag;
+
+    uint16_t versionNumber;
+
+    uint8_t characteristics;
+
+    uint8_t fileIdentifierLength;
+
+    long_ad icb;
+
+    uint16_t implementationLength;
+
+#if 0
+    implementationUse;
+
+    fileIdentifier;
+
+    padding;
+#else
+    uint8_t rest[VOLUME_DESCRIPTOR_SIZE  - 38];
+    /*TODO: Break out the other stuff*/
+#endif
+
+} FileIdentifierDescriptor;
+
+void copyFileIdentifierDescriptor(FileIdentifierDescriptor * dst, FileIdentifierDescriptor * src){
+
+    copyTag(&dst->tag, &src->tag);
+
+
+#if 0
+    dst->versionNumber = ntohs(src->versionNumber);
+#else
+    printf("Byte order is Little Endian, handle byte order\n");
+    dst->versionNumber = src->versionNumber;
+#endif
+
+    dst->characteristics = src->characteristics;
+    dst->fileIdentifierLength = src->fileIdentifierLength;
+    copyLongAd(&dst->icb, &src->icb);
+
+#if 0
+    dst->implementationLength = ntohs(src->implementationLength);
+#else
+    printf("Byte order is Little Endian, handle byte order\n");
+    dst->implementationLength = src->implementationLength;
+#endif
+
+
+    memcpy(dst->rest, src->rest, sizeof(src->rest));
+
+}
+
+
+
+/*
+ *
+ * DescriptorTag 16 bytes;
+ *
+ *
+ */
+/*Stream Directory has all file id descriptors.*/
 void handlePrimaryVolumeDescriptor( const uint8_t * const data) {
+    printf("%s::%d::TODO: Change the name of this function\n",__FUNCTION__, __LINE__);
+
     size_t i;
+    printf("%s::%d::Entering\n", __FUNCTION__, __LINE__);
+
+FileIdentifierDescriptor    fid ;
+//copyTag(&(fid.tag), (FileIdentifierDescriptor *) data);
+copyFileIdentifierDescriptor(&fid, (FileIdentifierDescriptor *) data);
+
+    if (257 != fid.tag.tagId){
+        printf("NOT the correct spot\n");
+        goto done;
+    }
+
+#if 1
     for (i = 0; i < VOLUME_DESCRIPTOR_SIZE ; i++){
         printf("%02x ", data[i]);
         }
     printf("\n");
+
+    printf("sizeof (prim) = %lu\n", sizeof(PrimaryVolumeDescriptor));
+#endif
+
+    
+    dumpTag(&fid.tag);
+    printf("\n");
+    printf("Version Number = %d (0x%x)\n", fid.versionNumber, fid.versionNumber);
+    printf("Characteristics = %d (0x%x)\n", fid.characteristics, fid.characteristics);
+    /*existence bit*/
+    if (1 & fid.characteristics){
+        printf("\tFile DOES NOT need to be made known to the user\n");
+    } else {
+        printf("\tFile DOES need to be made known to the user\n");
+    }
+
+    /*directory bit*/
+    if ((1 << 1) & fid.characteristics){
+        printf("\tFile IS a directory\n");
+    } else {
+        printf("\tFile IS NOT a directory\n");
+    }
+
+    /*deleted bit*/
+    if ((1 << 2) & fid.characteristics){
+        printf("\tFile HAS been deleted\n");
+    } else {
+        printf("\tFile HAS NOT been deleted\n");
+    }
+
+    /*parent bit*/
+    if ((1 << 3) & fid.characteristics){
+        printf("\tICB refers to the PARENT directory of the directory that this file is recorded in (Length of File Identifier below SHOULD be zero)\n");
+    } else {
+        printf("\tICB refers to the ICB of this file.\n");
+    }
+
+    /*metadata bit */
+    if ((1 << 4) & fid.characteristics){
+        printf("\tFile contains implementation use data.\n");
+    } else {
+        printf("\tFile is either NOT in a stream directory, or in a stream directory that contains user data.\n");
+    }
+
+
+
+    printf("File Identifier Length = %d (0x%x)\n", fid.fileIdentifierLength, fid.fileIdentifierLength);
+
+    dumpLongAd(&fid.icb); //Address of ICB.  Look at the address to actually understand the ICB.
+    printf("\n");
+
+    printf("Implementation Length = %d (0x%x)\n", fid.implementationLength, fid.implementationLength);
+
+    for (i = 0; i < sizeof(fid.rest); i++){
+        printf("%02x ", fid.rest[i]);
+    }
+    printf("\n");
+
+
+    printf("Padding is explained in 4/23 14.4.9\n");
+    /*
+     * L_FI = fileIdentifierLength
+     * L_IU = implementationLength
+     * 4 x ip((L_FI + L_IU + 38 + 3)/4) - (L_FI + L_IU + 38) 
+     * ip = 'integer part'
+     * */
+    uint32_t temp = fid.fileIdentifierLength + fid.implementationLength + 38;
+    printf("Padding should be '%d' bytes of zeros\n", (((temp + 3)/4)*4) - temp);
+    //27 
+
+
+done:
+
+
+    printf("%s::%d::Leaving\n", __FUNCTION__, __LINE__);
 }
 
 
