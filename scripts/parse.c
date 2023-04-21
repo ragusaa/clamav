@@ -383,6 +383,70 @@ void copyFileIdentifierDescriptor(FileIdentifierDescriptor * dst, FileIdentifier
 }
 
 
+/*
+ * NOTES
+ *
+ * File Set Descriptor
+ ** 
+     0 16 Descriptor Tag tag (4/7.2)(Tag=256)
+    16 12 Recording Date and Time timestamp (1/7.3)
+    28 2 Interchange Level Uint16 (1/7.1.3)
+    30 2 Maximum Interchange Level Uint16 (1/7.1.3)
+    32 4 Character Set List Uint32 (1/7.1.5)
+    36 4 Maximum Character Set List Uint32 (1/7.1.5)
+    40 4 File Set Number Uint32 (1/7.1.5)
+    44 4 File Set Descriptor Number Uint32 (1/7.1.5)
+    48 64 Logical Volume Identifier Character Set charspec (1/7.2.1)
+    112 128 Logical Volume Identifier dstring (1/7.2.12)
+    240 64 File Set Character Set charspec (1/7.2.1)
+    304 32 File Set Identifier dstring (1/7.2.12)
+    336 32 Copyright File Identifier dstring (1/7.2.12)
+    368 32 Abstract File Identifier dstring (1/7.2.12)
+    400 16 Root Directory ICB long_ad (4/14.14.2)
+    416 32 Domain Identifier regid (1/7.4)
+    448 16 Next Extent long_ad (4/14.14.2)
+    464 16 System Stream Directory ICB long_ad (4/14.14.2)
+    480 32 Reserved #00 bytes
+ *
+ *
+ *
+ * File Identifier Descriptor
+     * 0 16 Descriptor Tag tag (4/7.2)(Tag=257)
+    16 2 File Version Number Uint16 (1/7.1.3)
+    18 1 File Characteristics Uint8 (1/7.1.1)
+    19 1 Length of File Identifier (=L_FI) Uint8 (1/7.1.1)
+    20 16 ICB long_ad (4/14.14.2)
+    36 2 Length of Implementation Use (=L_IU) Uint16 (1/7.1.3)
+    38 L_IU Implementation Use bytes
+    [L_IU+38] L_FI File Identifier d-characters (1/7.2)
+    [L_FI+L_IU+38] * Padding bytes
+ *
+ *
+ * File Entry
+    0 16 Descriptor Tag tag (4/7.2)(Tag=261)
+    16 20 ICB Tag icbtag (4/14.6)
+    36 4 Uid Uint32 (1/7.1.5)
+    40 4 Gid Uint32 (1/7.1.5)
+    44 4 Permissions Uint32 (1/7.1.5)
+    48 2 File Link Count Uint16 (1/7.1.3)
+    50 1 Record Format Uint8 (1/7.1.1)
+    51 1 Record Display Attributes Uint8 (1/7.1.1)
+    52 4 Record Length Uint32 (1/7.1.5)
+    56 8 Information Length Uint64 (1/7.1.7)
+    64 8 Logical Blocks Recorded Uint64 (1/7.1.7)
+    72 12 Access Date and Time timestamp (1/7.3)
+    84 12 Modification Date and Time timestamp (1/7.3)
+    96 12 Attribute Date and Time timestamp (1/7.3)
+    108 4 Checkpoint Uint32 (1/7.1.5)
+    112 16 Extended Attribute ICB long_ad (4/14.14.2)
+    128 32 Implementation Identifier regid (1/7.4)
+    160 8 Unique Id Uint64 (1/7.1.7)
+    168 4 Length of Extended Attributes (=L_EA) Uint32 (1/7.1.5)
+    172 4 Length of Allocation Descriptors (=L_AD) Uint32 (1/7.1.5)
+    176 L_EA Extended Attribute s bytes
+    [L_EA+176] L_AD Allocation descriptors bytes
+ * */
+
 
 /*
  *
@@ -392,6 +456,14 @@ void copyFileIdentifierDescriptor(FileIdentifierDescriptor * dst, FileIdentifier
  */
 /*Stream Directory has all file id descriptors.*/
 void handlePrimaryVolumeDescriptor( const uint8_t * const data) {
+
+
+    /*
+     * This is looking at the the File Identifier struct, I also need the File
+     * Entry.
+     */
+
+
     printf("%s::%d::TODO: Change the name of this function\n",__FUNCTION__, __LINE__);
 
     size_t i;

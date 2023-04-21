@@ -21,6 +21,7 @@ f.close()
 
 NUM_BYTES_AFTER = 12
 NUM_BYTES_AFTER = 32
+NUM_BYTES_AFTER = 128
 
 for searchIdx in idxs:
     print (f"{inFile}::%s" % binascii.hexlify(inFileData[searchIdx:searchIdx+NUM_BYTES_AFTER], ' '))
