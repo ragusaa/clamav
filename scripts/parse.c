@@ -6,8 +6,6 @@
 #include <assert.h>
 #include <arpa/inet.h>
 
-
-
 //https://en.wikipedia.org/wiki/ISO_9660
 #define EMPTY_LEN 32768
 
@@ -17,21 +15,20 @@
 
 #define PRIMARY_VOLUME_DESCRIPTOR 1
 
-
-
-int readData(const char * const fileName, uint8_t ** data, size_t * dataLen){
-    int ret = -1;
-    FILE * fp = NULL;
+int readData(const char* const fileName, uint8_t** data, size_t* dataLen)
+{
+    int ret          = -1;
+    FILE* fp         = NULL;
     size_t bytesRead = 0;
 
-    uint8_t* dRet = NULL;
+    uint8_t* dRet  = NULL;
     size_t dRetLen = 0;
-    *data = NULL;
-    *dataLen = 0;
+    *data          = NULL;
+    *dataLen       = 0;
 
     fp = fopen(fileName, "rb");
 
-    if (NULL == fp){
+    if (NULL == fp) {
         perror("fopen");
         goto done;
     }
@@ -39,86 +36,88 @@ int readData(const char * const fileName, uint8_t ** data, size_t * dataLen){
     fseek(fp, 0, SEEK_END);
 
     dRetLen = ftell(fp);
-    rewind (fp) ;
+    rewind(fp);
 
     dRet = malloc(dRetLen);
-    if (NULL == dRet){
+    if (NULL == dRet) {
         perror("malloc");
         goto done;
     }
 
-    while (bytesRead < dRetLen){
+    while (bytesRead < dRetLen) {
         int ret = fread(&(dRet[bytesRead]), 1, dRetLen - bytesRead, fp);
-        if (ret > 0){
+        if (ret > 0) {
             bytesRead += ret;
         } else {
             break;
         }
     }
 
-    if (bytesRead != dRetLen){
+    if (bytesRead != dRetLen) {
         goto done;
     }
 
-    ret = 0;
-    *data = dRet;
+    ret      = 0;
+    *data    = dRet;
     *dataLen = dRetLen;
 
 done:
-    if (ret){
+    if (ret) {
         free(dRet);
     }
     return ret;
 }
-
 
 /*
  * BEA01
  * Beginning Extended Area Descriptor
  *
  * */
-void handleBEA01(const uint8_t* const data){
+void handleBEA01(const uint8_t* const data)
+{
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.2
 
     printf("%s::%d::Verify All Zeros\n", __FUNCTION__, __LINE__);
 }
-int handleBOOT2(const uint8_t* const data){ 
+int handleBOOT2(const uint8_t* const data)
+{
 
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.4
-
 
     int ret = -1;
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
     exit(1);
 
     size_t idx = 0;
-    if (0 != data[idx]){
+    if (0 != data[idx]) {
         printf("%s::%d::Invalid Structure type of '%d (0x%x)'\n", __FUNCTION__, __LINE__, data[idx], data[idx]);
         goto done;
     }
-
-
 
     ret = 0;
 done:
     return ret;
 }
-void handleCD001(const uint8_t* const data){
+void handleCD001(const uint8_t* const data)
+{
     //ECMA-119
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
-void handleCDW02(const uint8_t* const data){
+void handleCDW02(const uint8_t* const data)
+{
     //ECMA-168
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
-void handleNSR02(const uint8_t* const data){
+void handleNSR02(const uint8_t* const data)
+{
     /*allow NSR02 in reading, but should be similar to NSR03?  Just a version number change, but don't know 
      * what else actually changed.
      */
     //section 3/9.1 of ECMA167/2
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
-void handleNSR03(const uint8_t* const data){
+void handleNSR03(const uint8_t* const data)
+{
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf    section 3/9.1
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
@@ -127,16 +126,16 @@ void handleNSR03(const uint8_t* const data){
  * 
  * Terminating Extencded Area Descriptor
  */
-void handleTEA01(const uint8_t* const data){
+void handleTEA01(const uint8_t* const data)
+{
     //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf section 2/9.3
     printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__);
 }
 
-
 /* 
  * https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
  * section 3/7.2 */
-typedef struct __attribute__((packed)) { 
+typedef struct __attribute__((packed)) {
     uint16_t tagId;
     uint16_t descriptorVersion;
     uint8_t checksum;
@@ -147,7 +146,8 @@ typedef struct __attribute__((packed)) {
     uint32_t tagLocation;
 } DescriptorTag;
 
-void copyTag(DescriptorTag * dst, DescriptorTag * src){
+void copyTag(DescriptorTag* dst, DescriptorTag* src)
+{
 #if 0
     dst->tagId = ntohs(src->tagId);
     dst->descriptorVersion = ntohs(src->descriptorVersion);
@@ -163,12 +163,13 @@ void copyTag(DescriptorTag * dst, DescriptorTag * src){
 #endif
 }
 
-void dumpTag(DescriptorTag * dt){
+void dumpTag(DescriptorTag* dt)
+{
     printf("TagId = %d (0x%x)\n", dt->tagId, dt->tagId);
     printf("Version = %d (0x%x)\n", dt->descriptorVersion, dt->descriptorVersion);
     printf("Checksum = %d (0x%x)\n", dt->checksum, dt->checksum);
     printf("Serial Number = %d (0x%x)\n", dt->serialNumber, dt->serialNumber);
-    
+
     printf("Descriptor CRC = %d (0x%x)\n", dt->descriptorCRC, dt->descriptorCRC);
     printf("Descriptor CRC Length = %d (0x%x)\n", dt->descriptorCRCLength, dt->descriptorCRCLength);
     printf("Tag Location = %d (0x%x)\n", dt->tagLocation, dt->tagLocation);
@@ -204,7 +205,7 @@ typedef struct __attribute__((packed)) {
     uint32_t logicalBlockNumber;
 
     uint16_t partitionReferenceNumber;
-} LBAddr; 
+} LBAddr;
 
 //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
 //section 4/23
@@ -222,7 +223,6 @@ typedef struct __attribute__((packed)) {
     uint16_t flags;
 } ICBTag;
 
-
 #if 0
 
 //https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
@@ -233,25 +233,25 @@ typedef struct __attribute__((packed)) {
 
     ICBTag icbTag;
 
-        uint32_t uid;
-        uint32_t gid;
-        uint32_t permissions;
-        uint16_t fileLinkCount;
-        uint8_t recordFormat;
-        uint8_t recordDisplayAttributes;
-        uint32_t recordLength;
+    uint32_t uid;
+    uint32_t gid;
+    uint32_t permissions;
+    uint16_t fileLinkCount;
+    uint8_t recordFormat;
+    uint8_t recordDisplayAttributes;
+    uint32_t recordLength;
 
-        uint64_t infoLength;
-        uint64_t logicalBlocksRecorded;
-        timestamp accessDateTime;
-        timestamp modDateTime;
-        timestamp attrDateTime;
-        uint32_t checkpoint;
-        long_ad extendedAttributeICB;
-        regid impId;
-        uint64_t uniqueId;
-        uint32_t extendedAttributeLength;
-        uint32_t allocationDescriptorLength;
+    uint64_t infoLength;
+    uint64_t logicalBlocksRecorded;
+    timestamp accessDateTime;
+    timestamp modDateTime;
+    timestamp attrDateTime;
+    uint32_t checkpoint;
+    long_ad extendedAttributeICB;
+    regid impId;
+    uint64_t uniqueId;
+    uint32_t extendedAttributeLength;
+    uint32_t allocationDescriptorLength;
 
 
 
@@ -268,7 +268,8 @@ typedef struct __attribute__((packed)) {
 
 } lb_addr;
 
-void copyLBAddr(lb_addr * dst, lb_addr * src){
+void copyLBAddr(lb_addr* dst, lb_addr* src)
+{
 #if 0
     dst->blockNumber = ntohl(src->blockNumber);
     dst->partitionReferenceNumber = ntohs(src->partitionReferenceNumber);
@@ -278,7 +279,8 @@ void copyLBAddr(lb_addr * dst, lb_addr * src){
 #endif
 }
 
-void dumpLBAddr(lb_addr * lba){
+void dumpLBAddr(lb_addr* lba)
+{
     printf("Block Number = %d (0x%x)\n", lba->blockNumber, lba->blockNumber);
     printf("Partition Reference Number = %d (0x%x)\n", lba->partitionReferenceNumber, lba->partitionReferenceNumber);
 }
@@ -301,7 +303,8 @@ typedef struct __attribute__((packed)) {
 
 } long_ad;
 
-void copyLongAd(long_ad * dst, long_ad * src){
+void copyLongAd(long_ad* dst, long_ad* src)
+{
 #if 0
     dst->length = ntohl(src->length);
 #else
@@ -311,17 +314,17 @@ void copyLongAd(long_ad * dst, long_ad * src){
     copyLBAddr(&dst->extentLocation, &src->extentLocation);
 
     memcpy(dst->implementationUse, src->implementationUse, sizeof(src->implementationUse));
-
 }
 
-void dumpLongAd(long_ad * la){
+void dumpLongAd(long_ad* la)
+{
     int i;
 
     printf("Length = %d (0x%x)\n", la->length, la->length);
     dumpLBAddr(&la->extentLocation);
 
     printf("Implementation Use = ");
-    for (i = 0; i < sizeof(la->implementationUse); i++){
+    for (i = 0; i < sizeof(la->implementationUse); i++) {
         printf("%02x ", la->implementationUse[i]);
     }
     printf("\n");
@@ -348,16 +351,16 @@ typedef struct __attribute__((packed)) {
 
     padding;
 #else
-    uint8_t rest[VOLUME_DESCRIPTOR_SIZE  - 38];
+    uint8_t rest[VOLUME_DESCRIPTOR_SIZE - 38];
     /*TODO: Break out the other stuff*/
 #endif
 
 } FileIdentifierDescriptor;
 
-void copyFileIdentifierDescriptor(FileIdentifierDescriptor * dst, FileIdentifierDescriptor * src){
+void copyFileIdentifierDescriptor(FileIdentifierDescriptor* dst, FileIdentifierDescriptor* src)
+{
 
     copyTag(&dst->tag, &src->tag);
-
 
 #if 0
     dst->versionNumber = ntohs(src->versionNumber);
@@ -366,7 +369,7 @@ void copyFileIdentifierDescriptor(FileIdentifierDescriptor * dst, FileIdentifier
     dst->versionNumber = src->versionNumber;
 #endif
 
-    dst->characteristics = src->characteristics;
+    dst->characteristics      = src->characteristics;
     dst->fileIdentifierLength = src->fileIdentifierLength;
     copyLongAd(&dst->icb, &src->icb);
 
@@ -377,76 +380,72 @@ void copyFileIdentifierDescriptor(FileIdentifierDescriptor * dst, FileIdentifier
     dst->implementationLength = src->implementationLength;
 #endif
 
-
     memcpy(dst->rest, src->rest, sizeof(src->rest));
-
 }
-
 
 /*
  * NOTES
  *
  * File Set Descriptor
  ** 
-     0 16 Descriptor Tag tag (4/7.2)(Tag=256)
-    16 12 Recording Date and Time timestamp (1/7.3)
-    28 2 Interchange Level Uint16 (1/7.1.3)
-    30 2 Maximum Interchange Level Uint16 (1/7.1.3)
-    32 4 Character Set List Uint32 (1/7.1.5)
-    36 4 Maximum Character Set List Uint32 (1/7.1.5)
-    40 4 File Set Number Uint32 (1/7.1.5)
-    44 4 File Set Descriptor Number Uint32 (1/7.1.5)
-    48 64 Logical Volume Identifier Character Set charspec (1/7.2.1)
-    112 128 Logical Volume Identifier dstring (1/7.2.12)
-    240 64 File Set Character Set charspec (1/7.2.1)
-    304 32 File Set Identifier dstring (1/7.2.12)
-    336 32 Copyright File Identifier dstring (1/7.2.12)
-    368 32 Abstract File Identifier dstring (1/7.2.12)
-    400 16 Root Directory ICB long_ad (4/14.14.2)
-    416 32 Domain Identifier regid (1/7.4)
-    448 16 Next Extent long_ad (4/14.14.2)
-    464 16 System Stream Directory ICB long_ad (4/14.14.2)
-    480 32 Reserved #00 bytes
+ 0 16 Descriptor Tag tag (4/7.2)(Tag=256)
+ 16 12 Recording Date and Time timestamp (1/7.3)
+ 28 2 Interchange Level Uint16 (1/7.1.3)
+ 30 2 Maximum Interchange Level Uint16 (1/7.1.3)
+ 32 4 Character Set List Uint32 (1/7.1.5)
+ 36 4 Maximum Character Set List Uint32 (1/7.1.5)
+ 40 4 File Set Number Uint32 (1/7.1.5)
+ 44 4 File Set Descriptor Number Uint32 (1/7.1.5)
+ 48 64 Logical Volume Identifier Character Set charspec (1/7.2.1)
+ 112 128 Logical Volume Identifier dstring (1/7.2.12)
+ 240 64 File Set Character Set charspec (1/7.2.1)
+ 304 32 File Set Identifier dstring (1/7.2.12)
+ 336 32 Copyright File Identifier dstring (1/7.2.12)
+ 368 32 Abstract File Identifier dstring (1/7.2.12)
+ 400 16 Root Directory ICB long_ad (4/14.14.2)
+ 416 32 Domain Identifier regid (1/7.4)
+ 448 16 Next Extent long_ad (4/14.14.2)
+ 464 16 System Stream Directory ICB long_ad (4/14.14.2)
+ 480 32 Reserved #00 bytes
  *
  *
  *
  * File Identifier Descriptor
-     * 0 16 Descriptor Tag tag (4/7.2)(Tag=257)
-    16 2 File Version Number Uint16 (1/7.1.3)
-    18 1 File Characteristics Uint8 (1/7.1.1)
-    19 1 Length of File Identifier (=L_FI) Uint8 (1/7.1.1)
-    20 16 ICB long_ad (4/14.14.2)
-    36 2 Length of Implementation Use (=L_IU) Uint16 (1/7.1.3)
-    38 L_IU Implementation Use bytes
-    [L_IU+38] L_FI File Identifier d-characters (1/7.2)
-    [L_FI+L_IU+38] * Padding bytes
+ * 0 16 Descriptor Tag tag (4/7.2)(Tag=257)
+ 16 2 File Version Number Uint16 (1/7.1.3)
+ 18 1 File Characteristics Uint8 (1/7.1.1)
+ 19 1 Length of File Identifier (=L_FI) Uint8 (1/7.1.1)
+ 20 16 ICB long_ad (4/14.14.2)
+ 36 2 Length of Implementation Use (=L_IU) Uint16 (1/7.1.3)
+ 38 L_IU Implementation Use bytes
+ [L_IU+38] L_FI File Identifier d-characters (1/7.2)
+ [L_FI+L_IU+38] * Padding bytes
  *
  *
  * File Entry
-    0 16 Descriptor Tag tag (4/7.2)(Tag=261)
-    16 20 ICB Tag icbtag (4/14.6)
-    36 4 Uid Uint32 (1/7.1.5)
-    40 4 Gid Uint32 (1/7.1.5)
-    44 4 Permissions Uint32 (1/7.1.5)
-    48 2 File Link Count Uint16 (1/7.1.3)
-    50 1 Record Format Uint8 (1/7.1.1)
-    51 1 Record Display Attributes Uint8 (1/7.1.1)
-    52 4 Record Length Uint32 (1/7.1.5)
-    56 8 Information Length Uint64 (1/7.1.7)
-    64 8 Logical Blocks Recorded Uint64 (1/7.1.7)
-    72 12 Access Date and Time timestamp (1/7.3)
-    84 12 Modification Date and Time timestamp (1/7.3)
-    96 12 Attribute Date and Time timestamp (1/7.3)
-    108 4 Checkpoint Uint32 (1/7.1.5)
-    112 16 Extended Attribute ICB long_ad (4/14.14.2)
-    128 32 Implementation Identifier regid (1/7.4)
-    160 8 Unique Id Uint64 (1/7.1.7)
-    168 4 Length of Extended Attributes (=L_EA) Uint32 (1/7.1.5)
-    172 4 Length of Allocation Descriptors (=L_AD) Uint32 (1/7.1.5)
-    176 L_EA Extended Attribute s bytes
-    [L_EA+176] L_AD Allocation descriptors bytes
+ 0 16 Descriptor Tag tag (4/7.2)(Tag=261)
+ 16 20 ICB Tag icbtag (4/14.6)
+ 36 4 Uid Uint32 (1/7.1.5)
+ 40 4 Gid Uint32 (1/7.1.5)
+ 44 4 Permissions Uint32 (1/7.1.5)
+ 48 2 File Link Count Uint16 (1/7.1.3)
+ 50 1 Record Format Uint8 (1/7.1.1)
+ 51 1 Record Display Attributes Uint8 (1/7.1.1)
+ 52 4 Record Length Uint32 (1/7.1.5)
+ 56 8 Information Length Uint64 (1/7.1.7)
+ 64 8 Logical Blocks Recorded Uint64 (1/7.1.7)
+ 72 12 Access Date and Time timestamp (1/7.3)
+ 84 12 Modification Date and Time timestamp (1/7.3)
+ 96 12 Attribute Date and Time timestamp (1/7.3)
+ 108 4 Checkpoint Uint32 (1/7.1.5)
+ 112 16 Extended Attribute ICB long_ad (4/14.14.2)
+ 128 32 Implementation Identifier regid (1/7.4)
+ 160 8 Unique Id Uint64 (1/7.1.7)
+ 168 4 Length of Extended Attributes (=L_EA) Uint32 (1/7.1.5)
+ 172 4 Length of Allocation Descriptors (=L_AD) Uint32 (1/7.1.5)
+ 176 L_EA Extended Attribute s bytes
+ [L_EA+176] L_AD Allocation descriptors bytes
  * */
-
 
 /*
  *
@@ -455,79 +454,75 @@ void copyFileIdentifierDescriptor(FileIdentifierDescriptor * dst, FileIdentifier
  *
  */
 /*Stream Directory has all file id descriptors.*/
-void handlePrimaryVolumeDescriptor( const uint8_t * const data) {
-
+void handlePrimaryVolumeDescriptor(const uint8_t* const data)
+{
 
     /*
      * This is looking at the the File Identifier struct, I also need the File
      * Entry.
      */
 
-
-    printf("%s::%d::TODO: Change the name of this function\n",__FUNCTION__, __LINE__);
+    printf("%s::%d::TODO: Change the name of this function\n", __FUNCTION__, __LINE__);
 
     size_t i;
     printf("%s::%d::Entering\n", __FUNCTION__, __LINE__);
 
-FileIdentifierDescriptor    fid ;
-//copyTag(&(fid.tag), (FileIdentifierDescriptor *) data);
-copyFileIdentifierDescriptor(&fid, (FileIdentifierDescriptor *) data);
+    FileIdentifierDescriptor fid;
+    //copyTag(&(fid.tag), (FileIdentifierDescriptor *) data);
+    copyFileIdentifierDescriptor(&fid, (FileIdentifierDescriptor*)data);
 
-    if (257 != fid.tag.tagId){
+    if (257 != fid.tag.tagId) {
         printf("NOT the correct spot\n");
         goto done;
     }
 
 #if 1
-    for (i = 0; i < VOLUME_DESCRIPTOR_SIZE ; i++){
+    for (i = 0; i < VOLUME_DESCRIPTOR_SIZE; i++) {
         printf("%02x ", data[i]);
-        }
+    }
     printf("\n");
 
     printf("sizeof (prim) = %lu\n", sizeof(PrimaryVolumeDescriptor));
 #endif
 
-    
     dumpTag(&fid.tag);
     printf("\n");
     printf("Version Number = %d (0x%x)\n", fid.versionNumber, fid.versionNumber);
     printf("Characteristics = %d (0x%x)\n", fid.characteristics, fid.characteristics);
     /*existence bit*/
-    if (1 & fid.characteristics){
+    if (1 & fid.characteristics) {
         printf("\tFile DOES NOT need to be made known to the user\n");
     } else {
         printf("\tFile DOES need to be made known to the user\n");
     }
 
     /*directory bit*/
-    if ((1 << 1) & fid.characteristics){
+    if ((1 << 1) & fid.characteristics) {
         printf("\tFile IS a directory\n");
     } else {
         printf("\tFile IS NOT a directory\n");
     }
 
     /*deleted bit*/
-    if ((1 << 2) & fid.characteristics){
+    if ((1 << 2) & fid.characteristics) {
         printf("\tFile HAS been deleted\n");
     } else {
         printf("\tFile HAS NOT been deleted\n");
     }
 
     /*parent bit*/
-    if ((1 << 3) & fid.characteristics){
+    if ((1 << 3) & fid.characteristics) {
         printf("\tICB refers to the PARENT directory of the directory that this file is recorded in (Length of File Identifier below SHOULD be zero)\n");
     } else {
         printf("\tICB refers to the ICB of this file.\n");
     }
 
     /*metadata bit */
-    if ((1 << 4) & fid.characteristics){
+    if ((1 << 4) & fid.characteristics) {
         printf("\tFile contains implementation use data.\n");
     } else {
         printf("\tFile is either NOT in a stream directory, or in a stream directory that contains user data.\n");
     }
-
-
 
     printf("File Identifier Length = %d (0x%x)\n", fid.fileIdentifierLength, fid.fileIdentifierLength);
 
@@ -536,11 +531,10 @@ copyFileIdentifierDescriptor(&fid, (FileIdentifierDescriptor *) data);
 
     printf("Implementation Length = %d (0x%x)\n", fid.implementationLength, fid.implementationLength);
 
-    for (i = 0; i < sizeof(fid.rest); i++){
+    for (i = 0; i < sizeof(fid.rest); i++) {
         printf("%02x ", fid.rest[i]);
     }
     printf("\n");
-
 
     printf("Padding is explained in 4/23 14.4.9\n");
     /*
@@ -550,35 +544,28 @@ copyFileIdentifierDescriptor(&fid, (FileIdentifierDescriptor *) data);
      * ip = 'integer part'
      * */
     uint32_t temp = fid.fileIdentifierLength + fid.implementationLength + 38;
-    printf("Padding should be '%d' bytes of zeros\n", (((temp + 3)/4)*4) - temp);
-    //27 
-
+    printf("Padding should be '%d' bytes of zeros\n", (((temp + 3) / 4) * 4) - temp);
+    //27
 
 done:
-
 
     printf("%s::%d::Leaving\n", __FUNCTION__, __LINE__);
 }
 
-
-
-int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
+int parseVolumeDescriptor(const uint8_t* const data, size_t sectorNumber)
+{
     size_t parseIdx = 0;
-    size_t i = 0;
-    int ret = -1;
-    int allZeros = 1;
-    int terminator = 0;
+    size_t i        = 0;
+    int ret         = -1;
+    int allZeros    = 1;
+    int terminator  = 0;
     char identifier[6];
     uint8_t volumeDescriptorType = data[parseIdx];
 
-
     /**/
-    if (PRIMARY_VOLUME_DESCRIPTOR == volumeDescriptorType){
+    if (PRIMARY_VOLUME_DESCRIPTOR == volumeDescriptorType) {
         handlePrimaryVolumeDescriptor(data);
     }
-
-
-
 
     printf("Volume Descriptor %lu\n", sectorNumber);
 
@@ -590,7 +577,7 @@ int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
     }
 #endif
     printf("Type '");
-    switch (volumeDescriptorType){
+    switch (volumeDescriptorType) {
         case 255:
             printf("Terminator");
             terminator = 1;
@@ -608,7 +595,7 @@ int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
             printf("%d", volumeDescriptorType);
             break;
         default:
-            printf("Invalid Volume Descriptor '%d (0x%x)\n", volumeDescriptorType , volumeDescriptorType);
+            printf("Invalid Volume Descriptor '%d (0x%x)\n", volumeDescriptorType, volumeDescriptorType);
 #if 0
             goto done;
 #else
@@ -630,24 +617,24 @@ int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
     /*TODO: According to the spec, there are only a select number of values, but some of
      * my samples have other stuff in there.  determine whether or not it is necessary / suspicious to
      * validate these strings.*/
-    for (i = 0; i < 5; i++){
+    for (i = 0; i < 5; i++) {
         identifier[i] = data[parseIdx++];
     }
     identifier[5] = 0;
     printf("Identifier '%s'\n", identifier);
-    if (0 == strcmp("BEA01", identifier)){
+    if (0 == strcmp("BEA01", identifier)) {
         handleBEA01(data);
-    } else if (0 == strcmp("BOOT2", identifier)){
+    } else if (0 == strcmp("BOOT2", identifier)) {
         handleBOOT2(data);
-    } else if (0 == strcmp("CD001", identifier)){
+    } else if (0 == strcmp("CD001", identifier)) {
         handleCD001(data);
-    } else if (0 == strcmp("CDW02", identifier)){
+    } else if (0 == strcmp("CDW02", identifier)) {
         handleCDW02(data);
-    } else if (0 == strcmp("NSR02", identifier)){
+    } else if (0 == strcmp("NSR02", identifier)) {
         handleNSR02(data);
-    } else if (0 == strcmp("NSR03", identifier)){
+    } else if (0 == strcmp("NSR03", identifier)) {
         handleNSR03(data);
-    } else if (0 == strcmp("TEA01", identifier)){
+    } else if (0 == strcmp("TEA01", identifier)) {
         handleTEA01(data);
     }
 
@@ -657,58 +644,260 @@ int parseVolumeDescriptor(const uint8_t * const data, size_t sectorNumber) {
 
     printf("Data '");
     allZeros = 1;
-    for (i = 0; i < DATA_LEN; i++){
-        if (0 != data[parseIdx + i]){
+    for (i = 0; i < DATA_LEN; i++) {
+        if (0 != data[parseIdx + i]) {
             allZeros = 0;
             break;
         }
     }
-    if (allZeros){
+    if (allZeros) {
         printf("All zeros");
         parseIdx += DATA_LEN;
     } else {
 
-        for (i = 0; i < DATA_LEN; i++){
+        for (i = 0; i < DATA_LEN; i++) {
             printf("%02x ", data[parseIdx++]);
         }
     }
     printf("'\n");
 
-    if (0 == terminator){
+    if (0 == terminator) {
         ret = 0;
     }
 done:
     printf("\n");
     return ret;
-
-
 }
 
+/*
+ * charsetType can be
+    0 The CS0 coded character set (1/7.2.2).
+    1 The CS1 coded character set (1/7.2.3).
+    2 The CS2 coded character set (1/7.2.4).
+    3 The CS3 coded character set (1/7.2.5).
+    4 The CS4 coded character set (1/7.2.6).
+    5 The CS5 coded character set (1/7.2.7).
+    6 The CS6 coded character set (1/7.2.8).
+    7 The CS7 coded character set (1/7.2.9).
+    8 The CS8 coded character set (1/7.2.10).
+    9-255 Reserved for future standardisation.
+ *
+ */
+typedef struct {
+    uint8_t charSetType;
 
-int parseFile(const char * const fileName){
+    uint8_t charSetInfo[63];
+} charspec;
 
-    uint8_t * data = NULL;
-    size_t dataLen = 0;
+typedef struct {
+    uint16_t typeTimeZone; /*
+                              0     Coordinated UTC
+                              1     Local Time
+                              2     Up to agreement between originator and recipient
+                              3 - 15    Reserved
+                            */
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    uint8_t centiseconds;
+    uint8_t hundredsMicroSeconds;
+    uint8_t microseconds;
+} timestamp;
+
+typedef struct {
+    uint8_t flags;
+    /* 
+     * 1/7.4
+     * characteristics 
+     * bit 0    dirty: If regid has been modified and might not be valid, set to * 1.  Otherwise, 0
+     * bit 1    protected: If 1, this regid cannot be modified
+     * bit 2-7  reserved
+     */
+    uint8_t identifier[23];
+    /* 
+     * If first byte is 0x2b, then this is covered by ECMA-168 (this spec)
+     * If first byte is 0x2d, then this is not registered
+     */
+    uint8_t identifierSuffix[8];
+} regid;
+
+
+
+typedef struct {
+    DescriptorTag tag;
+    timestamp recordingDateTime;
+
+    uint16_t interchangeLevel;
+
+    uint16_t maxInterchangeLevel;
+    uint32_t characterSetList;
+    uint32_t maxCharacterSetList;
+
+    uint32_t fileSetNumber;
+    uint32_t fileSetDescriptorNumber;
+
+    charspec logicalVolumeIdentifierCharSet;
+    uint8_t logicalVolumeIdentifier[128];
+    charspec fileSetCharSet;
+    uint8_t fileSetIdentifier[32];
+
+    uint8_t copyrightIdentifier[32];
+    uint8_t abstractIdentifier[32];
+    long_ad rootDirectoryICB;
+
+    regid domainIdentifier;
+
+    long_ad nextExtent;
+    long_ad systemStreamDirectoryICB;
+    uint8_t reserved[32];
+
+} FileSetDescriptor;
+
+
+int parseFileSetDescriptor(const uint8_t * const data, size_t sectorNumber){
     int ret = -1;
+
+    FileSetDescriptor fsd;
+
+    memcpy(&fsd, data, sizeof(fsd));
+
+        printf("%s::%d::", "parseVolumeDescriptor2", __LINE__);
+    //for (size_t i = 0; i < VOLUME_DESCRIPTOR_SIZE ; i++)
+    for (size_t i = 0; i < 512 ; i++)
+    {
+        printf("%02x ", data[i]);
+    }
+    printf("\n");
+
+    printf("%s::%d::'%s'\n", "parseVolumeDescriptor2", __LINE__, (char *) fsd.fileSetIdentifier);
+
+    dumpTag(&(fsd.tag));
+
+    
+
+
+
+
+
+    ret = 0;
+done:
+    return ret;
+}
+
+int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
+{
+    uint16_t tag;
+
+    printf("%s::%d::ENTERING\n", __FUNCTION__, __LINE__);
+
+    memcpy(&tag, data, 2);
+    //tag = ntohs(tag);
+
+    printf("%s::%d, tag = %d (0x%x)\n", __FUNCTION__, __LINE__, tag, tag);
+
+
+    char* desc = NULL;
+    switch (tag) {
+        case 8: {
+            desc = "Terminating Descriptor";
+            break;
+        }
+        case 256: {
+            desc = "File Set Descriptor";
+            parseFileSetDescriptor(data, sectorNumber);
+            break;
+        }
+        case 257: {
+            desc = "File Identifier Descriptor";
+            break;
+        }
+        case 258: {
+            desc = "Allocation Extent Descriptor";
+            break;
+        }
+        case 259: {
+            desc = "Indirect Entry";
+            break;
+        }
+        case 260: {
+            desc = "Terminal Entry";
+            break;
+        }
+        case 261: {
+            desc = "File Entry";
+            break;
+        }
+        case 262: {
+            desc = "Extended Attribute Header Descriptor";
+            break;
+        }
+        case 263: {
+            desc = "Unallocated Space Entry";
+            break;
+        }
+        case 264: {
+            desc = "Space Bitmap Descriptor";
+            break;
+        }
+        case 265: {
+            desc = "Partition Integrity Entry";
+            break;
+        }
+        case 266: {
+            desc = "Extended File Entry";
+            break;
+        }
+        default:
+            break;
+    }
+
+    if (desc){
+        printf("%s::%d::%s\n", __FUNCTION__, __LINE__, desc);
+    }
+
+    if (257 == tag) {
+        printf("%s::%d::", __FUNCTION__, __LINE__);
+        for (size_t i = 0; i < VOLUME_DESCRIPTOR_SIZE; i++) {
+            printf("%02x ", data[i]);
+        }
+        printf("\n");
+    }
+    printf("%s::%d::LEAVING\n", __FUNCTION__, __LINE__);
+
+    return 0;
+}
+
+int parseFile(const char* const fileName)
+{
+
+    uint8_t* data  = NULL;
+    size_t dataLen = 0;
+    int ret        = -1;
     size_t i, parseIdx = EMPTY_LEN;
 
-    if (readData(fileName, &data, &dataLen)){
+    if (readData(fileName, &data, &dataLen)) {
         printf("%s::%d::Unable to read file\n", __FUNCTION__, __LINE__);
         goto done;
     }
-    if (dataLen < EMPTY_LEN){
+    if (dataLen < EMPTY_LEN) {
         printf("%s::%d::ERROR\n", __FUNCTION__, __LINE__);
         goto done;
     }
 
     printf("dataLen = %ld\n", dataLen);
 
-
 #if 0
     int andy = 0;
 #endif
-    for (i = EMPTY_LEN; i < dataLen; i+= VOLUME_DESCRIPTOR_SIZE){
-        if (parseVolumeDescriptor(&(data[i ]), (i - EMPTY_LEN)/VOLUME_DESCRIPTOR_SIZE)){
+    for (i = EMPTY_LEN; i < dataLen; i += VOLUME_DESCRIPTOR_SIZE) {
+        if (parseVolumeDescriptor(&(data[i]), (i - EMPTY_LEN) / VOLUME_DESCRIPTOR_SIZE)) {
+            goto done;
+        }
+
+        if (parseVolumeDescriptor2(&(data[i]), (i - EMPTY_LEN) / VOLUME_DESCRIPTOR_SIZE)) {
             goto done;
         }
 
@@ -720,34 +909,24 @@ int parseFile(const char * const fileName){
 #endif
     }
 
-
-
-
-
-
-
-
     printf("Success\n");
-
-
-
 
     ret = 0;
 
 done:
-    if (data){
+    if (data) {
         free(data);
     }
     return ret;
 }
 
-int main(int argc, char ** argv){
+int main(int argc, char** argv)
+{
 
     int i;
-    for (i = 1; i < argc; i++){
+    for (i = 1; i < argc; i++) {
         parseFile(argv[i]);
     }
-
 
     return 0;
 }
