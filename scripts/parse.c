@@ -787,6 +787,172 @@ done:
     return ret;
 }
 
+typedef struct __attribute__((packed)) {
+
+    DescriptorTag tag;
+
+    uint16_t versionNumber;
+
+    uint8_t characteristics;
+
+    uint8_t fileIdentifierLength;
+
+    long_ad icb;
+
+    uint16_t implementationLength;
+
+    uint8_t rest[1];
+
+}FileIdentifierDescriptor2;
+
+#define FILE_IDENTIFIER_DESCRIPTOR2_SIZE_KNOWN (sizeof(FileIdentifierDescriptor2) - 1)
+
+/*Print characteristics for File Identifier Descriptor*/
+static void printCharactersitics(FileIdentifierDescriptor2 * fid){
+
+    /*existence bit*/
+    if (1 & fid->characteristics) {
+        printf("\tFile DOES NOT need to be made known to the user\n");
+    } else {
+        printf("\tFile DOES need to be made known to the user\n");
+    }
+
+    /*directory bit*/
+    if ((1 << 1) & fid->characteristics) {
+        printf("\tFile IS a directory\n");
+    } else {
+        printf("\tFile IS NOT a directory\n");
+    }
+
+    /*deleted bit*/
+    if ((1 << 2) & fid->characteristics) {
+        printf("\tFile HAS been deleted\n");
+    } else {
+        printf("\tFile HAS NOT been deleted\n");
+    }
+
+    /*parent bit*/
+    if ((1 << 3) & fid->characteristics) {
+        printf("\tICB refers to the PARENT directory of the directory that this file is recorded in (Length of File Identifier below SHOULD be zero)\n");
+    } else {
+        printf("\tICB refers to the ICB of this file.\n");
+    }
+
+    /*metadata bit */
+    if ((1 << 4) & fid->characteristics) {
+        printf("\tFile contains implementation use data.\n");
+    } else {
+        printf("\tFile is either NOT in a stream directory, or in a stream directory that contains user data.\n");
+    }
+
+}
+
+/*Section 14.4.9 of https:... */
+static uint32_t getPaddingLength(const FileIdentifierDescriptor2 * const fid){
+    uint32_t ret = 0;
+    uint32_t tmp = fid->implementationLength + fid->fileIdentifierLength + 38;
+    ret = tmp + 3;
+    ret = ret / 4;
+
+    ret = ret * 4;
+    ret = ret - tmp;
+
+    return ret;
+}
+
+static void printDCharacters(const char * const func, const uint32_t line, const uint8_t * const start, const uint32_t len){
+    /*According to section 1/7.2, the first byte is the character set type.
+     * We are just printing the string to the screen, so we'll skip that
+     * for now, and look at it later.
+     */
+    size_t i;
+
+    printf("%s::%d::", func, line);
+    for (i = 1; i < len; i++){
+        if (start[i]){
+        printf("%c", start[i]);
+        }
+    }
+    printf("\n");
+    
+}
+
+static int parseFileIdentifierDescriptor2(const uint8_t * const data, size_t sectorNumber){
+
+    int ret = -1;
+
+    size_t i;
+    FileIdentifierDescriptor2 * fid = (FileIdentifierDescriptor2*) data;
+
+    printf("%s::%d\n", __FUNCTION__, __LINE__);
+
+    if (257 != fid->tag.tagId){
+        printf("%s::%d::Shouldn't be here\n", __FUNCTION__, __LINE__);
+        goto done;
+    }
+
+    printf("%s::%d\n", __FUNCTION__, __LINE__);
+    while (257 == fid->tag.tagId){
+
+        printf("\n%s::%d::Entering loop\n", __FUNCTION__, __LINE__);
+
+
+        printCharactersitics(fid);
+        printf("%s::%d::Length of file identifier = %d (0x%x)\n", __FUNCTION__, __LINE__, fid->fileIdentifierLength, fid->fileIdentifierLength);
+
+        printf("%s::%d::Dumping ICB\n", __FUNCTION__, __LINE__);
+    dumpLongAd(&fid->icb); //Address of ICB.  Look at the address to actually understand the ICB.
+    printf("%s::%d::DONE Dumping ICB\n", __FUNCTION__, __LINE__);
+
+    printf("%s::%d::Implementation Length = %d (0x%x)\n", __FUNCTION__, __LINE__, fid->implementationLength, fid->implementationLength);
+
+
+    if (fid->fileIdentifierLength){
+        printDCharacters(__FUNCTION__, __LINE__, &(fid->rest[fid->implementationLength]), fid->fileIdentifierLength);
+    }
+
+
+
+
+
+
+
+    uint32_t paddingLength = getPaddingLength(fid);
+
+    printf("%s::%d::Padding length = '%d'\n", __FUNCTION__, __LINE__, paddingLength);
+
+
+
+
+    fid = (FileIdentifierDescriptor2*) (((uint8_t*) fid) + FILE_IDENTIFIER_DESCRIPTOR2_SIZE_KNOWN + fid->implementationLength + fid->fileIdentifierLength + paddingLength);
+
+
+#if 0
+        fid += sizeof(FileIdentifierDescriptor2 );
+#else
+
+#endif
+
+
+
+
+
+
+    }
+
+        printf("%s::%d::Exiting\n", __FUNCTION__, __LINE__); exit(1);
+
+    printf("%s::%d\n", __FUNCTION__, __LINE__);
+
+
+
+
+
+    ret = 0;
+done:
+    return ret;
+}
+
 int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
 {
     uint16_t tag;
@@ -812,6 +978,8 @@ int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
         }
         case 257: {
             desc = "File Identifier Descriptor";
+            parseFileIdentifierDescriptor2(data, sectorNumber);
+            //handlePrimaryVolumeDescriptor(data);
             break;
         }
         case 258: {
