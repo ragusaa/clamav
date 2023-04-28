@@ -931,6 +931,10 @@ done:
     return ret;
 }
 
+static void parseFileEntryDescriptor(const uint8_t* const data, size_t sectorNumber) {
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+}
+
 int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
 {
     uint16_t tag;
@@ -977,7 +981,7 @@ int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
         }
         case 261: {
             desc = "File Entry";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+            parseFileEntryDescriptor(data, sectorNumber);
             break;
         }
         case 262: {
