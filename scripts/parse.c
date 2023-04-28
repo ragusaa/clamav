@@ -911,36 +911,14 @@ static int parseFileIdentifierDescriptor2(const uint8_t * const data, size_t sec
         printDCharacters(__FUNCTION__, __LINE__, &(fid->rest[fid->implementationLength]), fid->fileIdentifierLength);
     }
 
-
-
-
-
-
-
     uint32_t paddingLength = getPaddingLength(fid);
 
     printf("%s::%d::Padding length = '%d'\n", __FUNCTION__, __LINE__, paddingLength);
 
-
-
-
     fid = (FileIdentifierDescriptor2*) (((uint8_t*) fid) + FILE_IDENTIFIER_DESCRIPTOR2_SIZE_KNOWN + fid->implementationLength + fid->fileIdentifierLength + paddingLength);
-
-
-#if 0
-        fid += sizeof(FileIdentifierDescriptor2 );
-#else
-
-#endif
-
-
-
-
-
 
     }
 
-        printf("%s::%d::Exiting\n", __FUNCTION__, __LINE__); exit(1);
 
     printf("%s::%d\n", __FUNCTION__, __LINE__);
 
@@ -984,38 +962,47 @@ int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
         }
         case 258: {
             desc = "Allocation Extent Descriptor";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 259: {
             desc = "Indirect Entry";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 260: {
             desc = "Terminal Entry";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 261: {
             desc = "File Entry";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 262: {
             desc = "Extended Attribute Header Descriptor";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 263: {
             desc = "Unallocated Space Entry";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 264: {
             desc = "Space Bitmap Descriptor";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 265: {
             desc = "Partition Integrity Entry";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         case 266: {
             desc = "Extended File Entry";
+            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
             break;
         }
         default:
@@ -1026,13 +1013,6 @@ int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
         printf("%s::%d::%s\n", __FUNCTION__, __LINE__, desc);
     }
 
-    if (257 == tag) {
-        printf("%s::%d::", __FUNCTION__, __LINE__);
-        for (size_t i = 0; i < VOLUME_DESCRIPTOR_SIZE; i++) {
-            printf("%02x ", data[i]);
-        }
-        printf("\n");
-    }
     printf("%s::%d::LEAVING\n", __FUNCTION__, __LINE__);
 
     return 0;
