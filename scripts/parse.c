@@ -15,6 +15,8 @@
 
 #define PRIMARY_VOLUME_DESCRIPTOR 1
 
+uint8_t * gWholeFile = NULL;
+
 int readData(const char* const fileName, uint8_t** data, size_t* dataLen)
 {
     int ret          = -1;
@@ -60,6 +62,8 @@ int readData(const char* const fileName, uint8_t** data, size_t* dataLen)
     ret      = 0;
     *data    = dRet;
     *dataLen = dRetLen;
+
+    gWholeFile = *data;
 
 done:
     if (ret) {
@@ -671,16 +675,16 @@ done:
 
 /*
  * charsetType can be
-    0 The CS0 coded character set (1/7.2.2).
-    1 The CS1 coded character set (1/7.2.3).
-    2 The CS2 coded character set (1/7.2.4).
-    3 The CS3 coded character set (1/7.2.5).
-    4 The CS4 coded character set (1/7.2.6).
-    5 The CS5 coded character set (1/7.2.7).
-    6 The CS6 coded character set (1/7.2.8).
-    7 The CS7 coded character set (1/7.2.9).
-    8 The CS8 coded character set (1/7.2.10).
-    9-255 Reserved for future standardisation.
+ 0 The CS0 coded character set (1/7.2.2).
+ 1 The CS1 coded character set (1/7.2.3).
+ 2 The CS2 coded character set (1/7.2.4).
+ 3 The CS3 coded character set (1/7.2.5).
+ 4 The CS4 coded character set (1/7.2.6).
+ 5 The CS5 coded character set (1/7.2.7).
+ 6 The CS6 coded character set (1/7.2.8).
+ 7 The CS7 coded character set (1/7.2.9).
+ 8 The CS8 coded character set (1/7.2.10).
+ 9-255 Reserved for future standardisation.
  *
  */
 typedef struct {
@@ -695,7 +699,7 @@ typedef struct {
                               1     Local Time
                               2     Up to agreement between originator and recipient
                               3 - 15    Reserved
-                            */
+                              */
     uint16_t year;
     uint8_t month;
     uint8_t day;
@@ -723,6 +727,60 @@ typedef struct {
      */
     uint8_t identifierSuffix[8];
 } regid;
+
+static void dumpRegId(const regid * const r, const char * const identifier){
+    size_t i;
+
+    printf("%s::%d::%s\n", __FUNCTION__, __LINE__, identifier);
+    if (1 & r->flags){
+        printf("Dirty bit set, may have been modified\n");
+    } else {
+        printf("Dirty bit NOT set\n");
+    }
+
+    if (2 & r->flags){
+        printf("Protected bit set, cannot be modified\n");
+    } else {
+        printf("Protected bit NOT set, can be modified\n");
+    }
+
+    if (0x2b == r->identifier[0]){
+        printf("Covered by ECMA-168\n");
+    } else if (0x2d == r->identifier[0]){
+        printf("NOT Registered\n");
+    }
+    printf("identifier = '");
+    for (i = 0; i < sizeof(r->identifier); i++){
+        printf("%02x ", r->identifier[i]);
+    }
+    printf("\n");
+
+    printf("identifier (as ascii) = '");
+    for (i = 0; i < sizeof(r->identifier); i++){
+        if (0 == r->identifier[i]){
+            break;
+        }
+        printf("%c", r->identifier[i]);
+    }
+    printf("\n");
+
+
+    printf("identifierSuffix = '");
+    for (i = 0; i < sizeof(r->identifierSuffix); i++){
+        printf("%02x ", r->identifierSuffix[i]);
+    }
+    printf("\n");
+    printf("identifierSuffix (as ascii) = '");
+    for (i = 0; i < sizeof(r->identifierSuffix); i++){
+        if (0 == r->identifier[i]){
+            break;
+        }
+        printf("%c", r->identifierSuffix[i]);
+    }
+    printf("\n");
+
+
+}
 
 
 
@@ -764,7 +822,7 @@ int parseFileSetDescriptor(const uint8_t * const data, size_t sectorNumber){
 
     memcpy(&fsd, data, sizeof(fsd));
 
-        printf("%s::%d::", "parseVolumeDescriptor2", __LINE__);
+    printf("%s::%d::", "parseVolumeDescriptor2", __LINE__);
     //for (size_t i = 0; i < VOLUME_DESCRIPTOR_SIZE ; i++)
     for (size_t i = 0; i < 512 ; i++)
     {
@@ -777,7 +835,7 @@ int parseFileSetDescriptor(const uint8_t * const data, size_t sectorNumber){
 
     dumpTag(&(fsd.tag));
 
-    
+
 
 
 
@@ -871,11 +929,11 @@ static void printDCharacters(const char * const func, const uint32_t line, const
     printf("%s::%d::", func, line);
     for (i = 1; i < len; i++){
         if (start[i]){
-        printf("%c", start[i]);
+            printf("%c", start[i]);
         }
     }
     printf("\n");
-    
+
 }
 
 static int parseFileIdentifierDescriptor2(const uint8_t * const data, size_t sectorNumber){
@@ -902,21 +960,21 @@ static int parseFileIdentifierDescriptor2(const uint8_t * const data, size_t sec
         printf("%s::%d::Length of file identifier = %d (0x%x)\n", __FUNCTION__, __LINE__, fid->fileIdentifierLength, fid->fileIdentifierLength);
 
         printf("%s::%d::Dumping ICB\n", __FUNCTION__, __LINE__);
-    dumpLongAd(&fid->icb); //Address of ICB.  Look at the address to actually understand the ICB.
-    printf("%s::%d::DONE Dumping ICB\n", __FUNCTION__, __LINE__);
+        dumpLongAd(&fid->icb); //Address of ICB.  Look at the address to actually understand the ICB.
+        printf("%s::%d::DONE Dumping ICB\n", __FUNCTION__, __LINE__);
 
-    printf("%s::%d::Implementation Length = %d (0x%x)\n", __FUNCTION__, __LINE__, fid->implementationLength, fid->implementationLength);
+        printf("%s::%d::Implementation Length = %d (0x%x)\n", __FUNCTION__, __LINE__, fid->implementationLength, fid->implementationLength);
 
 
-    if (fid->fileIdentifierLength){
-        printDCharacters(__FUNCTION__, __LINE__, &(fid->rest[fid->implementationLength]), fid->fileIdentifierLength);
-    }
+        if (fid->fileIdentifierLength){
+            printDCharacters(__FUNCTION__, __LINE__, &(fid->rest[fid->implementationLength]), fid->fileIdentifierLength);
+        }
 
-    uint32_t paddingLength = getPaddingLength(fid);
+        uint32_t paddingLength = getPaddingLength(fid);
 
-    printf("%s::%d::Padding length = '%d'\n", __FUNCTION__, __LINE__, paddingLength);
+        printf("%s::%d::Padding length = '%d'\n", __FUNCTION__, __LINE__, paddingLength);
 
-    fid = (FileIdentifierDescriptor2*) (((uint8_t*) fid) + FILE_IDENTIFIER_DESCRIPTOR2_SIZE_KNOWN + fid->implementationLength + fid->fileIdentifierLength + paddingLength);
+        fid = (FileIdentifierDescriptor2*) (((uint8_t*) fid) + FILE_IDENTIFIER_DESCRIPTOR2_SIZE_KNOWN + fid->implementationLength + fid->fileIdentifierLength + paddingLength);
 
     }
 
@@ -974,7 +1032,7 @@ typedef struct {
     uint32_t allocationDescLen;
 
     /* Variable length stuff here, need to handle;
-     */
+    */
 
 
 } FileEntryDescriptor;
@@ -998,102 +1056,6 @@ typedef struct {
     uint8_t implementationUse[2];
 } ext_ad;
 
-static void parseFileEntryDescriptor(const uint8_t* const data, size_t sectorNumber) {
-
-
-    size_t i;
-    FileEntryDescriptor * fed = (FileEntryDescriptor*) data;
-    short_ad * shortDesc = NULL;
-    long_ad * longDesc = NULL;
-    ext_ad * extendedDesc = NULL;
-
-
-    if (261 != fed->tag.tagId){
-        printf("%s::%d::How did we get here???\n", __FUNCTION__, __LINE__);
-        exit(111);
-    }
-
-    printf("%s::%d::fileLinkCnt = '%u'\n", __FUNCTION__, __LINE__, fed->fileLinkCnt);
-    printf("%s::%d::recordLength = '%u'\n", __FUNCTION__, __LINE__, fed->recordLength);
-    printf("%s::%d::infoLength = '%lu'\n", __FUNCTION__, __LINE__, fed->infoLength);
-
-    printf("%s::%d::allocationDescLen = '%u'\n", __FUNCTION__, __LINE__, fed->allocationDescLen );
-    printf("%s::%d::extendedAttrLen = '%u'\n", __FUNCTION__, __LINE__, fed->extendedAttrLen );
-
-
-    printf("%s::%d::flags = '%u' (0x%x)\n", __FUNCTION__, __LINE__, fed->icbTag.flags, fed->icbTag.flags);
-    
-    switch (fed->icbTag.flags & 3){
-        case 0:
-            {
-            printf("Short descriptor\n");
-            printf("TODO: Properly handle short addr\n");
-            shortDesc = (short_ad*) &(data[sizeof(FileEntryDescriptor) + fed->extendedAttrLen] ) ;
-            printf("%s::%d::shortDesc->length = '%u' (0x%x)\n", __FUNCTION__, __LINE__, shortDesc->length,  shortDesc->length ); 
-            printf("%s::%d::shortDesc->position = '%u' (0x%x)\n", __FUNCTION__, __LINE__, shortDesc->position,  shortDesc->position ); 
-
-            uint32_t offset = shortDesc->position * VOLUME_DESCRIPTOR_SIZE ;
-
-            printf("%s::%d::offset =  '%x'\n", __FUNCTION__, __LINE__, offset);
-
-
-            printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4d 5a 90 00 03 00 00 00 04 00 00 00 ff ff 00 00");
-            printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4c 00 00 00 01 14 02 00 00 00 00 00 c0 00 00 00");
-
-
-
-            printf("%s::%d::Dumping beginning of file (no empty_len)::", __FUNCTION__, __LINE__);
-            for (size_t i = 0; i < 16; i++){
-                //printf("%02x ", data[i + offset + EMPTY_LEN ]);
-                printf("%02x ", data[i + offset ]);
-            }
-            printf("\n");
-
-
-            offset += EMPTY_LEN;
-
-            printf("%s::%d::offset =  '%x'\n", __FUNCTION__, __LINE__, offset);
-
-
-
-            printf("%s::%d::Dumping beginning of file (WITH empty_len)::", __FUNCTION__, __LINE__);
-            for (size_t i = 0; i < 16; i++){
-                printf("%02x ", data[i + offset ]);
-            }
-            printf("\n");
-
-            }
-            break;
-        case 1:
-            printf("Long descriptor type\n");
-            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
-            break;
-        case 2:
-            printf("Extended descriptor type\n");
-            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
-            break;
-        default:
-            //impossible.
-            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
-            break;
-    }
-
-
-
-
-#if 1
-   printf("%s::%d::", __FUNCTION__, __LINE__);
-
-   for (i = sizeof(FileEntryDescriptor); i < 2000; i++){
-       printf("%02x ", data[i]);
-   }
-
-
-   printf("\n");
-#endif
-
-//            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-}
 
 typedef struct {
 
@@ -1123,29 +1085,7 @@ typedef struct {
 
 } PartitionDescriptor;
 
-int parsePartitionDescriptor(const uint8_t * const data, size_t sectorNumber){
 
-    int ret = -1;
-
-    PartitionDescriptor * partitionDescriptor = (PartitionDescriptor *) data;
-
-    printf("%s::%d::Volume Descriptor Sequence Number = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->volumeDescriptorSequenceNumber);
-
-    if (0 == (partitionDescriptor->partitionFlags & 1)){
-        printf("Space HAS NOT BEEN allocated for this partition\n");
-    } else {
-        printf("Space HAS BEEN allocated for this partition\n");
-    }
-
-    printf("%s::%d::Volume Descriptor Partition Number = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->partitionNumber);
-
-    printf("%s::%d::Volume Descriptor Partition Starting Location = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->partitionStartingLocation);
-
-    ret = 0;
-done:
-    return ret;
-
-}
 
 typedef struct {
 
@@ -1177,16 +1117,231 @@ typedef struct {
 
 }LogicalVolumeDescriptor  ;
 
+
+LogicalVolumeDescriptor * gLogicalVolumeDescriptor = NULL;
+
+
+/*TODO: Make this NOT a global*/
+PartitionDescriptor * gPartitionDescriptor= NULL;
+
+
+
+
+
+
+static void parseFileEntryDescriptor(const uint8_t* const data, size_t sectorNumber) {
+
+
+    size_t i;
+    FileEntryDescriptor * fed = (FileEntryDescriptor*) data;
+    short_ad * shortDesc = NULL;
+    long_ad * longDesc = NULL;
+    ext_ad * extendedDesc = NULL;
+
+
+    if (261 != fed->tag.tagId){
+        printf("%s::%d::How did we get here???\n", __FUNCTION__, __LINE__);
+        exit(111);
+    }
+
+    printf("%s::%d::fileLinkCnt = '%u'\n", __FUNCTION__, __LINE__, fed->fileLinkCnt);
+    printf("%s::%d::recordLength = '%u'\n", __FUNCTION__, __LINE__, fed->recordLength);
+    printf("%s::%d::infoLength (Need this I think) = '%lu'\n", __FUNCTION__, __LINE__, fed->infoLength);
+
+    printf("%s::%d::allocationDescLen = '%u'\n", __FUNCTION__, __LINE__, fed->allocationDescLen );
+    printf("%s::%d::extendedAttrLen = '%u'\n", __FUNCTION__, __LINE__, fed->extendedAttrLen );
+
+
+    printf("%s::%d::flags = '%u' (0x%x)\n", __FUNCTION__, __LINE__, fed->icbTag.flags, fed->icbTag.flags);
+
+    switch (fed->icbTag.flags & 3){
+        case 0:
+            {
+                printf("Short descriptor\n");
+                printf("TODO: Properly handle short addr\n");
+                shortDesc = (short_ad*) &(data[sizeof(FileEntryDescriptor) + fed->extendedAttrLen] ) ;
+                printf("%s::%d::shortDesc->length = '%u' (0x%x)\n", __FUNCTION__, __LINE__, shortDesc->length,  shortDesc->length ); 
+                printf("%s::%d::shortDesc->position = '%u' (0x%x)\n", __FUNCTION__, __LINE__, shortDesc->position,  shortDesc->position ); 
+
+                uint32_t offset = gPartitionDescriptor->partitionStartingLocation * gLogicalVolumeDescriptor->logicalBlockSize;
+
+                offset += shortDesc->position * gLogicalVolumeDescriptor->logicalBlockSize;
+
+
+                printf("%s::%d::offset =  '%u' (0x%x)\n", __FUNCTION__, __LINE__, offset, offset);
+
+
+
+                printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4d 5a 90 00 03 00 00 00 04 00 00 00 ff ff 00 00");
+                printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4c 00 00 00 01 14 02 00 00 00 00 00 c0 00 00 00");
+
+                printf("%s::%d::Need to map the FileEntryDescriptor to the FileIdentifierDescriptor to get the names.\n", __FUNCTION__, __LINE__);
+
+
+                printf("%s::%d::Dumping beginning of file (Definitely need this)::", __FUNCTION__, __LINE__);
+                for (size_t i = 0; i < 16; i++){
+                    //printf("%02x ", data[i + offset + EMPTY_LEN ]);
+                    printf("%02x ", gWholeFile[i + offset ]);
+                }
+                printf("\n");
+
+#if 0
+                for (size_t i = offset; i < offset + 16; i++){
+                    printf("%02x ", data[i ]);
+                }
+                printf("\n");
+
+                printf("%s::%d::%x %x %x %x\n",  __FUNCTION__, __LINE__);
+#endif
+
+
+
+            }
+            break;
+        case 1:
+            printf("Long descriptor type\n");
+            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
+            break;
+        case 2:
+            printf("Extended descriptor type\n");
+            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
+            break;
+        default:
+            //impossible.
+            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
+            break;
+    }
+
+
+
+
+#if 1
+    printf("%s::%d::", __FUNCTION__, __LINE__);
+
+    for (i = sizeof(FileEntryDescriptor); i < 2000; i++){
+        printf("%02x ", data[i]);
+    }
+
+
+    printf("\n");
+#endif
+
+    //            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+}
+
+#if 0
+typedef struct {
+
+    DescriptorTag tag;
+
+    uint32_t volumeDescriptorSequenceNumber;
+
+    uint16_t partitionFlags;
+
+    uint16_t partitionNumber;
+
+    regid partitionContents;
+
+    uint8_t partitionContentsUse[128];
+
+    uint32_t accessType;
+
+    uint32_t partitionStartingLocation ;
+
+    uint32_t partitionLength;
+
+    regid implementationIdentifier;
+
+    uint8_t  implementationUse[128];
+
+    uint8_t  reserved[156];
+
+} PartitionDescriptor;
+
+/*TODO: Make this NOT a global*/
+PartitionDescriptor * gPartitionDescriptor= NULL;
+
+#endif
+
+
+
+
+int parsePartitionDescriptor(const uint8_t * const data, size_t sectorNumber){
+
+    int ret = -1;
+
+    PartitionDescriptor * partitionDescriptor = (PartitionDescriptor *) data;
+
+    printf("%s::%d::Volume Descriptor Sequence Number = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->volumeDescriptorSequenceNumber);
+
+    if (0 == (partitionDescriptor->partitionFlags & 1)){
+        printf("Space HAS NOT BEEN allocated for this partition\n");
+    } else {
+        printf("Space HAS BEEN allocated for this partition\n");
+    }
+
+    printf("%s::%d::Volume Descriptor Partition Number = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->partitionNumber);
+
+    printf("%s::%d::Volume Descriptor Partition Starting Location (Need this I think) = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->partitionStartingLocation);
+
+    ret = 0;
+    gPartitionDescriptor = partitionDescriptor;
+
+    fprintf(stderr, "%s::%d::Make this not a global\n", __FUNCTION__, __LINE__);
+
+done:
+    return ret;
+
+}
+
+#if 0
+typedef struct {
+
+    DescriptorTag tag;
+
+    uint32_t volumeDescriptorSequenceNumber;
+
+    charspec descriptorCharSet;
+
+    uint8_t logicalVolumeIdentifier[128]; //TODO: handle dstring
+
+    uint32_t logicalBlockSize;
+
+    regid domainIdentifier;
+
+    uint8_t logicalVolumeContentsUse[16];
+
+    uint32_t mapTableLength;
+
+    uint32_t numPartitionMaps;
+
+    regid implementationIdentifier;
+
+    uint8_t implementationUse[128];
+
+    ext_ad integritySequenceExtent;
+
+    uint8_t partitionMaps[1]; //actual length of mapTableLength above;
+
+}LogicalVolumeDescriptor  ;
+
+
+LogicalVolumeDescriptor * gLogicalVolumeDescriptor = NULL;
+#endif
+
+
 int parseLogicalVolumeDescriptor(const uint8_t * const data, size_t sectorNumber){
 
     int ret = -1;
 
     LogicalVolumeDescriptor * lvd = (LogicalVolumeDescriptor*) data;
 
-    printf("%s::%d::Logical Block size = '%u'\n", __FUNCTION__, __LINE__, lvd->logicalBlockSize);
-    
+    printf("%s::%d::Logical Block size (Need this I think) = '%u'\n", __FUNCTION__, __LINE__, lvd->logicalBlockSize);
+
 
     ret = 0;
+    gLogicalVolumeDescriptor  = lvd;
+
 done:
     return ret;
 
@@ -1200,7 +1355,7 @@ int parsePrimaryVolumeDescriptor(const uint8_t* const data, size_t sectorNumber)
 
 
 
-    
+
 
     printf("%s::%d::Volume SequenceNumber = '%u'\n", __FUNCTION__, __LINE__, pvd->volumeDescriptorSequenceNumber);
 
@@ -1209,6 +1364,55 @@ done:
     return ret ;
 }
 
+typedef struct {
+    DescriptorTag tag;
+
+    uint32_t volumeDescriptorSequenceNumber;
+
+    regid implementationIdentifier;
+
+    uint8_t implementationUse[460];
+
+} ImplementationUseVolumeDescriptor;
+
+int parseImplementationUseVolumeDescriptor( const uint8_t* const data, size_t sectorNumber) {
+
+    size_t i;
+    int doPrint = 0;
+
+    ImplementationUseVolumeDescriptor * iuvd = (ImplementationUseVolumeDescriptor * ) data;
+
+    dumpRegId(&(iuvd->implementationIdentifier), "ImplementationUseVolumeIdentifier");
+
+    printf("%s::%d::implementationUse = '", __FUNCTION__, __LINE__);
+    for (i = 0; i < sizeof(iuvd->implementationUse); i++){
+        if (iuvd->implementationUse[i]){
+            doPrint = 1;
+        }
+    }
+    if (doPrint){
+        for (i = 0; i < sizeof(iuvd->implementationUse); i++){
+            printf("%02x ", iuvd->implementationUse[i]);
+        }
+        printf("'\n");
+
+        printf("%s::%d::implementationUse (as ascii) = '", __FUNCTION__, __LINE__);
+        for (i = 0; i < sizeof(iuvd->implementationUse); i++){
+            if (0 == iuvd->implementationUse[i]){
+                printf(" ");
+            } else {
+            printf("%c", iuvd->implementationUse[i]);
+        }
+        }
+
+    } else {
+        printf("All Zeros'\n");
+
+    }
+
+    return 0;
+
+}
 
 
 int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
@@ -1225,83 +1429,103 @@ int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
 
     char* desc = NULL;
     switch (tag) {
-        case 1: {
-            desc = "Primary Volume Descriptor";
-            parsePrimaryVolumeDescriptor(data, sectorNumber);
+        case 9: {
+                    desc = "Logical Volume Integrity";
+                    break;
+                }
+        case 7: {
+                    printf("%s::%d::Ignoring unallocated space descriptor for now\n", __FUNCTION__, __LINE__);
+                    desc = "Unallocated Space Descriptor";
+                    break;
+                }
+        case 4: {
+#if 0
+                    parseImplementationUseVolumeDescriptor(data, sectorNumber);
+#else
+                    printf("%s::%d::TODO: Removing parseImplementationUseVolumeDescriptor so that I can grep the output file\n", __FUNCTION__, __LINE__);
+#endif
 
-        }
+                    desc = "Implementation Use Volume Descriptor";
+                    break;
+                }
+        case 1: {
+                    desc = "Primary Volume Descriptor";
+                    parsePrimaryVolumeDescriptor(data, sectorNumber);
+                    break;
+
+                }
         case 8: {
-            desc = "Terminating Descriptor";
-            break;
-        }
+                    desc = "Terminating Descriptor";
+                    break;
+                }
         case 5: {
-            desc = "Partition Descriptor";
-            parsePartitionDescriptor(data, sectorNumber);
-            break;
-        }
+                    desc = "Partition Descriptor";
+                    parsePartitionDescriptor(data, sectorNumber);
+                    break;
+                }
         case 6: {
-            desc = "Logical Volume Descriptor";
-            parseLogicalVolumeDescriptor(data, sectorNumber);
-            break;
-        }
+                    desc = "Logical Volume Descriptor";
+                    parseLogicalVolumeDescriptor(data, sectorNumber);
+                    break;
+                }
         case 256: {
-            desc = "File Set Descriptor";
-            parseFileSetDescriptor(data, sectorNumber);
-            break;
-        }
+                      desc = "File Set Descriptor";
+                      parseFileSetDescriptor(data, sectorNumber);
+                      break;
+                  }
         case 257: {
-            desc = "File Identifier Descriptor";
-            parseFileIdentifierDescriptor2(data, sectorNumber);
-            //handlePrimaryVolumeDescriptor(data);
-            break;
-        }
+                      desc = "File Identifier Descriptor";
+                      parseFileIdentifierDescriptor2(data, sectorNumber);
+                      //handlePrimaryVolumeDescriptor(data);
+                      break;
+                  }
         case 258: {
-            desc = "Allocation Extent Descriptor";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Allocation Extent Descriptor";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         case 259: {
-            desc = "Indirect Entry";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Indirect Entry";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         case 260: {
-            desc = "Terminal Entry";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Terminal Entry";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         case 261: {
-            desc = "File Entry";
-            parseFileEntryDescriptor(data, sectorNumber);
-            break;
-        }
+                      desc = "File Entry";
+                      parseFileEntryDescriptor(data, sectorNumber);
+                      break;
+                  }
         case 262: {
-            desc = "Extended Attribute Header Descriptor";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Extended Attribute Header Descriptor";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         case 263: {
-            desc = "Unallocated Space Entry";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Unallocated Space Entry";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         case 264: {
-            desc = "Space Bitmap Descriptor";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Space Bitmap Descriptor";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         case 265: {
-            desc = "Partition Integrity Entry";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Partition Integrity Entry";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         case 266: {
-            desc = "Extended File Entry";
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
-            break;
-        }
+                      desc = "Extended File Entry";
+                      printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+                      break;
+                  }
         default:
-            break;
+                  break;
     }
 
     if (desc){
