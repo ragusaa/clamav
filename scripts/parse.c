@@ -830,8 +830,9 @@ int parseFileSetDescriptor(const uint8_t * const data, size_t sectorNumber){
     }
     printf("\n");
 
-    printf("%s::%d::'%s'\n", "parseVolumeDescriptor2", __LINE__, (char *) fsd.fileSetIdentifier);
-    printf("%s::%d::'%u'\n", "parseVolumeDescriptor2", __LINE__, fsd.fileSetDescriptorNumber);
+    printf("%s::%d::fileSetIdentifier = '%s'\n", "parseVolumeDescriptor2", __LINE__, (char *) fsd.fileSetIdentifier);
+    printf("%s::%d::fileSetDescriptorNumber = '%u'\n", "parseVolumeDescriptor2", __LINE__, fsd.fileSetDescriptorNumber);
+    printf("%s::%d::fileSetNumber = '%u'\n", "parseVolumeDescriptor2", __LINE__, fsd.fileSetNumber);
 
     dumpTag(&(fsd.tag));
 
@@ -1172,7 +1173,7 @@ static void parseFileEntryDescriptor(const uint8_t* const data, size_t sectorNum
 
 
 
-                printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4d 5a 90 00 03 00 00 00 04 00 00 00 ff ff 00 00");
+                printf("%s::%d::Looking for (dll) '%s'\n", __FUNCTION__, __LINE__, "4d 5a 90 00 03 00 00 00 04 00 00 00 ff ff 00 00");
                 printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4c 00 00 00 01 14 02 00 00 00 00 00 c0 00 00 00");
 
                 printf("%s::%d::Need to map the FileEntryDescriptor to the FileIdentifierDescriptor to get the names.\n", __FUNCTION__, __LINE__);
@@ -1184,6 +1185,8 @@ static void parseFileEntryDescriptor(const uint8_t* const data, size_t sectorNum
                     printf("%02x ", gWholeFile[i + offset ]);
                 }
                 printf("\n");
+
+                printf("%s::%d::uniqueId = %lu\n", __FUNCTION__, __LINE__, fed->uniqueId);
 
 #if 0
                 for (size_t i = offset; i < offset + 16; i++){
@@ -1215,7 +1218,7 @@ static void parseFileEntryDescriptor(const uint8_t* const data, size_t sectorNum
 
 
 
-#if 1
+#if 0
     printf("%s::%d::", __FUNCTION__, __LINE__);
 
     for (i = sizeof(FileEntryDescriptor); i < 2000; i++){
@@ -1419,6 +1422,21 @@ int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
 {
     uint16_t tag;
 
+    {
+        /*using the tag as a flag to ignore the empty descriptors*/
+    tag = 0;
+    for  (int i = 0; i < 2048; i++){
+        if (data[i]){
+            tag = 1;
+        }
+    }
+
+    if (0 == tag){
+        /*The whole thing is zeros*/
+        return 0;
+        }
+    }
+
     printf("%s::%d::ENTERING\n", __FUNCTION__, __LINE__);
 
     memcpy(&tag, data, 2);
@@ -1560,9 +1578,11 @@ int parseFile(const char* const fileName)
     int andy = 0;
 #endif
     for (i = EMPTY_LEN; i < dataLen; i += VOLUME_DESCRIPTOR_SIZE) {
+#if 0
         if (parseVolumeDescriptor(&(data[i]), (i - EMPTY_LEN) / VOLUME_DESCRIPTOR_SIZE)) {
             goto done;
         }
+#endif
 
         if (parseVolumeDescriptor2(&(data[i]), (i - EMPTY_LEN) / VOLUME_DESCRIPTOR_SIZE)) {
             goto done;
