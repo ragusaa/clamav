@@ -476,7 +476,7 @@ void handlePrimaryVolumeDescriptor(const uint8_t* const data)
         goto done;
     }
 
-#if 1
+#if 0
     for (i = 0; i < VOLUME_DESCRIPTOR_SIZE; i++) {
         printf("%02x ", data[i]);
     }
@@ -773,6 +773,7 @@ int parseFileSetDescriptor(const uint8_t * const data, size_t sectorNumber){
     printf("\n");
 
     printf("%s::%d::'%s'\n", "parseVolumeDescriptor2", __LINE__, (char *) fsd.fileSetIdentifier);
+    printf("%s::%d::'%u'\n", "parseVolumeDescriptor2", __LINE__, fsd.fileSetDescriptorNumber);
 
     dumpTag(&(fsd.tag));
 
@@ -931,9 +932,284 @@ done:
     return ret;
 }
 
+typedef struct {
+    DescriptorTag tag;
+
+    ICBTag icbTag;
+
+    uint32_t uid;
+
+    uint32_t gid;
+
+    uint32_t permissions ;
+
+    uint16_t fileLinkCnt;
+
+    uint8_t recordFormat;
+    uint8_t recordDisplayAttributes;
+
+
+    uint32_t recordLength;
+
+    uint64_t infoLength;
+
+    uint64_t logicalBlocksRecorded;
+
+    timestamp accessDateTime;
+
+    timestamp modificationDateTime;
+
+    timestamp attributeDateTime;
+
+    uint32_t checkpoint;
+
+    long_ad extendedAttrICB;
+
+    regid implementationId;
+
+    uint64_t uniqueId;
+
+    uint32_t extendedAttrLen;
+
+    uint32_t allocationDescLen;
+
+    /* Variable length stuff here, need to handle;
+     */
+
+
+} FileEntryDescriptor;
+
+typedef struct {
+
+    uint32_t length;
+
+    uint32_t position;
+
+} short_ad;
+
+typedef struct {
+    uint32_t extentLen;
+    uint32_t recordedLen;
+
+    uint32_t  infoLen;
+
+    lb_addr extentLocation;
+
+    uint8_t implementationUse[2];
+} ext_ad;
+
 static void parseFileEntryDescriptor(const uint8_t* const data, size_t sectorNumber) {
-            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
+
+
+    size_t i;
+    FileEntryDescriptor * fed = (FileEntryDescriptor*) data;
+    short_ad * shortDesc = NULL;
+    long_ad * longDesc = NULL;
+    ext_ad * extendedDesc = NULL;
+
+
+    if (261 != fed->tag.tagId){
+        printf("%s::%d::How did we get here???\n", __FUNCTION__, __LINE__);
+        exit(111);
+    }
+
+    printf("%s::%d::fileLinkCnt = '%u'\n", __FUNCTION__, __LINE__, fed->fileLinkCnt);
+    printf("%s::%d::recordLength = '%u'\n", __FUNCTION__, __LINE__, fed->recordLength);
+    printf("%s::%d::infoLength = '%lu'\n", __FUNCTION__, __LINE__, fed->infoLength);
+
+    printf("%s::%d::allocationDescLen = '%u'\n", __FUNCTION__, __LINE__, fed->allocationDescLen );
+    printf("%s::%d::extendedAttrLen = '%u'\n", __FUNCTION__, __LINE__, fed->extendedAttrLen );
+
+
+    printf("%s::%d::flags = '%u' (0x%x)\n", __FUNCTION__, __LINE__, fed->icbTag.flags, fed->icbTag.flags);
+    
+    switch (fed->icbTag.flags & 3){
+        case 0:
+            {
+            printf("Short descriptor\n");
+            printf("TODO: Properly handle short addr\n");
+            shortDesc = (short_ad*) &(data[sizeof(FileEntryDescriptor) + fed->extendedAttrLen] ) ;
+            printf("%s::%d::shortDesc->length = '%u' (0x%x)\n", __FUNCTION__, __LINE__, shortDesc->length,  shortDesc->length ); 
+            printf("%s::%d::shortDesc->position = '%u' (0x%x)\n", __FUNCTION__, __LINE__, shortDesc->position,  shortDesc->position ); 
+
+            uint32_t offset = shortDesc->position * VOLUME_DESCRIPTOR_SIZE ;
+
+            printf("%s::%d::offset =  '%x'\n", __FUNCTION__, __LINE__, offset);
+
+
+            printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4d 5a 90 00 03 00 00 00 04 00 00 00 ff ff 00 00");
+            printf("%s::%d::Looking for '%s'\n", __FUNCTION__, __LINE__, "4c 00 00 00 01 14 02 00 00 00 00 00 c0 00 00 00");
+
+
+
+            printf("%s::%d::Dumping beginning of file (no empty_len)::", __FUNCTION__, __LINE__);
+            for (size_t i = 0; i < 16; i++){
+                //printf("%02x ", data[i + offset + EMPTY_LEN ]);
+                printf("%02x ", data[i + offset ]);
+            }
+            printf("\n");
+
+
+            offset += EMPTY_LEN;
+
+            printf("%s::%d::offset =  '%x'\n", __FUNCTION__, __LINE__, offset);
+
+
+
+            printf("%s::%d::Dumping beginning of file (WITH empty_len)::", __FUNCTION__, __LINE__);
+            for (size_t i = 0; i < 16; i++){
+                printf("%02x ", data[i + offset ]);
+            }
+            printf("\n");
+
+            }
+            break;
+        case 1:
+            printf("Long descriptor type\n");
+            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
+            break;
+        case 2:
+            printf("Extended descriptor type\n");
+            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
+            break;
+        default:
+            //impossible.
+            printf("%s::%d::Unimplemented\n", __FUNCTION__, __LINE__); exit(111);
+            break;
+    }
+
+
+
+
+#if 1
+   printf("%s::%d::", __FUNCTION__, __LINE__);
+
+   for (i = sizeof(FileEntryDescriptor); i < 2000; i++){
+       printf("%02x ", data[i]);
+   }
+
+
+   printf("\n");
+#endif
+
+//            printf("%s::%d::Unimplemented\n",__FUNCTION__, __LINE__); exit(111);
 }
+
+typedef struct {
+
+    DescriptorTag tag;
+
+    uint32_t volumeDescriptorSequenceNumber;
+
+    uint16_t partitionFlags;
+
+    uint16_t partitionNumber;
+
+    regid partitionContents;
+
+    uint8_t partitionContentsUse[128];
+
+    uint32_t accessType;
+
+    uint32_t partitionStartingLocation ;
+
+    uint32_t partitionLength;
+
+    regid implementationIdentifier;
+
+    uint8_t  implementationUse[128];
+
+    uint8_t  reserved[156];
+
+} PartitionDescriptor;
+
+int parsePartitionDescriptor(const uint8_t * const data, size_t sectorNumber){
+
+    int ret = -1;
+
+    PartitionDescriptor * partitionDescriptor = (PartitionDescriptor *) data;
+
+    printf("%s::%d::Volume Descriptor Sequence Number = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->volumeDescriptorSequenceNumber);
+
+    if (0 == (partitionDescriptor->partitionFlags & 1)){
+        printf("Space HAS NOT BEEN allocated for this partition\n");
+    } else {
+        printf("Space HAS BEEN allocated for this partition\n");
+    }
+
+    printf("%s::%d::Volume Descriptor Partition Number = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->partitionNumber);
+
+    printf("%s::%d::Volume Descriptor Partition Starting Location = '%u'\n", __FUNCTION__, __LINE__, partitionDescriptor->partitionStartingLocation);
+
+    ret = 0;
+done:
+    return ret;
+
+}
+
+typedef struct {
+
+    DescriptorTag tag;
+
+    uint32_t volumeDescriptorSequenceNumber;
+
+    charspec descriptorCharSet;
+
+    uint8_t logicalVolumeIdentifier[128]; //TODO: handle dstring
+
+    uint32_t logicalBlockSize;
+
+    regid domainIdentifier;
+
+    uint8_t logicalVolumeContentsUse[16];
+
+    uint32_t mapTableLength;
+
+    uint32_t numPartitionMaps;
+
+    regid implementationIdentifier;
+
+    uint8_t implementationUse[128];
+
+    ext_ad integritySequenceExtent;
+
+    uint8_t partitionMaps[1]; //actual length of mapTableLength above;
+
+}LogicalVolumeDescriptor  ;
+
+int parseLogicalVolumeDescriptor(const uint8_t * const data, size_t sectorNumber){
+
+    int ret = -1;
+
+    LogicalVolumeDescriptor * lvd = (LogicalVolumeDescriptor*) data;
+
+    printf("%s::%d::Logical Block size = '%u'\n", __FUNCTION__, __LINE__, lvd->logicalBlockSize);
+    
+
+    ret = 0;
+done:
+    return ret;
+
+}
+
+
+int parsePrimaryVolumeDescriptor(const uint8_t* const data, size_t sectorNumber)
+{
+    int ret = -1;
+    PrimaryVolumeDescriptor * pvd = (PrimaryVolumeDescriptor * )data;
+
+
+
+    
+
+    printf("%s::%d::Volume SequenceNumber = '%u'\n", __FUNCTION__, __LINE__, pvd->volumeDescriptorSequenceNumber);
+
+    ret = 0;
+done:
+    return ret ;
+}
+
+
 
 int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
 {
@@ -949,8 +1225,23 @@ int parseVolumeDescriptor2(const uint8_t* const data, size_t sectorNumber)
 
     char* desc = NULL;
     switch (tag) {
+        case 1: {
+            desc = "Primary Volume Descriptor";
+            parsePrimaryVolumeDescriptor(data, sectorNumber);
+
+        }
         case 8: {
             desc = "Terminating Descriptor";
+            break;
+        }
+        case 5: {
+            desc = "Partition Descriptor";
+            parsePartitionDescriptor(data, sectorNumber);
+            break;
+        }
+        case 6: {
+            desc = "Logical Volume Descriptor";
+            parseLogicalVolumeDescriptor(data, sectorNumber);
             break;
         }
         case 256: {
