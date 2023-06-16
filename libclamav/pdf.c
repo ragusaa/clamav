@@ -1466,10 +1466,14 @@ cl_error_t pdf_extract_obj(struct pdf_struct *pdf, struct pdf_obj *obj, uint32_t
         dump = 0;
     }
 
+#if 0
     if ((obj->flags & (1 << OBJ_IMAGE)) && !(obj->flags & (1 << OBJ_FILTER_DCT))) {
         /* don't dump / scan non-JPG images */
         dump = 0;
     }
+#else
+    fprintf(stderr, "%s::%d::Removed based on suggestions in the ticket\n", __FUNCTION__, __LINE__);
+#endif
 
     if (obj->flags & (1 << OBJ_FORCEDUMP)) {
         /* bytecode can force dump by setting this flag */
