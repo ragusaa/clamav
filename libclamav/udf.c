@@ -246,6 +246,115 @@ done:
     return ret;
 }
 
+#if 0
+static bool parseExtendedFileEntryDescriptor(cli_ctx *ctx,
+        const uint8_t *const data,
+        PartitionDescriptor *pPartitionDescriptor,
+        LogicalVolumeDescriptor *pLogicalVolumeDescriptor,
+        FileIdentifierDescriptor *fileIdentifierDescriptor)
+{
+
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    ExtendedFileEntryDescriptor *fed = (ExtendedFileEntryDescriptor *)data;
+    bool ret                 = false;
+    size_t allocation_descriptor_len;
+    size_t extended_file_entry_descriptor_size;
+    uint16_t tagId = getDescriptorTagId(&fed->tag);
+
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    if (EXTENDED_FILE_ENTRY_DESCRIPTOR != tagId) {
+        cli_warnmsg("parseExtendedFileEntryDescriptor: Tag ID of 0x%x does not match File Entry Descriptor.\n", tagId);
+        goto done;
+    }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+
+    tagId = getDescriptorTagId(&fileIdentifierDescriptor->tag);
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    if (FILE_IDENTIFIER_DESCRIPTOR != tagId) {
+        cli_warnmsg("parseExtendedFileEntryDescriptor: Tag ID of 0x%x does not match File Identifier Descriptor.\n", tagId);        goto done;
+    }
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+
+    extended_file_entry_descriptor_size = getExtendedFileEntryDescriptorSize(fed);
+    allocation_descriptor_len  = le32_to_host(fed->allocationDescLen);
+    if (allocation_descriptor_len > extended_file_entry_descriptor_size) {
+        cli_dbgmsg("parseFileEntryDescriptor: Allocation Descriptor Length is greater than the File Entry Descriptor Size.\n");
+        goto done;
+    }
+    (void *)&(data[getExtendedFileEntryDescriptorSize(fed) - le32_to_host(fed->allocationDescLen)]),
+
+
+
+
+    if (CL_SUCCESS != extractFile(ctx, pPartitionDescriptor, pLogicalVolumeDescriptor,
+                                  (void *)&(data[getExtendedFileEntryDescriptorSize(fed) - le32_to_host(fed->allocationDescLen)]),
+                                  le16_to_host(fed->icbTag.flags), fileIdentifierDescriptor)) {
+        ret = false;
+        goto done;
+    }
+
+    ret = true;
+done:
+    return ret;
+}
+#else
+
+static bool parseExtendedFileEntryDescriptor(cli_ctx *ctx, ExtendedFileEntryDescriptor *fed, PartitionDescriptor *pPartitionDescriptor, LogicalVolumeDescriptor *pLogicalVolumeDescriptor, FileIdentifierDescriptor *fileIdentifierDescriptor)
+{
+    bool ret                    = false;
+    uint16_t tagId              = getDescriptorTagId(&fed->tag);
+    void *allocation_descriptor = NULL;
+
+    size_t extended_file_entry_descriptor_size;
+    size_t allocation_descriptor_len;
+
+    if (EXTENDED_FILE_ENTRY_DESCRIPTOR != tagId) {
+        cli_warnmsg("parseExtendedFileEntryDescriptor: Tag ID of 0x%x does not match File Entry Descriptor.\n", tagId);
+        goto done;
+    }
+
+    tagId = getDescriptorTagId(&fileIdentifierDescriptor->tag);
+    if (FILE_IDENTIFIER_DESCRIPTOR != tagId) {
+        cli_warnmsg("parseExtendedFileEntryDescriptor: Tag ID of 0x%x does not match File Identifier Descriptor.\n", tagId);
+        goto done;
+    }
+
+    // Calculate pointer for the allocation descriptor.
+    // The allocation descriptors are the last bytes of the Extended File Entry.
+    // See Section 14.17 in https://www.ecma-international.org/wp-content/uploads/ECMA-167_3rd_edition_june_1997.pdf
+    extended_file_entry_descriptor_size = getExtendedFileEntryDescriptorSize(fed);
+    allocation_descriptor_len  = le32_to_host(fed->allocationDescLen);
+
+    if (allocation_descriptor_len > extended_file_entry_descriptor_size) {
+        cli_dbgmsg("parseExtendedFileEntryDescriptor: Allocation Descriptor Length is greater than the File Entry Descriptor Size.\n");
+        goto done;
+    }
+    allocation_descriptor = (void *)((uint8_t *)fed + (extended_file_entry_descriptor_size - allocation_descriptor_len));
+
+    // The Allocation Descriptor was taken from the end of the  File Entry Descriptor.
+    // We already verified that the File Entry Descriptor is within the fmap,
+    // so it's safe to say the Allocation Descriptor is also within the fmap.
+    // No need to use an `fmap_need...()` function here.
+
+    // Extract the file.
+    if (CL_SUCCESS != extractFile(ctx, pPartitionDescriptor, pLogicalVolumeDescriptor,
+                                  allocation_descriptor,
+                                  allocation_descriptor_len,
+                                  le16_to_host(fed->icbTag.flags), fileIdentifierDescriptor)) {
+        cli_dbgmsg("parseExtendedFileEntryDescriptor: Failed to extract file.\n");
+        goto done;
+    }
+
+    ret = true;
+done:
+    return ret;
+}
+
+
+
+#endif
+
+
 /*
 // Uncomment for debugging.
 static void dumpTag (DescriptorTag *dt)
@@ -659,6 +768,14 @@ done:
 static cl_error_t insertPointer(PointerList *pl, const uint8_t *pointer)
 {
     cl_error_t ret = CL_SUCCESS;
+    size_t i;
+
+    for (i = 0; i < pl->cnt; i++){
+        if (pl->idxs[i] == pointer){
+            fprintf(stderr, "%s::%d::DUPLICATE, DON'T KNOW IF THAT'S AN ISSUE\n", __FUNCTION__, __LINE__); exit(11);
+            return CL_SUCCESS;
+        }
+    }
 
     if (pl->cnt == (pl->capacity - 1)) {
         uint32_t newCapacity = pl->capacity + POINTER_LIST_INCREMENT;
@@ -683,7 +800,10 @@ static cl_error_t findFileIdentifiers(const uint8_t *const input, PointerList *p
     size_t bufUsed;
     size_t fidDescSize;
 
+fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+
     while (FILE_IDENTIFIER_DESCRIPTOR == tagId) {
+fprintf(stderr, "%s::%d::Inserting pointer into FILE_IDENTIFIER_LIST\n", __FUNCTION__, __LINE__);
 
         /*Check that it's safe to read the header. */
         if (CL_SUCCESS != (ret = insertPointer(pfil, buffer))) {
@@ -703,6 +823,7 @@ static cl_error_t findFileIdentifiers(const uint8_t *const input, PointerList *p
         tagId  = getDescriptorTagId((DescriptorTag *)buffer);
     }
 
+fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
 done:
     return ret;
 }
@@ -737,6 +858,42 @@ done:
     return ret;
 }
 
+static cl_error_t findExtendedFileEntries(const uint8_t *const input, PointerList *pfil)
+{
+
+    cl_error_t ret        = CL_SUCCESS;
+    const uint8_t *buffer = input;
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    uint16_t tagId        = getDescriptorTagId((DescriptorTag *)buffer);
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    uint64_t bufUsed;
+    size_t fedDescSize;
+
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    while (EXTENDED_FILE_ENTRY_DESCRIPTOR == tagId) {
+        fprintf(stderr, "%s::%d::inserting extended file entry pointer\n", __FUNCTION__, __LINE__);
+        if (CL_SUCCESS != (ret = insertPointer(pfil, buffer))) {
+            goto done;
+        }
+
+        /*This is how far into the Volume we already are.*/
+        bufUsed = ((uint64_t) buffer) - ((uint64_t) input);
+        fedDescSize = getExtendedFileEntryDescriptorSize((ExtendedFileEntryDescriptor *)buffer);
+
+        /* Check that it's safe to read the header for the next ExtendedFileEntryDescriptor */
+        if (VOLUME_DESCRIPTOR_SIZE < (fedDescSize + bufUsed + EXTENDED_FILE_ENTRY_DESCRIPTOR_SIZE_KNOWN )){
+            break;
+        }
+
+        buffer = buffer + fedDescSize;
+        tagId        = getDescriptorTagId((DescriptorTag *)buffer);
+    }
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+
+done:
+    return ret;
+}
+
 cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 {
     cl_error_t ret                          = CL_SUCCESS;
@@ -758,6 +915,7 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
     bool isInitialized             = false;
     PointerList fileIdentifierList = {0};
     PointerList fileEntryList      = {0};
+    PointerList extendedFileEntryList      = {0};
 
     if (offset < 32768) {
         return CL_SUCCESS; /* Need 16 sectors at least 2048 bytes long */
@@ -801,6 +959,70 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 
     while (1) {
 
+
+#if 1
+
+        {
+            uint8_t * buf = NULL;
+            size_t i;
+            uint16_t tagId;
+            fprintf(stderr, "%s::%d::DUMPING TAGIDS\n", __FUNCTION__, __LINE__);
+            for (i = idx; ; i += VOLUME_DESCRIPTOR_SIZE){
+                buf = (uint8_t *)fmap_need_off(ctx->fmap, i, VOLUME_DESCRIPTOR_SIZE);
+                if (NULL == buf){
+                    break;
+                }
+
+                tagId = getDescriptorTagId((DescriptorTag *) buf);
+                if (0 == tagId){
+                    continue;
+                }
+            //    fprintf(stderr, "%s::%d::%d (0x%x)\n", __FUNCTION__, __LINE__, tagId, tagId);
+                switch (tagId){
+                    case PRIMARY_VOLUME_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"PRIMARY_VOLUME_DESCRIPTOR"); break;
+                    case IMPLEMENTATION_USE_VOLUME_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"IMPLEMENTATION_USE_VOLUME_DESCRIPTOR"); break;
+                    case LOGICAL_VOLUME_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"LOGICAL_VOLUME_DESCRIPTOR"); break;
+                    case PARTITION_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"PARTITION_DESCRIPTOR"); break;
+                    case UNALLOCATED_SPACE_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"UNALLOCATED_SPACE_DESCRIPTOR"); break;
+                    case TERMINATING_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"TERMINATING_DESCRIPTOR"); break;
+                    case LOGICAL_VOLUME_INTEGRITY_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"LOGICAL_VOLUME_INTEGRITY_DESCRIPTOR"); break;
+                    case ANCHOR_VOLUME_DESCRIPTOR_DESCRIPTOR_POINTER:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"ANCHOR_VOLUME_DESCRIPTOR_DESCRIPTOR_POINTER"); break;
+                    case FILE_SET_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"FILE_SET_DESCRIPTOR"); break;
+                    case FILE_IDENTIFIER_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"FILE_IDENTIFIER_DESCRIPTOR"); break;
+                    case FILE_ENTRY_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"FILE_ENTRY_DESCRIPTOR"); break;
+                    case EXTENDED_FILE_ENTRY_DESCRIPTOR:
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"EXTENDED_FILE_ENTRY_DESCRIPTOR"); break;
+                    default:
+                        fprintf(stderr, "%s::%d::%d (0x%x)\n", __FUNCTION__, __LINE__, tagId, tagId);
+                }
+
+
+
+                fmap_unneed_off(ctx->fmap, i, VOLUME_DESCRIPTOR_SIZE);
+
+
+
+            }
+
+            fprintf(stderr, "%s::%d::DONE\n", __FUNCTION__, __LINE__);
+
+        }
+
+#endif
+
+
+
         if (!isInitialized) {
             /* We don't use most of these descriptors, but verify they all exist because
              * they are part of a properly formatted udf file. */
@@ -812,6 +1034,11 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 
             if (CL_SUCCESS != (ret = initPointerList(&fileEntryList))) {
                 cli_dbgmsg("Failed to initialize fileEntryList\n");
+                goto done;
+            }
+
+            if (CL_SUCCESS != (ret = initPointerList(&extendedFileEntryList))) {
+                cli_dbgmsg("Failed to initialize extendedFileEntryList\n");
                 goto done;
             }
 
@@ -901,6 +1128,7 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 
         switch (tagId) {
             case FILE_IDENTIFIER_DESCRIPTOR: {
+fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                 cl_error_t temp = findFileIdentifiers((const uint8_t *)file_volume_tag, &fileIdentifierList);
                 if (CL_SUCCESS != temp) {
                     ret = temp;
@@ -919,7 +1147,13 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
             }
 
             case EXTENDED_FILE_ENTRY_DESCRIPTOR: {
-                // Not supported yet. Skip.
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+                cl_error_t temp = findExtendedFileEntries((const uint8_t * ) file_volume_tag, &extendedFileEntryList);
+                fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+                if (CL_SUCCESS != temp) {
+                    ret = temp;
+                    goto done;
+                }
                 break;
             }
 
@@ -953,6 +1187,7 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
                     cnt = fileEntryList.cnt;
                 }
 
+#if 0
                 for (i = 0; i < cnt; i++) {
                     if (!parseFileEntryDescriptor(ctx,
                                                   (FileEntryDescriptor *)fileEntryList.idxs[i],
@@ -961,6 +1196,35 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
                         goto done;
                     }
                 }
+#else
+
+
+                                    fprintf(stderr, "%s::%d::HARDCODED TO ONLY LOOK AT EXTENDED FILE ENTRY DESCRIPTORS, FIXME\n", __FUNCTION__, __LINE__);
+                    cnt = extendedFileEntryList.cnt;
+
+                    if (fileIdentifierList.cnt < cnt){
+                        cnt = fileIdentifierList.cnt;
+                    }
+
+                    if (0 == cnt){
+                        break;
+                    }
+
+                    fprintf(stderr, "%s::%d::Attempting to actually dump the files\n", __FUNCTION__, __LINE__); //exit(11);
+
+
+
+                    for (i = 0; i < cnt; i++) {
+                        if (!parseExtendedFileEntryDescriptor(ctx,
+                                                      (ExtendedFileEntryDescriptor *)extendedFileEntryList.idxs[i],
+                                                      pd, lvd, (FileIdentifierDescriptor *)fileIdentifierList.idxs[i])) {
+                            goto done;
+                        }
+                    }
+
+
+
+#endif
 
                 /*
                  * We're done with this volume. Release our pointers and free up our pointer lists.
@@ -984,6 +1248,7 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 done:
     freePointerList(&fileIdentifierList);
     freePointerList(&fileEntryList);
+    freePointerList(&extendedFileEntryList);
 
     if (NULL != iuvd) {
         fmap_unneed_ptr(ctx->fmap, iuvd, VOLUME_DESCRIPTOR_SIZE);

@@ -323,6 +323,13 @@ typedef struct __attribute__((packed)) {
 
 } ExtendedFileEntryDescriptor;
 
+#define EXTENDED_FILE_ENTRY_DESCRIPTOR_SIZE_KNOWN (sizeof(ExtendedFileEntryDescriptor) - 1)
+static inline size_t getExtendedFileEntryDescriptorSize(const ExtendedFileEntryDescriptor* fed)
+{
+    return EXTENDED_FILE_ENTRY_DESCRIPTOR_SIZE_KNOWN + le32_to_host(fed->extendedAttrLen) + le32_to_host(fed->allocationDescLen);
+}
+
+
 // Short allocation descriptor
 typedef struct __attribute__((packed)) {
 
