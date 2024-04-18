@@ -131,6 +131,10 @@ static cl_error_t extractFile(cli_ctx *ctx, PartitionDescriptor *pPartitionDescr
 
             short_ad *shortDesc = (short_ad *)allocation_descriptor;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    fprintf(stderr, "%s::%d::partitionStartingLocation = %x\n", __FUNCTION__, __LINE__, partitionStartingLocation);
+    fprintf(stderr, "%s::%d::logicalBlockSize = %x\n", __FUNCTION__, __LINE__, logicalBlockSize);
+    fprintf(stderr, "%s::%d::position = %x\n", __FUNCTION__, __LINE__, le32_to_host(shortDesc->position));
             offset = partitionStartingLocation * logicalBlockSize;
             offset += le32_to_host(shortDesc->position) * logicalBlockSize;
 
@@ -145,6 +149,7 @@ static cl_error_t extractFile(cli_ctx *ctx, PartitionDescriptor *pPartitionDescr
 
             long_ad *longDesc = (long_ad *)allocation_descriptor;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             offset = partitionStartingLocation * logicalBlockSize;
             length = le32_to_host(longDesc->length);
 
@@ -164,6 +169,7 @@ static cl_error_t extractFile(cli_ctx *ctx, PartitionDescriptor *pPartitionDescr
 
             ext_ad *extDesc = (ext_ad *)allocation_descriptor;
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             offset = partitionStartingLocation * logicalBlockSize;
             length = le32_to_host(extDesc->recordedLen);
 
@@ -180,6 +186,9 @@ static cl_error_t extractFile(cli_ctx *ctx, PartitionDescriptor *pPartitionDescr
             goto done;
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    fprintf(stderr, "%s::%d::offset = %x\n", __FUNCTION__, __LINE__, offset);
+    fprintf(stderr, "%s::%d::length = %x\n", __FUNCTION__, __LINE__, length);
     contents = (uint8_t *)fmap_need_off(ctx->fmap, offset, length);
     if (NULL == contents) {
         cli_warnmsg("extractFile: Unable to get offset referenced in the file.\n");
@@ -894,6 +903,15 @@ done:
     return ret;
 }
 
+void dumpVolumeDescriptor(const uint8_t * const ptr, const char * const title){
+    size_t i;
+    fprintf(stderr, "%s::%d::Dumping %s\n", __FUNCTION__, __LINE__, title);
+    for (i = 0; i < VOLUME_DESCRIPTOR_SIZE; i++){
+        fprintf(stderr, "%02x ", ptr[i]);
+    }
+    fprintf(stderr, "\n");
+}
+
 cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 {
     cl_error_t ret                          = CL_SUCCESS;
@@ -933,6 +951,7 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 
         lastOffset = idx;
 
+        //42 45 41 30 31
         if (strncmp("BEA01", gvsd->standardIdentifier, 5)) {
             cli_dbgmsg("Found Standard Identifier '%s'\n", "BEA01");
         } else if (strncmp("BOOT2", gvsd->standardIdentifier, 5)) {
@@ -944,8 +963,10 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
         } else if (strncmp("NSR02", gvsd->standardIdentifier, 5)) {
             cli_dbgmsg("Found Standard Identifier '%s'\n", "NSR02");
         } else if (strncmp("NSR03", gvsd->standardIdentifier, 5)) {
+            //4e 53 52 30 33
             cli_dbgmsg("Found Standard Identifier '%s'\n", "NSR03");
         } else if (strncmp("TEA01", gvsd->standardIdentifier, 5)) {
+            //54 45 41 30 31
             cli_dbgmsg("Found Standard Identifier '%s'\n", "TEA01");
         } else {
             cli_dbgmsg("Unknown Standard Identifier '%s'\n", gvsd->standardIdentifier);
@@ -954,7 +975,7 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
 
         fmap_unneed_ptr(ctx->fmap, gvsd, sizeof(GenericVolumeStructureDescriptor));
 
-        idx += sizeof(GenericVolumeStructureDescriptor);
+        idx += sizeof(GenericVolumeStructureDescriptor); //VOLUME_DESCRIPTOR_SIZE
     }
 
     while (1) {
@@ -1002,7 +1023,11 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
                     case FILE_ENTRY_DESCRIPTOR:
                         fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"FILE_ENTRY_DESCRIPTOR"); break;
                     case EXTENDED_FILE_ENTRY_DESCRIPTOR:
-                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"EXTENDED_FILE_ENTRY_DESCRIPTOR"); break;
+                        fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__,"EXTENDED_FILE_ENTRY_DESCRIPTOR"); 
+                        fprintf(stderr, "%s::%d::LEN = %lu\n", __FUNCTION__, __LINE__, getExtendedFileEntryDescriptorSize((const ExtendedFileEntryDescriptor*) buf));
+                        dumpVolumeDescriptor(buf, "Extended File Entry Descriptor");
+                        
+                        break;
                     default:
                         fprintf(stderr, "%s::%d::%d (0x%x)\n", __FUNCTION__, __LINE__, tagId, tagId);
                 }
@@ -1046,6 +1071,7 @@ cl_error_t cli_scanudf(cli_ctx *ctx, const size_t offset)
                 cli_dbgmsg("Failed to get Primary Volume Descriptor\n");
                 goto done;
             }
+            //dumpVolumeDescriptor((const uint8_t * const) pvd, "Primary Volume Descriptor");
             fmap_unneed_ptr(ctx->fmap, pvd, VOLUME_DESCRIPTOR_SIZE);
 
             if (NULL == (iuvd = getImplementationUseVolumeDescriptor(ctx, &idx, &lastOffset))) {
@@ -1187,7 +1213,7 @@ fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
                     cnt = fileEntryList.cnt;
                 }
 
-#if 0
+#if 1
                 for (i = 0; i < cnt; i++) {
                     if (!parseFileEntryDescriptor(ctx,
                                                   (FileEntryDescriptor *)fileEntryList.idxs[i],
