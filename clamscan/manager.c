@@ -1381,7 +1381,7 @@ int scanmanager(const struct optstruct *opts)
 
     if ((opt = optget(opts, "max-recursion"))->active) {
         uint32_t opt_value = opt->numarg;
-        if ((0 == opt_value) || (opt_value > CLI_MAX_MAXRECLEVEL)){
+        if ((0 == opt_value) || (opt_value > CLI_MAX_MAXRECLEVEL)) {
             logg(LOGG_ERROR, "max-recursion set to %u, but  cannot be larger than %u, and cannot be 0.\n",
                     opt_value, CLI_MAX_MAXRECLEVEL);
             ret = 2;
