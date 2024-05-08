@@ -982,7 +982,7 @@ int recvloop(int *socketds, unsigned nsockets, struct cl_engine *engine, unsigne
 #endif
 
     if ((opt = optget(opts, "MaxRecursion"))->active) {
-        if ((0 == opt->numarg) || (opt->numarg > CLI_MAX_MAXRECLEVEL)){
+        if ((0 == opt->numarg) || (opt->numarg > CLI_MAX_MAXRECLEVEL)) {
             logg(LOGG_ERROR, "MaxRecursion set to %zu, but cannot be larger than %u, and cannot be 0.\n",
                     (size_t) opt->numarg, CLI_MAX_MAXRECLEVEL);
             cl_engine_free(engine);
