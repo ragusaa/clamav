@@ -2427,6 +2427,9 @@ static bool initialize_encryption_key(
 
     key.key_length_bits = encryptionInfo.encryptionInfo.keySize;
     if (!bAES) {
+
+        fprintf(stderr, "%s::%d::INFORM THAT THAT DATA IS ENCRYPTED\n", __FUNCTION__, __LINE__);
+
         cli_dbgmsg("ole2: Unsupported encryption algorithm\n");
         goto done;
     }
@@ -2436,6 +2439,7 @@ static bool initialize_encryption_key(
         goto done;
     }
 
+fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE I SHOULD INFORM THAT DATA IS ENCRYPTED\n", __FUNCTION__, __LINE__);
     if (!verify_key_aes(&key, &encryptionVerifier)) {
         cli_dbgmsg("ole2: Key verification for '%s' failed, unable to decrypt.\n", "VelvetSweatshop");
         goto done;
