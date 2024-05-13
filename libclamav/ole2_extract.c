@@ -2443,21 +2443,18 @@ static bool initialize_encryption_key(
 
 
 
+#if 0
     fprintf(stderr, "%s::%d::Checking for whether or not to write data\n", __FUNCTION__, __LINE__);
     if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
     fprintf(stderr, "%s::%d::in if\n", __FUNCTION__, __LINE__);
-
-
-
         if (ctx->wrkproperty == ctx->properties) {
     fprintf(stderr, "%s::%d::in second if, where is my data\n", __FUNCTION__, __LINE__);
             cli_jsonint(ctx->wrkproperty, jsonKey, true);
         }
-
-
-
-
     }
+#endif
+
+
 
 fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE I SHOULD INFORM THAT DATA IS ENCRYPTED\n", __FUNCTION__, __LINE__);
     if (!verify_key_aes(&key, &encryptionVerifier)) {
@@ -2469,35 +2466,26 @@ fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE 
     bRet = true;
 done:
 
-    if (!bAES) {
-        if (NULL != jsonKey) {
+    if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
         if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+            if (NULL != jsonKey) {
+                if (ctx->wrkproperty == ctx->properties) {
+                    cli_jsonint(ctx->wrkproperty, jsonKey, true);
+                }
+            }
+
             if (ctx->wrkproperty == ctx->properties) {
-                cli_jsonint(ctx->wrkproperty, jsonKey, true);
+                cli_jsonint(ctx->wrkproperty, "EncryptedWithVelvetSweatshop", bRet);
             }
         }
+    }
 
+    if (SCAN_HEURISTIC_ENCRYPTED_DOC && (NULL != jsonKey)) {
+        cl_error_t status = cli_append_potentially_unwanted(ctx, "Heuristics.Encrypted.OLE2");
+        if (CL_SUCCESS  != status) {
+            cli_errmsg("OLE2 : Unable to warn potentially unwanted signature '%s'\n", "Heuristics.Encrypted.OLE2");
         }
     }
-
-
-
-    fprintf(stderr, "%s::%d::ALERT IF ENCRYPTED!!!\n", __FUNCTION__, __LINE__);
-#if 1
-    if (SCAN_HEURISTIC_ENCRYPTED_DOC &&
-        (pdf->flags & (1 << ENCRYPTED_PDF)) &&
-        !(pdf->flags & (1 << DECRYPTABLE_PDF))) {
-        /* It is encrypted, and a password/key needs to be supplied to decrypt.
-         * This doesn't trigger for PDFs that are encrypted but don't need
-         * a password to decrypt */
-        status = cli_append_potentially_unwanted(pdf->ctx, "Heuristics.Encrypted.PDF");
-    }
-#endif
-
-
-
-
-
 
 
     fprintf(stderr, "%s::%d::Returning::bRet = %d\n", __FUNCTION__, __LINE__, bRet);
@@ -2505,19 +2493,19 @@ done:
 }
 
 /**
- * @brief Extract macros and images from an ole2 file
- *
- * @param dirname   A temp directory where we should store extracted content
- * @param ctx       The scan context
- * @param files     [out] A store of file names of extracted things to be processed later.
- * @param has_vba   [out] If the ole2 contained 1 or more VBA macros
- * @param has_xlm   [out] If the ole2 contained 1 or more XLM macros
- * @param has_image [out] If the ole2 contained 1 or more images
- * @return cl_error_t
- */
+* @brief Extract macros and images from an ole2 file
+*
+* @param dirname   A temp directory where we should store extracted content
+* @param ctx       The scan context
+* @param files     [out] A store of file names of extracted things to be processed later.
+* @param has_vba   [out] If the ole2 contained 1 or more VBA macros
+* @param has_xlm   [out] If the ole2 contained 1 or more XLM macros
+* @param has_image [out] If the ole2 contained 1 or more images
+* @return cl_error_t
+*/
 cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **files, int *has_vba, int *has_xlm, int *has_image)
 {
-    ole2_header_t hdr;
+ole2_header_t hdr;
     cl_error_t ret = CL_CLEAN;
     size_t hdr_size;
     unsigned int file_count = 0;
