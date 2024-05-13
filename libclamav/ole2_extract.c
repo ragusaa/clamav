@@ -2432,9 +2432,6 @@ static bool initialize_encryption_key(
 
     key.key_length_bits = encryptionInfo.encryptionInfo.keySize;
     if (!bAES) {
-
-        fprintf(stderr, "%s::%d::INFORM THAT THAT DATA IS ENCRYPTED\n", __FUNCTION__, __LINE__);
-
         cli_dbgmsg("ole2: Unsupported encryption algorithm\n");
         goto done;
     }
@@ -2444,13 +2441,22 @@ static bool initialize_encryption_key(
         goto done;
     }
 
+
+
     fprintf(stderr, "%s::%d::Checking for whether or not to write data\n", __FUNCTION__, __LINE__);
     if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
     fprintf(stderr, "%s::%d::in if\n", __FUNCTION__, __LINE__);
+
+
+
         if (ctx->wrkproperty == ctx->properties) {
-    fprintf(stderr, "%s::%d::in second if, where the fuck is my data\n", __FUNCTION__, __LINE__);
+    fprintf(stderr, "%s::%d::in second if, where is my data\n", __FUNCTION__, __LINE__);
             cli_jsonint(ctx->wrkproperty, jsonKey, true);
         }
+
+
+
+
     }
 
 fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE I SHOULD INFORM THAT DATA IS ENCRYPTED\n", __FUNCTION__, __LINE__);
