@@ -2259,6 +2259,7 @@ done:
  *
  */
 static bool initialize_encryption_key(
+    cli_ctx *ctx,
     const uint8_t *encryptionInfoStreamPtr,
     size_t remainingBytes,
     encryption_key_t *encryptionKey)
@@ -2267,6 +2268,7 @@ static bool initialize_encryption_key(
     size_t idx = 0;
     encryption_key_t key;
     bool bAES = false;
+    const char * jsonKey = NULL;
 
     encryption_info_stream_standard_t encryptionInfo = {0};
     uint16_t *encryptionInfo_CSPName                 = NULL;
@@ -2315,7 +2317,6 @@ static bool initialize_encryption_key(
 
         cli_dbgmsg("Flags           = AES\n");
     }
-
     cli_dbgmsg("Size            = 0x%x\n", encryptionInfo.size);
 
     if (encryptionInfo.flags != encryptionInfo.encryptionInfo.flags) {
@@ -2335,6 +2336,7 @@ static bool initialize_encryption_key(
                 goto done;
             }
             bAES = true;
+            jsonKey = "EncryptedWithAES128";
             break;
         case SE_HEADER_EI_AES192:
             // not implemented
@@ -2343,6 +2345,7 @@ static bool initialize_encryption_key(
                 goto done;
             }
             bAES = true;
+            jsonKey = "EncryptedWithAES192";
             goto done;
         case SE_HEADER_EI_AES256:
             // not implemented
@@ -2351,9 +2354,11 @@ static bool initialize_encryption_key(
                 goto done;
             }
             bAES = true;
+            jsonKey = "EncryptedWithAES256";
             goto done;
         case SE_HEADER_EI_RC4:
             // not implemented
+            jsonKey = "EncryptedWithRC4";
             goto done;
         default:
             cli_dbgmsg("ole2: Invalid Algorithm ID: 0x%x\n", encryptionInfo.encryptionInfo.algorithmID);
@@ -2439,6 +2444,15 @@ static bool initialize_encryption_key(
         goto done;
     }
 
+    fprintf(stderr, "%s::%d::Checking for whether or not to write data\n", __FUNCTION__, __LINE__);
+    if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+    fprintf(stderr, "%s::%d::in if\n", __FUNCTION__, __LINE__);
+        if (ctx->wrkproperty == ctx->properties) {
+    fprintf(stderr, "%s::%d::in second if, where the fuck is my data\n", __FUNCTION__, __LINE__);
+            cli_jsonint(ctx->wrkproperty, jsonKey, true);
+        }
+    }
+
 fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE I SHOULD INFORM THAT DATA IS ENCRYPTED\n", __FUNCTION__, __LINE__);
     if (!verify_key_aes(&key, &encryptionVerifier)) {
         cli_dbgmsg("ole2: Key verification for '%s' failed, unable to decrypt.\n", "VelvetSweatshop");
@@ -2449,6 +2463,38 @@ fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE 
     bRet = true;
 done:
 
+    if (!bAES) {
+        if (NULL != jsonKey) {
+        if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+            if (ctx->wrkproperty == ctx->properties) {
+                cli_jsonint(ctx->wrkproperty, jsonKey, true);
+            }
+        }
+
+        }
+    }
+
+
+
+    fprintf(stderr, "%s::%d::ALERT IF ENCRYPTED!!!\n", __FUNCTION__, __LINE__);
+#if 1
+    if (SCAN_HEURISTIC_ENCRYPTED_DOC &&
+        (pdf->flags & (1 << ENCRYPTED_PDF)) &&
+        !(pdf->flags & (1 << DECRYPTABLE_PDF))) {
+        /* It is encrypted, and a password/key needs to be supplied to decrypt.
+         * This doesn't trigger for PDFs that are encrypted but don't need
+         * a password to decrypt */
+        status = cli_append_potentially_unwanted(pdf->ctx, "Heuristics.Encrypted.PDF");
+    }
+#endif
+
+
+
+
+
+
+
+    fprintf(stderr, "%s::%d::Returning::bRet = %d\n", __FUNCTION__, __LINE__, bRet);
     return bRet;
 }
 
@@ -2568,19 +2614,23 @@ cl_error_t cli_ole2_extract(const char *dirname, cli_ctx *ctx, struct uniq **fil
         goto done;
     }
 
+    fprintf(stderr, "%s::%d::Move the velvetsweatshop json stuff to the function with all the other json stuff.\n", __FUNCTION__, __LINE__);
+
     /* determine if encrypted with VelvetSweatshop password */
     encryption_offset = 4 * (1 << hdr.log2_big_block_size);
     if ((encryption_offset + sizeof(encryption_info_stream_standard_t)) <= hdr.m_length) {
 
-        bEncrypted = initialize_encryption_key(
+        bEncrypted = initialize_encryption_key(ctx, 
             &(((const uint8_t *)phdr)[encryption_offset]),
             hdr.m_length - encryption_offset,
             &key);
 
         cli_dbgmsg("Encrypted with VelvetSweatshop: %d\n", bEncrypted);
 
-        if (ctx->wrkproperty == ctx->properties) {
-            cli_jsonint(ctx->wrkproperty, "EncryptedWithVelvetSweatshop", bEncrypted);
+        if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+            if (ctx->wrkproperty == ctx->properties) {
+                cli_jsonint(ctx->wrkproperty, "EncryptedWithVelvetSweatshop", bEncrypted);
+            }
         }
     }
 
