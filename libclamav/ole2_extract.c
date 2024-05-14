@@ -2276,13 +2276,20 @@ static bool initialize_encryption_key(
     const uint8_t *encryptionVerifierPtr             = NULL;
     encryption_verifier_t encryptionVerifier         = {0};
 
+#if 0
+    79th sector 03 00 02 00
+
+    80th sector 02 00 02 00
+#endif
     // Populate the encryption_info_stream_standard_t structure
     copy_encryption_info_stream_standard(&encryptionInfo, encryptionInfoStreamPtr);
 
     memset(encryptionKey, 0, sizeof(encryption_key_t));
     memset(&key, 0, sizeof(encryption_key_t));
 
+    /*Major version must be 0x0002, 0x0003, or 0x0004*/
     cli_dbgmsg("Major Version   = 0x%x\n", encryptionInfo.version_major);
+    /*Minor version must be 0x0002*/
     cli_dbgmsg("Minor Version   = 0x%x\n", encryptionInfo.version_minor);
     cli_dbgmsg("Flags           = 0x%x\n", encryptionInfo.flags);
 
@@ -2303,6 +2310,7 @@ static bool initialize_encryption_key(
         goto done;
     }
 
+    fprintf(stderr, "%s::%d::FEXTERNAL BIT SET TO '%d'\n", __FUNCTION__, __LINE__, SE_HEADER_FEXTERNAL & encryptionInfo.flags);
     if ((SE_HEADER_FEXTERNAL & encryptionInfo.flags) &&
         (SE_HEADER_FEXTERNAL != encryptionInfo.flags)) {
         cli_dbgmsg("ole2: Invalid fExternal flags.  If fExternal bit is set, nothing else can be\n");
@@ -2320,17 +2328,28 @@ static bool initialize_encryption_key(
     cli_dbgmsg("Size            = 0x%x\n", encryptionInfo.size);
 
     if (encryptionInfo.flags != encryptionInfo.encryptionInfo.flags) {
+        fprintf(stderr, "%s::%d::%x::%x\n", __FUNCTION__, __LINE__, encryptionInfo.flags , encryptionInfo.encryptionInfo.flags);
         cli_dbgmsg("ole2: Flags must match\n");
+#if 0
         goto done;
+#else
+        fprintf(stderr, "Continuing anyway\n");
+#endif
     }
 
     if (0 != encryptionInfo.encryptionInfo.sizeExtra) {
         cli_dbgmsg("ole2: Size Extra must be 0\n");
+#if 0
         goto done;
+#else
+        fprintf(stderr, "Continuing anyway\n");
+#endif
     }
 
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     switch (encryptionInfo.encryptionInfo.algorithmID) {
         case SE_HEADER_EI_AES128:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             if (SE_HEADER_EI_AES128_KEYSIZE != encryptionInfo.encryptionInfo.keySize) {
                 cli_dbgmsg("ole2: Key length does not match algorithm id\n");
                 goto done;
@@ -2339,6 +2358,7 @@ static bool initialize_encryption_key(
             jsonKey = "EncryptedWithAES128";
             break;
         case SE_HEADER_EI_AES192:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             // not implemented
             if (SE_HEADER_EI_AES192_KEYSIZE != encryptionInfo.encryptionInfo.keySize) {
                 cli_dbgmsg("ole2: Key length does not match algorithm id\n");
@@ -2348,6 +2368,7 @@ static bool initialize_encryption_key(
             jsonKey = "EncryptedWithAES192";
             goto done;
         case SE_HEADER_EI_AES256:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             // not implemented
             if (SE_HEADER_EI_AES256_KEYSIZE != encryptionInfo.encryptionInfo.keySize) {
                 cli_dbgmsg("ole2: Key length does not match algorithm id\n");
@@ -2357,10 +2378,12 @@ static bool initialize_encryption_key(
             jsonKey = "EncryptedWithAES256";
             goto done;
         case SE_HEADER_EI_RC4:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             // not implemented
             jsonKey = "EncryptedWithRC4";
             goto done;
         default:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             cli_dbgmsg("ole2: Invalid Algorithm ID: 0x%x\n", encryptionInfo.encryptionInfo.algorithmID);
             goto done;
     }
@@ -2466,15 +2489,23 @@ fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE 
     bRet = true;
 done:
 
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
     if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
         if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
             if (NULL != jsonKey) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
                 if (ctx->wrkproperty == ctx->properties) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
                     cli_jsonint(ctx->wrkproperty, jsonKey, true);
                 }
             }
 
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+            cli_dbgmsg("Encrypted with VelvetSweatshop: %d\n", bRet);
             if (ctx->wrkproperty == ctx->properties) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
                 cli_jsonint(ctx->wrkproperty, "EncryptedWithVelvetSweatshop", bRet);
             }
         }
@@ -2491,6 +2522,259 @@ done:
     fprintf(stderr, "%s::%d::Returning::bRet = %d\n", __FUNCTION__, __LINE__, bRet);
     return bRet;
 }
+
+
+#if 1
+
+static bool test_for_encryption(
+    cli_ctx *ctx,
+    const uint8_t *encryptionInfoStreamPtr,
+    size_t remainingBytes,
+    encryption_key_t *encryptionKey)
+{
+    bool bRet  = false;
+    size_t idx = 0;
+    encryption_key_t key;
+    bool bAES = false;
+    const char * jsonKey = NULL;
+
+    encryption_info_stream_standard_t encryptionInfo = {0};
+    uint16_t *encryptionInfo_CSPName                 = NULL;
+    size_t CSPName_length                            = 0;
+    const uint8_t *encryptionVerifierPtr             = NULL;
+    encryption_verifier_t encryptionVerifier         = {0};
+
+#if 0
+    79th sector 03 00 02 00
+
+    80th sector 02 00 02 00
+#endif
+    // Populate the encryption_info_stream_standard_t structure
+    copy_encryption_info_stream_standard(&encryptionInfo, encryptionInfoStreamPtr);
+
+    memset(encryptionKey, 0, sizeof(encryption_key_t));
+    memset(&key, 0, sizeof(encryption_key_t));
+
+    /*Major version must be 0x0002, 0x0003, or 0x0004*/
+    cli_dbgmsg("Major Version   = 0x%x\n", encryptionInfo.version_major);
+    /*Minor version must be 0x0002*/
+    cli_dbgmsg("Minor Version   = 0x%x\n", encryptionInfo.version_minor);
+    cli_dbgmsg("Flags           = 0x%x\n", encryptionInfo.flags);
+
+    /*Bit 0 and 1 must be 0*/
+    if (1 & encryptionInfo.flags) {
+        cli_dbgmsg("ole2: Invalid first bit, must be 0\n");
+        goto done;
+    }
+
+    if ((1 << 1) & encryptionInfo.flags) {
+        cli_dbgmsg("ole2: Invalid second bit, must be 0\n");
+        goto done;
+    }
+
+    // https://docs.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/200a3d61-1ab4-4402-ae11-0290b28ab9cb
+    if ((SE_HEADER_FDOCPROPS & encryptionInfo.flags)) {
+        cli_dbgmsg("ole2: Unsupported document properties encrypted\n");
+        goto done;
+    }
+
+    fprintf(stderr, "%s::%d::FEXTERNAL BIT SET TO '%d'\n", __FUNCTION__, __LINE__, SE_HEADER_FEXTERNAL & encryptionInfo.flags);
+    if ((SE_HEADER_FEXTERNAL & encryptionInfo.flags) &&
+        (SE_HEADER_FEXTERNAL != encryptionInfo.flags)) {
+        cli_dbgmsg("ole2: Invalid fExternal flags.  If fExternal bit is set, nothing else can be\n");
+        goto done;
+    }
+
+    if (SE_HEADER_FAES & encryptionInfo.flags) {
+        if (!(SE_HEADER_FCRYPTOAPI & encryptionInfo.flags)) {
+            cli_dbgmsg("ole2: Invalid combo of fAES and fCryptoApi flags\n");
+            goto done;
+        }
+
+        cli_dbgmsg("Flags           = AES\n");
+    }
+    cli_dbgmsg("Size            = 0x%x\n", encryptionInfo.size);
+
+    if (encryptionInfo.flags != encryptionInfo.encryptionInfo.flags) {
+        fprintf(stderr, "%s::%d::%x::%x\n", __FUNCTION__, __LINE__, encryptionInfo.flags , encryptionInfo.encryptionInfo.flags);
+        cli_dbgmsg("ole2: Flags must match\n");
+#if 0
+        goto done;
+#else
+        fprintf(stderr, "Continuing anyway\n");
+#endif
+    }
+
+    if (0 != encryptionInfo.encryptionInfo.sizeExtra) {
+        cli_dbgmsg("ole2: Size Extra must be 0\n");
+#if 0
+        goto done;
+#else
+        fprintf(stderr, "Continuing anyway\n");
+#endif
+    }
+
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+    switch (encryptionInfo.encryptionInfo.algorithmID) {
+        case SE_HEADER_EI_AES128:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+            if (SE_HEADER_EI_AES128_KEYSIZE != encryptionInfo.encryptionInfo.keySize) {
+                cli_dbgmsg("ole2: Key length does not match algorithm id\n");
+                goto done;
+            }
+            bAES = true;
+            jsonKey = "EncryptedWithAES128";
+            break;
+        case SE_HEADER_EI_AES192:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+            // not implemented
+            if (SE_HEADER_EI_AES192_KEYSIZE != encryptionInfo.encryptionInfo.keySize) {
+                cli_dbgmsg("ole2: Key length does not match algorithm id\n");
+                goto done;
+            }
+            bAES = true;
+            jsonKey = "EncryptedWithAES192";
+            goto done;
+        case SE_HEADER_EI_AES256:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+            // not implemented
+            if (SE_HEADER_EI_AES256_KEYSIZE != encryptionInfo.encryptionInfo.keySize) {
+                cli_dbgmsg("ole2: Key length does not match algorithm id\n");
+                goto done;
+            }
+            bAES = true;
+            jsonKey = "EncryptedWithAES256";
+            goto done;
+        case SE_HEADER_EI_RC4:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+            // not implemented
+            jsonKey = "EncryptedWithRC4";
+            goto done;
+        default:
+    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
+            cli_dbgmsg("ole2: Invalid Algorithm ID: 0x%x\n", encryptionInfo.encryptionInfo.algorithmID);
+            goto done;
+    }
+
+    if (SE_HEADER_EI_SHA1 != encryptionInfo.encryptionInfo.algorithmIDHash) {
+        cli_dbgmsg("ole2: Invalid Algorithm ID Hash: 0x%x\n", encryptionInfo.encryptionInfo.algorithmIDHash);
+        goto done;
+    }
+
+    if (!key_length_valid_aes_bits(encryptionInfo.encryptionInfo.keySize)) {
+        cli_dbgmsg("ole2: Invalid key size: 0x%x\n", encryptionInfo.encryptionInfo.keySize);
+        goto done;
+    }
+
+    cli_dbgmsg("KeySize         = 0x%x\n", encryptionInfo.encryptionInfo.keySize);
+
+    if (SE_HEADER_EI_AES_PROVIDERTYPE != encryptionInfo.encryptionInfo.providerType) {
+        cli_dbgmsg("ole2: WARNING: Provider Type should be '0x%x', is '0x%x'\n",
+                   SE_HEADER_EI_AES_PROVIDERTYPE, encryptionInfo.encryptionInfo.providerType);
+        goto done;
+    }
+
+    cli_dbgmsg("Reserved1       = 0x%x\n", encryptionInfo.encryptionInfo.reserved1);
+
+    if (0 != encryptionInfo.encryptionInfo.reserved2) {
+        cli_dbgmsg("ole2: Reserved 2 must be zero, is 0x%x\n", encryptionInfo.encryptionInfo.reserved2);
+        goto done;
+    }
+
+    /* The encryption info is at the end of the CPSName string.
+     * Find the end, and we'll have the index of the EncryptionVerifier.
+     * The CPSName string *should* always be either
+     * 'Microsoft Enhanced RSA and AES Cryptographic Provider'
+     * or
+     * 'Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)'
+     */
+    encryptionInfo_CSPName = (uint16_t *)(encryptionInfoStreamPtr + sizeof(encryption_info_stream_standard_t));
+    remainingBytes -= sizeof(encryption_info_stream_standard_t);
+
+    if (0 == remainingBytes) {
+        cli_dbgmsg("ole2: No CSPName or encryption_verifier_t\n");
+        goto done;
+    }
+
+    while (true) {
+        // Check if we've gone past the end of the buffer without finding the end of the CSPName string.
+        if ((idx + 1) * sizeof(uint16_t) > remainingBytes) {
+            cli_dbgmsg("ole2: CSPName is missing null terminator before end of buffer.\n");
+            goto done;
+        }
+        // Check if we've found the end of the CSPName string.
+        if (encryptionInfo_CSPName[idx] == 0) {
+            break;
+        }
+        // Found another character in the CSPName string, keep going.
+        idx++;
+    }
+
+    CSPName_length = (idx + 1) * sizeof(uint16_t);
+
+    encryptionVerifierPtr = (uint8_t *)encryptionInfo_CSPName + CSPName_length;
+    remainingBytes -= CSPName_length;
+
+    if (remainingBytes < sizeof(encryption_verifier_t)) {
+        cli_dbgmsg("ole2: No encryption_verifier_t\n");
+        goto done;
+    }
+    copy_encryption_verifier(&encryptionVerifier, encryptionVerifierPtr);
+
+    key.key_length_bits = encryptionInfo.encryptionInfo.keySize;
+    if (!bAES) {
+        cli_dbgmsg("ole2: Unsupported encryption algorithm\n");
+        goto done;
+    }
+
+    bRet = true;
+
+done:
+
+#if 0
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+    if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+        if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+            if (NULL != jsonKey) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+                if (ctx->wrkproperty == ctx->properties) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+                    cli_jsonint(ctx->wrkproperty, jsonKey, true);
+                }
+            }
+
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+            cli_dbgmsg("Encrypted with VelvetSweatshop: %d\n", bRet);
+            if (ctx->wrkproperty == ctx->properties) {
+    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
+                cli_jsonint(ctx->wrkproperty, "EncryptedWithVelvetSweatshop", bRet);
+            }
+        }
+    }
+
+    if (SCAN_HEURISTIC_ENCRYPTED_DOC && (NULL != jsonKey)) {
+        cl_error_t status = cli_append_potentially_unwanted(ctx, "Heuristics.Encrypted.OLE2");
+        if (CL_SUCCESS  != status) {
+            cli_errmsg("OLE2 : Unable to warn potentially unwanted signature '%s'\n", "Heuristics.Encrypted.OLE2");
+        }
+    }
+
+#endif
+
+    fprintf(stderr, "%s::%d::Returning::bRet = %d\n", __FUNCTION__, __LINE__, bRet);
+    return bRet;
+}
+
+
+
+
+#endif
+
+
+
+
 
 /**
 * @brief Extract macros and images from an ole2 file
@@ -2608,10 +2892,11 @@ ole2_header_t hdr;
         goto done;
     }
 
-    fprintf(stderr, "%s::%d::Move the velvetsweatshop json stuff to the function with all the other json stuff.\n", __FUNCTION__, __LINE__);
+    //fprintf(stderr, "%s::%d::Move the velvetsweatshop json stuff to the function with all the other json stuff.\n", __FUNCTION__, __LINE__);
 
     /* determine if encrypted with VelvetSweatshop password */
     encryption_offset = 4 * (1 << hdr.log2_big_block_size);
+    fprintf(stderr, "%s::%d::encryption_offset = %lu\n", __FUNCTION__, __LINE__, encryption_offset);
     if ((encryption_offset + sizeof(encryption_info_stream_standard_t)) <= hdr.m_length) {
 
         bEncrypted = initialize_encryption_key(ctx, 
@@ -2619,6 +2904,7 @@ ole2_header_t hdr;
             hdr.m_length - encryption_offset,
             &key);
 
+#if 0
         cli_dbgmsg("Encrypted with VelvetSweatshop: %d\n", bEncrypted);
 
         if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
@@ -2626,7 +2912,21 @@ ole2_header_t hdr;
                 cli_jsonint(ctx->wrkproperty, "EncryptedWithVelvetSweatshop", bEncrypted);
             }
         }
+#endif
     }
+
+    {
+        size_t andy = 0;
+        for (andy = 0; andy + sizeof(encryption_info_stream_standard_t) <= hdr.m_length; andy+= (1 << hdr.log2_big_block_size)) {
+            if (test_for_encryption(ctx, &(((const uint8_t*)phdr)[andy]), hdr.m_length - andy, &key)){
+                fprintf(stderr, "%s::%d::0x%x::FOUND ONE!!!!!!!!!!\n", __FUNCTION__, __LINE__, andy);
+
+            }
+        }
+    }
+
+
+
 
     /* 8 SBAT blocks per file block */
     hdr.max_block_no = (hdr.map->len - MAX(512, 1 << hdr.log2_big_block_size)) / (1 << hdr.log2_small_block_size);
