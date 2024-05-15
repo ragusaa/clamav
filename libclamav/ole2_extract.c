@@ -2923,6 +2923,13 @@ ole2_header_t hdr;
 
             }
         }
+
+        for (andy = 0xc2; andy + sizeof(encryption_info_stream_standard_t) <= hdr.m_length; andy+= (1 << hdr.log2_big_block_size)) {
+            if (test_for_encryption(ctx, &(((const uint8_t*)phdr)[andy]), hdr.m_length - andy, &key)){
+                fprintf(stderr, "%s::%d::0x%x::FOUND ONE!!!!!!!!!!\n", __FUNCTION__, __LINE__, andy);
+
+            }
+        }
     }
 
 
