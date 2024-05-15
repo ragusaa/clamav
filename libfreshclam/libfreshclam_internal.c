@@ -251,7 +251,6 @@ fc_error_t load_freshclam_dat(void)
                 char error_message[260];
                 cli_strerror(errno, error_message, 260);
                 logg(LOGG_WARNING, "Last cf-ray not present in freshclam.dat.\n");
-                //test signing;
                 memset(g_lastRay, 0, sizeof(g_lastRay));
             }
 
