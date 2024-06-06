@@ -2489,23 +2489,16 @@ fprintf(stderr,"%s::%d::WHETHER KEY VERIFICATION PASSES OR FAILS, THIS IS WHERE 
     bRet = true;
 done:
 
-    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
     if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
-    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
         if (SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
-    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
             if (NULL != jsonKey) {
-    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
                 if (ctx->wrkproperty == ctx->properties) {
-    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
                     cli_jsonint(ctx->wrkproperty, jsonKey, true);
                 }
             }
 
-    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
             cli_dbgmsg("Encrypted with VelvetSweatshop: %d\n", bRet);
             if (ctx->wrkproperty == ctx->properties) {
-    fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
                 cli_jsonint(ctx->wrkproperty, "EncryptedWithVelvetSweatshop", bRet);
             }
         }
@@ -2579,6 +2572,9 @@ static bool test_for_encryption(
     }
 
     fprintf(stderr, "%s::%d::FEXTERNAL BIT SET TO '%d'\n", __FUNCTION__, __LINE__, SE_HEADER_FEXTERNAL & encryptionInfo.flags);
+    fprintf(stderr, "%s::%d::FAES BIT SET TO '%d'\n", __FUNCTION__, __LINE__, SE_HEADER_FAES & encryptionInfo.flags);
+    fprintf(stderr, "%s::%d::FCRYPTOAPI BIT SET TO '%d'\n", __FUNCTION__, __LINE__, SE_HEADER_FCRYPTOAPI & encryptionInfo.flags);
+    fprintf(stderr, "%s::%d::FDOCPROPS BIT SET TO '%d'\n", __FUNCTION__, __LINE__, SE_HEADER_FDOCPROPS & encryptionInfo.flags);
     if ((SE_HEADER_FEXTERNAL & encryptionInfo.flags) &&
         (SE_HEADER_FEXTERNAL != encryptionInfo.flags)) {
         cli_dbgmsg("ole2: Invalid fExternal flags.  If fExternal bit is set, nothing else can be\n");
@@ -2614,6 +2610,8 @@ static bool test_for_encryption(
 #endif
     }
 
+    /*The good ones all seem to be major version 3, the ones that fail all seem to be major version 2.
+     */
     fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
     switch (encryptionInfo.encryptionInfo.algorithmID) {
         case SE_HEADER_EI_AES128:
@@ -2651,7 +2649,6 @@ static bool test_for_encryption(
             jsonKey = "EncryptedWithRC4";
             goto done;
         default:
-    fprintf(stderr, "%s::%d\n", __FUNCTION__, __LINE__);
             cli_dbgmsg("ole2: Invalid Algorithm ID: 0x%x\n", encryptionInfo.encryptionInfo.algorithmID);
             goto done;
     }
@@ -2730,6 +2727,14 @@ static bool test_for_encryption(
     bRet = true;
 
 done:
+
+    fprintf(stderr, "%s::%d::DUMPING DATA::", __FUNCTION__, __LINE__);
+    {
+        for (size_t i = 0; i < sizeof (encryptionInfo); i++){
+            fprintf(stderr, "%02x ", encryptionInfoStreamPtr[i]);
+        }
+        fprintf(stderr, "\n");
+    }
 
 #if 0
     fprintf(stderr, "%s::%d::%s\n", __FUNCTION__, __LINE__, jsonKey);
@@ -2892,6 +2897,9 @@ ole2_header_t hdr;
         goto done;
     }
 
+
+print_ole2_header(&hdr);
+
     //fprintf(stderr, "%s::%d::Move the velvetsweatshop json stuff to the function with all the other json stuff.\n", __FUNCTION__, __LINE__);
 
     /* determine if encrypted with VelvetSweatshop password */
@@ -2919,14 +2927,37 @@ ole2_header_t hdr;
         size_t andy = 0;
         for (andy = 0; andy + sizeof(encryption_info_stream_standard_t) <= hdr.m_length; andy+= (1 << hdr.log2_big_block_size)) {
             if (test_for_encryption(ctx, &(((const uint8_t*)phdr)[andy]), hdr.m_length - andy, &key)){
-                fprintf(stderr, "%s::%d::0x%x::FOUND ONE!!!!!!!!!!\n", __FUNCTION__, __LINE__, andy);
+                size_t i = 0;
+                fprintf(stderr, "%s::%d::0x%lx::FOUND ONE!!!!!!!!!!::", __FUNCTION__, __LINE__, andy);
 
+                for (i = 0; i < 4; i++){
+                    fprintf(stderr, "%02x ", ((const uint8_t*) phdr)[andy + i]);
+                }
+                fprintf(stderr, "\n");
+                
             }
         }
 
+#if 0
         for (andy = 0xc2; andy + sizeof(encryption_info_stream_standard_t) <= hdr.m_length; andy+= (1 << hdr.log2_big_block_size)) {
             if (test_for_encryption(ctx, &(((const uint8_t*)phdr)[andy]), hdr.m_length - andy, &key)){
-                fprintf(stderr, "%s::%d::0x%x::FOUND ONE!!!!!!!!!!\n", __FUNCTION__, __LINE__, andy);
+                fprintf(stderr, "%s::%d::0x%lx::FOUND ONE!!!!!!!!!!\n", __FUNCTION__, __LINE__, andy);
+
+            }
+        }
+#endif
+
+        for (andy = 0; andy < hdr.m_length - sizeof(encryption_info_stream_standard_t); andy++){
+            if (0 == memcmp(&(((const uint8_t*) phdr)[andy]), "\x02\x00\x02\x00", 4)
+                    || 0 == memcmp(&(((const uint8_t*) phdr)[andy]), "\x03\x00\x02\x00", 4)
+                    || 0 == memcmp(&(((const uint8_t*) phdr)[andy]), "\x04\x00\x02\x00", 4)
+                    ){
+                fprintf(stderr, "%s::%d::0x%lx::TRYING\n", __FUNCTION__, __LINE__, andy);
+                if (test_for_encryption(ctx, &(((const uint8_t*)phdr)[andy]), hdr.m_length - andy, &key)){
+                    fprintf(stderr, "%s::%d::0x%lx::0x%x::FOUND ONE\n", __FUNCTION__, __LINE__, andy, hdr.log2_big_block_size);
+
+                }
+                fprintf(stderr, "%s::%d::AFTER TRYING\n", __FUNCTION__, __LINE__);
 
             }
         }
