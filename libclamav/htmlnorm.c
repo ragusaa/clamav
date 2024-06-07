@@ -649,7 +649,44 @@ static void js_process(struct parser_state *js_state, const unsigned char *js_be
     }
 }
 
-static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf)
+bool html_insert_form_data(const char * const value, form_data_t *tags) {
+    bool bRet = false;
+    size_t cnt = tags->count + 1;
+    char ** tmp = NULL;
+
+    /*
+     * Do NOT use cli_max_realloc_or_free because all the previously malloc'd tag
+     * values will be leaked when tag is free'd in the case where realloc fails.
+     */
+    tmp = cli_max_realloc(tags->urls, cnt * sizeof(unsigned char *));
+    if (!tmp) {
+        goto done;
+    }
+    tags->urls = tmp;
+
+    tags->urls[tags->count] = cli_safer_strdup(value);
+    if (tags->urls[tags->count]) {
+        tags->count = cnt;
+    }
+
+    bRet = true;
+done:
+    if (!bRet){
+        memset(tags, 0, sizeof(*tags));
+    }
+
+    return bRet;
+}
+
+void html_form_data_tag_free(form_data_t *tags) {
+    size_t i;
+    for (i = 0; i < tags->count; i++){
+        CLI_FREE_AND_SET_NULL(tags->urls[i]);
+    }
+    CLI_FREE_AND_SET_NULL(tags->urls);
+}
+
+static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data)
 {
     int fd_tmp, tag_length = 0, tag_arg_length = 0;
     bool binary, retval = false, escape = false, hex = false;
@@ -659,7 +696,7 @@ static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const cha
     FILE *stream_in  = NULL;
     html_state state = HTML_NORM, next_state = HTML_BAD_STATE, saved_next_state = HTML_BAD_STATE;
     char filename[1024], tag[HTML_STR_LENGTH + 1], tag_arg[HTML_STR_LENGTH + 1];
-    char tag_val[HTML_STR_LENGTH + 1], *tmp_file, *arg_value;
+    char tag_val[HTML_STR_LENGTH + 1], *tmp_file = NULL, *arg_value = NULL;
     unsigned char *line = NULL, *ptr, *ptr_screnc = NULL;
     tag_arguments_t tag_args;
     quoted_state quoted  = NOT_QUOTED;
@@ -1224,8 +1261,9 @@ static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const cha
                             href_contents_begin = ptr;
                         }
                         if (strcmp(tag, "/form") == 0) {
-                            if (in_form_action)
+                            if (in_form_action) {
                                 free(in_form_action);
+                            }
                             in_form_action = NULL;
                         }
                     } else if (strcmp(tag, "script") == 0) {
@@ -1310,9 +1348,13 @@ static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const cha
                         } else if (strcmp(tag, "form") == 0 && hrefs->scanContents) {
                             const char *arg_action_value = html_tag_arg_value(&tag_args, "action");
                             if (arg_action_value) {
-                                if (in_form_action)
+                                if (in_form_action) {
                                     free(in_form_action);
+                                }
                                 in_form_action = (unsigned char *)cli_safer_strdup(arg_action_value);
+                                if (form_data){
+                                    html_insert_form_data((const char * const) in_form_action, form_data);
+                                }
                             }
                         } else if (strcmp(tag, "img") == 0) {
                             arg_value = html_tag_arg_value(&tag_args, "src");
@@ -1917,8 +1959,9 @@ static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const cha
 done:
     if (line) /* only needed for done case */
         free(line);
-    if (in_form_action)
+    if (in_form_action) {
         free(in_form_action);
+    }
     if (in_ahref) /* tag not closed, force closing */
         html_tag_contents_done(hrefs, in_ahref, &contents);
 
@@ -1961,6 +2004,11 @@ done:
 
 bool html_normalise_mem(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf)
 {
+    return html_normalise_mem_form_data(ctx, in_buff, in_size, dirname, hrefs, dconf, NULL);
+}
+
+bool html_normalise_mem_form_data(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data)
+{
     m_area_t m_area;
 
     m_area.buffer = in_buff;
@@ -1968,10 +2016,15 @@ bool html_normalise_mem(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, con
     m_area.offset = 0;
     m_area.map    = NULL;
 
-    return cli_html_normalise(ctx, -1, &m_area, dirname, hrefs, dconf);
+    return cli_html_normalise(ctx, -1, &m_area, dirname, hrefs, dconf, form_data);
 }
 
 bool html_normalise_map(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf)
+{
+    return html_normalise_map_form_data(ctx, map, dirname, hrefs, dconf, NULL);
+}
+
+bool html_normalise_map_form_data(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data)
 {
     bool retval = false;
     m_area_t m_area;
@@ -1979,7 +2032,7 @@ bool html_normalise_map(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_argu
     m_area.length = map->len;
     m_area.offset = 0;
     m_area.map    = map;
-    retval        = cli_html_normalise(ctx, -1, &m_area, dirname, hrefs, dconf);
+    retval        = cli_html_normalise(ctx, -1, &m_area, dirname, hrefs, dconf, form_data);
     return retval;
 }
 
