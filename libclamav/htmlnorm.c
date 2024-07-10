@@ -370,51 +370,70 @@ void html_tag_arg_add(tag_arguments_t *tags,
                       const char *tag, char *value)
 {
     int len, i;
-    tags->count++;
-    tags->tag = (unsigned char **)cli_max_realloc_or_free(tags->tag,
-                                                          tags->count * sizeof(char *));
-    if (!tags->tag) {
+    int tagCnt          = tags->count;
+    int valueCnt        = tags->count;
+    int contentCnt      = 0;
+    unsigned char **tmp = NULL;
+
+    tmp = (unsigned char **)cli_max_realloc(tags->tag, (tagCnt + 1) * sizeof(char *));
+    if (!tmp) {
         goto done;
     }
-    tags->value = (unsigned char **)cli_max_realloc_or_free(tags->value,
-                                                            tags->count * sizeof(char *));
-    if (!tags->value) {
+    tags->tag = tmp;
+    tagCnt++;
+
+    tmp = (unsigned char **)cli_max_realloc(tags->value, (valueCnt + 1) * sizeof(char *));
+    if (!tmp) {
         goto done;
     }
+    tags->value = tmp;
+    valueCnt++;
+
     if (tags->scanContents) {
-        tags->contents = (unsigned char **)cli_max_realloc_or_free(tags->contents,
-                                                                   tags->count * sizeof(*tags->contents));
-        if (!tags->contents) {
+        contentCnt = tags->count;
+        tmp        = (unsigned char **)cli_max_realloc(tags->contents, (contentCnt + 1) * sizeof(*tags->contents));
+        if (!tmp) {
             goto done;
         }
-        tags->contents[tags->count - 1] = NULL;
+        tags->contents             = tmp;
+        tags->contents[contentCnt] = NULL;
+        contentCnt++;
     }
-    tags->tag[tags->count - 1] = (unsigned char *)cli_safer_strdup(tag);
+
+    tags->tag[tags->count] = (unsigned char *)cli_safer_strdup(tag);
     if (value) {
         if (*value == '"') {
-            tags->value[tags->count - 1] = (unsigned char *)cli_safer_strdup(value + 1);
-            len                          = strlen((const char *)value + 1);
+            tags->value[tags->count] = (unsigned char *)cli_safer_strdup(value + 1);
+            if (NULL == tags->value[tags->count]) {
+                goto done;
+            }
+            len = strlen((const char *)value + 1);
             if (len > 0) {
-                tags->value[tags->count - 1][len - 1] = '\0';
+                tags->value[tags->count][len - 1] = '\0';
             }
         } else {
-            tags->value[tags->count - 1] = (unsigned char *)cli_safer_strdup(value);
+            tags->value[tags->count] = (unsigned char *)cli_safer_strdup(value);
         }
     } else {
-        tags->value[tags->count - 1] = NULL;
+        tags->value[tags->count] = NULL;
     }
+
+    tags->count++;
     return;
 
 done:
     /* Bad error - can't do 100% recovery */
-    tags->count--;
-    for (i = 0; i < tags->count; i++) {
+    for (i = 0; i < tagCnt; i++) {
         if (tags->tag) {
             free(tags->tag[i]);
         }
+    }
+    for (i = 0; i < valueCnt; i++) {
         if (tags->value) {
             free(tags->value[i]);
         }
+    }
+    for (i = 0; i < contentCnt; i++) {
         if (tags->contents) {
             if (tags->contents[i])
                 free(tags->contents[i]);
@@ -649,10 +668,11 @@ static void js_process(struct parser_state *js_state, const unsigned char *js_be
     }
 }
 
-bool html_insert_form_data(const char * const value, form_data_t *tags) {
-    bool bRet = false;
+bool html_insert_form_data(const char *const value, form_data_t *tags)
+{
+    bool bRet  = false;
     size_t cnt = tags->count + 1;
-    char ** tmp = NULL;
+    char **tmp = NULL;
 
     /*
      * Do NOT use cli_max_realloc_or_free because all the previously malloc'd tag
@@ -671,22 +691,23 @@ bool html_insert_form_data(const char * const value, form_data_t *tags) {
 
     bRet = true;
 done:
-    if (!bRet){
+    if (!bRet) {
         memset(tags, 0, sizeof(*tags));
     }
 
     return bRet;
 }
 
-void html_form_data_tag_free(form_data_t *tags) {
+void html_form_data_tag_free(form_data_t *tags)
+{
     size_t i;
-    for (i = 0; i < tags->count; i++){
+    for (i = 0; i < tags->count; i++) {
         CLI_FREE_AND_SET_NULL(tags->urls[i]);
     }
     CLI_FREE_AND_SET_NULL(tags->urls);
 }
 
-static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data)
+static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t *form_data)
 {
     int fd_tmp, tag_length = 0, tag_arg_length = 0;
     bool binary, retval = false, escape = false, hex = false;
@@ -1352,8 +1373,8 @@ static bool cli_html_normalise(cli_ctx *ctx, int fd, m_area_t *m_area, const cha
                                     free(in_form_action);
                                 }
                                 in_form_action = (unsigned char *)cli_safer_strdup(arg_action_value);
-                                if (form_data){
-                                    html_insert_form_data((const char * const) in_form_action, form_data);
+                                if (form_data) {
+                                    html_insert_form_data((const char *const)in_form_action, form_data);
                                 }
                             }
                         } else if (strcmp(tag, "img") == 0) {
@@ -2007,7 +2028,7 @@ bool html_normalise_mem(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, con
     return html_normalise_mem_form_data(ctx, in_buff, in_size, dirname, hrefs, dconf, NULL);
 }
 
-bool html_normalise_mem_form_data(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data)
+bool html_normalise_mem_form_data(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t *form_data)
 {
     m_area_t m_area;
 
@@ -2024,7 +2045,7 @@ bool html_normalise_map(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_argu
     return html_normalise_map_form_data(ctx, map, dirname, hrefs, dconf, NULL);
 }
 
-bool html_normalise_map_form_data(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data)
+bool html_normalise_map_form_data(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t *form_data)
 {
     bool retval = false;
     m_area_t m_area;

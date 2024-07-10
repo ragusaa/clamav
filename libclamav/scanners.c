@@ -2491,9 +2491,9 @@ done:
     return bRet;
 #undef MATCH
 }
-static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t * form_data)
+static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t *form_data)
 {
-    int i        = 0;
+    int i            = 0;
     json_object *ary = NULL;
 
     if (NULL == hrefs) {
@@ -2511,9 +2511,9 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t * form_d
     /*Add hrefs*/
     for (i = 0; i < hrefs->count; i++) {
         if (is_url((const char *)hrefs->value[i])) {
-            if (NULL == ary){
+            if (NULL == ary) {
                 ary = cli_jsonarray(ctx->wrkproperty, HTML_URLS_JSON_KEY);
-                if (!ary){
+                if (!ary) {
                     cli_dbgmsg("[cli_scanhtml] Failed to add \"%s\" entry JSON array\n", HTML_URLS_JSON_KEY);
                     return;
                 }
@@ -2523,11 +2523,11 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t * form_d
     }
 
     /*Add form_data*/
-    for (i = 0; i < (int) form_data->count; i++) {
+    for (i = 0; i < (int)form_data->count; i++) {
         if (is_url((const char *)form_data->urls[i])) {
-            if (NULL == ary){
+            if (NULL == ary) {
                 ary = cli_jsonarray(ctx->wrkproperty, HTML_URLS_JSON_KEY);
-                if (!ary){
+                if (!ary) {
                     cli_dbgmsg("[cli_scanhtml] Failed to add \"%s\" entry JSON array\n", HTML_URLS_JSON_KEY);
                     return;
                 }
@@ -2535,7 +2535,6 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t * form_d
             cli_jsonstr(ary, NULL, (const char *)form_data->urls[i]);
         }
     }
-
 
 #if 0
     if (!bAdded) {
@@ -2553,8 +2552,6 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t * form_d
         cli_dbgmsg("[cli_scanhtml] Failed to add \"%s\" entry JSON array\n", HTML_URLS_JSON_KEY);
     }
 #endif
-
-
 }
 
 static cl_error_t cli_scanhtml(cli_ctx *ctx)

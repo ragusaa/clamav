@@ -46,14 +46,14 @@ typedef struct m_area_tag {
 } m_area_t;
 
 typedef struct form_data_tag {
-    char ** urls;
+    char **urls;
     size_t count;
 } form_data_t;
 
 bool html_normalise_mem(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf);
-bool html_normalise_mem_form_data(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data);
+bool html_normalise_mem_form_data(cli_ctx *ctx, unsigned char *in_buff, off_t in_size, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t *form_data);
 bool html_normalise_map(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf);
-bool html_normalise_map_form_data(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t * form_data);
+bool html_normalise_map_form_data(cli_ctx *ctx, fmap_t *map, const char *dirname, tag_arguments_t *hrefs, const struct cli_dconf *dconf, form_data_t *form_data);
 void html_tag_arg_free(tag_arguments_t *tags);
 bool html_screnc_decode(fmap_t *map, const char *dirname);
 void html_tag_arg_add(tag_arguments_t *tags, const char *tag, char *value);
