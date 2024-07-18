@@ -1557,7 +1557,7 @@ int scanmanager(const struct optstruct *opts)
         options.general |= CL_SCAN_GENERAL_HEURISTICS;
     }
 
-    if (optget(opts, "store-html-urls")->enabled) {
+    if (optget(opts, "json-store-html-urls")->enabled) {
         options.general |= CL_SCAN_STORE_HTML_URLS;
     }
 
