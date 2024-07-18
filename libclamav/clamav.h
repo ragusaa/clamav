@@ -168,6 +168,7 @@ struct cl_scan_options {
 #define CL_SCAN_GENERAL_HEURISTICS                  0x4  /* option to enable heuristic alerts */
 #define CL_SCAN_GENERAL_HEURISTIC_PRECEDENCE        0x8  /* allow heuristic match to take precedence. */
 #define CL_SCAN_GENERAL_UNPRIVILEGED                0x10 /* scanner will not have read access to files. */
+#define CL_SCAN_GENERAL_STORE_HTML_URLS             0x4000 /* Store urls found in html <a and <form tags*/
 
 /* parsing capabilities options */
 #define CL_SCAN_PARSE_ARCHIVE                       0x1
@@ -198,7 +199,6 @@ struct cl_scan_options {
 #define CL_SCAN_HEURISTIC_STRUCTURED_SSN_STRIPPED   0x800  /* alert when detecting stripped social security numbers */
 #define CL_SCAN_HEURISTIC_STRUCTURED_CC             0x1000 /* alert when detecting credit card numbers */
 #define CL_SCAN_HEURISTIC_BROKEN_MEDIA              0x2000 /* alert if a file does not match the identified file format, works with JPEG, TIFF, GIF, PNG */
-#define CL_SCAN_STORE_HTML_URLS                     0x4000 /* Store urls found in html <a and <form tags*/
 
 /* mail scanning options */
 #define CL_SCAN_MAIL_PARTIAL_MESSAGE                0x1

@@ -1558,7 +1558,7 @@ int scanmanager(const struct optstruct *opts)
     }
 
     if (optget(opts, "json-store-html-urls")->enabled) {
-        options.general |= CL_SCAN_STORE_HTML_URLS;
+        options.general |= CL_SCAN_GENERAL_STORE_HTML_URLS;
     }
 
     /* TODO: Remove deprecated option in a future feature release */
