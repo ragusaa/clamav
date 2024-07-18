@@ -295,7 +295,8 @@ void help(void)
     mprintf(LOGG_INFO, "    --phishing-sigs[=yes(*)/no]          Enable email signature-based phishing detection\n");
     mprintf(LOGG_INFO, "    --phishing-scan-urls[=yes(*)/no]     Enable URL signature-based phishing detection\n");
     mprintf(LOGG_INFO, "    --heuristic-alerts[=yes(*)/no]       Heuristic alerts\n");
-    mprintf(LOGG_INFO, "    --json-store-html-urls[=yes(*)/no]   Store html URLs in metadata\n");
+    mprintf(LOGG_INFO, "    --json-store-html-urls[=yes(*)/no]   Store html URLs in metadata.\n");
+    mprintf(LOGG_INFO, "                                         URLs will be written to the metadata.json file in an array called 'HTMLUrls'\n");
     mprintf(LOGG_INFO, "    --heuristic-scan-precedence[=yes/no(*)] Stop scanning as soon as a heuristic match is found\n");
     mprintf(LOGG_INFO, "    --normalize[=yes(*)/no]              Normalize html, script, and text files. Use normalize=no for yara compatibility\n");
     mprintf(LOGG_INFO, "    --scan-pe[=yes(*)/no]                Scan PE files\n");
