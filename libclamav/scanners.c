@@ -2529,23 +2529,6 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t *form_da
             cli_jsonstr(ary, NULL, (const char *)form_data->urls[i]);
         }
     }
-
-#if 0
-    if (!bAdded) {
-        return;
-    }
-
-    json_object *ary = cli_jsonarray(ctx->wrkproperty, HTML_URLS_JSON_KEY);
-    if (ary) {
-        for (i = 0; i < hrefs->count; i++) {
-            if (is_url((const char *)hrefs->value[i])) {
-                cli_jsonstr(ary, NULL, (const char *)hrefs->value[i]);
-            }
-        }
-    } else {
-        cli_dbgmsg("[cli_scanhtml] Failed to add \"%s\" entry JSON array\n", HTML_URLS_JSON_KEY);
-    }
-#endif
 }
 
 static cl_error_t cli_scanhtml(cli_ctx *ctx)
