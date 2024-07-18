@@ -2472,25 +2472,19 @@ const char * URI_LIST[] = {
 
 static bool is_url(const char *const str)
 {
-
-#define MATCH(str, prefix)                                                                              \
-    do {                                                                                                \
-        if (str && (strlen(str) > strlen(prefix)) && (0 == strncasecmp(str, prefix, strlen(prefix)))) { \
-            bRet = true;                                                                                \
-            goto done;                                                                                  \
-        }                                                                                               \
-    } while (0);
-
     bool bRet = false;
     size_t i;
 
     for (i = 0; i < sizeof(URI_LIST) / sizeof(URI_LIST[0]); i++) {
-        MATCH(str, URI_LIST[i]);
+        if (str && (strlen(str) > strlen(URI_LIST[i])) && (0 == strncasecmp(str, URI_LIST[i], strlen(URI_LIST[i])))) {
+            bRet = true;
+            goto done;
+        }
     }
 done:
     return bRet;
-#undef MATCH
 }
+
 static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t *form_data)
 {
     int i            = 0;
