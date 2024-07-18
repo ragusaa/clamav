@@ -2504,7 +2504,7 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t *form_da
         return;
     }
 
-    if (!(STORE_HTML_URLS && SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL))) {
+    if (!(SCAN_STORE_HTML_URLS && SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL))) {
         return;
     }
 
@@ -2586,7 +2586,7 @@ static cl_error_t cli_scanhtml(cli_ctx *ctx)
     cli_dbgmsg("cli_scanhtml: using tempdir %s\n", tempname);
 
     /* Output JSON Summary Information */
-    if (STORE_HTML_URLS && SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
+    if (SCAN_STORE_HTML_URLS && SCAN_COLLECT_METADATA && (ctx->wrkproperty != NULL)) {
         tag_arguments_t hrefs = {0};
         hrefs.scanContents    = 1;
         form_data_t form_data = {0};
