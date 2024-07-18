@@ -2467,13 +2467,13 @@ const char *URI_LIST[] = {
     "z39.50r://",
     "z39.50s://"};
 
-static bool is_url(const char *const str)
+static bool is_url(const char *const str, size_t str_len)
 {
     bool bRet = false;
     size_t i;
 
     for (i = 0; i < sizeof(URI_LIST) / sizeof(URI_LIST[0]); i++) {
-        if (str && (strlen(str) > strlen(URI_LIST[i])) && (0 == strncasecmp(str, URI_LIST[i], strlen(URI_LIST[i])))) {
+        if (str && (str_len > strlen(URI_LIST[i])) && (0 == strncasecmp(str, URI_LIST[i], strlen(URI_LIST[i])))) {
             bRet = true;
             goto done;
         }
@@ -2501,7 +2501,7 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t *form_da
 
     /*Add hrefs*/
     for (i = 0; i < hrefs->count; i++) {
-        if (is_url((const char *)hrefs->value[i])) {
+        if (is_url((const char *)hrefs->value[i], strlen((const char *)hrefs->value[i]))) {
             if (NULL == ary) {
                 ary = cli_jsonarray(ctx->wrkproperty, HTML_URLS_JSON_KEY);
                 if (!ary) {
@@ -2515,7 +2515,7 @@ static void save_urls(cli_ctx *ctx, tag_arguments_t *hrefs, form_data_t *form_da
 
     /*Add form_data*/
     for (i = 0; i < (int)form_data->count; i++) {
-        if (is_url((const char *)form_data->urls[i])) {
+        if (is_url((const char *)form_data->urls[i], strlen((const char *)form_data->urls[i]))) {
             if (NULL == ary) {
                 ary = cli_jsonarray(ctx->wrkproperty, HTML_URLS_JSON_KEY);
                 if (!ary) {
