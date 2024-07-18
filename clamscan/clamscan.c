@@ -254,6 +254,8 @@ void help(void)
     mprintf(LOGG_INFO, "    --gen-json[=yes/no(*)]               Generate JSON metadata for the scanned file(s). For testing & development use ONLY.\n");
     mprintf(LOGG_INFO, "                                         JSON will be printed if --debug is enabled.\n");
     mprintf(LOGG_INFO, "                                         A JSON file will dropped to the temp directory if --leave-temps is enabled.\n");
+    mprintf(LOGG_INFO, "    --json-store-html-urls[=yes(*)/no]   Store html URLs in metadata.\n");
+    mprintf(LOGG_INFO, "                                         URLs will be written to the metadata.json file in an array called 'HTMLUrls'\n");
     mprintf(LOGG_INFO, "    --database=FILE/DIR   -d FILE/DIR    Load virus database from FILE or load all supported db files from DIR\n");
     mprintf(LOGG_INFO, "    --official-db-only[=yes/no(*)]       Only load official signatures\n");
     mprintf(LOGG_INFO, "    --fail-if-cvd-older-than=days        Return with a nonzero error code if virus database outdated.\n");
@@ -295,8 +297,6 @@ void help(void)
     mprintf(LOGG_INFO, "    --phishing-sigs[=yes(*)/no]          Enable email signature-based phishing detection\n");
     mprintf(LOGG_INFO, "    --phishing-scan-urls[=yes(*)/no]     Enable URL signature-based phishing detection\n");
     mprintf(LOGG_INFO, "    --heuristic-alerts[=yes(*)/no]       Heuristic alerts\n");
-    mprintf(LOGG_INFO, "    --json-store-html-urls[=yes(*)/no]   Store html URLs in metadata.\n");
-    mprintf(LOGG_INFO, "                                         URLs will be written to the metadata.json file in an array called 'HTMLUrls'\n");
     mprintf(LOGG_INFO, "    --heuristic-scan-precedence[=yes/no(*)] Stop scanning as soon as a heuristic match is found\n");
     mprintf(LOGG_INFO, "    --normalize[=yes(*)/no]              Normalize html, script, and text files. Use normalize=no for yara compatibility\n");
     mprintf(LOGG_INFO, "    --scan-pe[=yes(*)/no]                Scan PE files\n");
